@@ -1383,6 +1383,17 @@
 		(layer "Edge.Cuts")
 		(uuid "d3f51676-501e-4c81-8899-c656ce496594")
 	)
+	(gr_text "Minimal 64x4\nExpansion Bus Connector"
+		(at 144.5 97.5 90)
+		(layer "F.SilkS")
+		(uuid "913cedcc-c0c3-42fc-82df-dfb8efcf7ef2")
+		(effects
+			(font
+				(size 1.7 1.5)
+				(thickness 0.2)
+			)
+		)
+	)
 	(segment
 		(start 160.315 101.575)
 		(end 161.54 102.8)
