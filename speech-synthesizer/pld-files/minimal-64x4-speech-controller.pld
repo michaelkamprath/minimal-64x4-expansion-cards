@@ -1,0 +1,105 @@
+GAL22V10
+speechctl
+
+CLK  MMAP  RO   RI     M1      M0       RESET    READY   INT    RS     WS      GND
+NC   INH   NC   BUSY   STATEO  STATUSI  STATUSO  WSRST   RSRST  WSCLK  RSCLK   VCC
+
+
+; Memory Map Lines
+;
+;   Function | M1 | M0
+;  ----------+----+----
+;   DATA_IN  |  0 |  0
+;   STATUS   |  0 |  1
+;   STATE    |  1 |  0
+;   RESET    |  1 |  1
+
+;
+; Active Low Input lines
+;   RO
+;   RI
+;   RESET
+;   READY
+;   INT
+;   MMAP
+;
+; Active Low Output Lines
+;   INH
+;   STATEO
+;   STATUSO
+;   WSRST
+;   RSRST
+;
+
+
+;
+; Pin Logic TMS5220C Controller
+;
+
+;
+; Write Data for External Speech Data
+;
+
+; The WSCLK pin should go high on the CLK when the conditions to intiate a write
+; operation are present. When the clock goes low, the WSCLK should be reset.
+WSCLK.R = /MMAP * /RI * RO * /M1 * /M0 * /BUSY
+
+
+
+; READY should go high within 100 ns of WS. That is a 10 MHz clock, which
+; is faster than CLK. WSCLK should be active for long enough to
+; prevent WSRST from being activated in the time between WS being activated
+; and READY going high. Given that, the WSRST should be activated when
+; WSCLK is not active, WS is active, and READY is not active (should have transitioned
+; from HIGH to LOW given WS was active)
+
+/WSRST.R = /WSCLK * WS * /READY + /RESET
+;
+; TMS5220C Status Fetch Operation
+;
+
+
+; activate RS (active low) when memory map is appropriate and active RI and
+; speech module not otherwise busy, and keep active while READY
+; is high. Assumes READY will go high within 1 clock cycle.
+RSCLK.R = /MMAP * /RI * RO * /M1 * M0 * /BUSY
+
+STATUSI.R = /RSCLK * RS * /READY
+
+/RSRST = STATUSI + /RESET
+
+
+; Write status register to data bus when memory map is appropriate and active RO
+; and speech module not otherwise busy.
+ /STATUSO = /MMAP * RI * /RO * /M1 * M0 * /BUSY * STATEO
+
+;
+; Speech Board State
+;
+
+; Write board state to data bus when memory map is appropriate,
+/STATEO = /MMAP * RI * /RO * M1 * /M0 * STATUSO
+
+; Write status register to data bus when memory map is appropriate
+; and speech module not otherwise busy.
+;
+; Speech Module Busy
+;
+
+BUSY = RS + STATUSI + WS + READY
+
+; Set the INH line to disable host computer RAM and ROM when
+; ever the speech board is going to write to the data bus
+
+/INH = /MMAP * RI * /RO * /M1 * M0 * /BUSY * STATEO + /MMAP * RI * /RO * M1 * /M0 * STATUSO
+
+; TMS5220C Reset
+;
+; Reset for the TMS5220C is activated when RI is active and memory map is appropriate.
+; Reset is booth the /WS and /RS pins on the TMS5220C being active at the same time.
+;
+; TBC
+
+DESCRIPTION
+
+Glue logic to connect TMS5220 to 8 bit data bus and controlled via memory map.

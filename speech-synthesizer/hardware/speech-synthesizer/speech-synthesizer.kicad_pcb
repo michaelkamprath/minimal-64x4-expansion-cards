@@ -74,9 +74,9 @@
 			(subtractmaskfromsilk no)
 			(outputformat 1)
 			(mirror no)
-			(drillshape 1)
+			(drillshape 0)
 			(scaleselection 1)
-			(outputdirectory "")
+			(outputdirectory "gerbers_v1")
 		)
 	)
 	(net 0 "")
@@ -13892,6 +13892,18 @@
 		)
 		(layer "Edge.Cuts")
 		(uuid "f593ab21-527f-4506-a825-608f8ffdb790")
+	)
+	(gr_text "JLCJLCJLCJLC"
+		(at 176.022 133.985 0)
+		(layer "B.SilkS")
+		(uuid "c453c013-4199-4adf-8dea-910222056f00")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom mirror)
+		)
 	)
 	(gr_text "10K"
 		(at 154.813 94.869 0)

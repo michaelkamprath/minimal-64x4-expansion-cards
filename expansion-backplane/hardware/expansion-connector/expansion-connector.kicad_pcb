@@ -74,9 +74,9 @@
 			(subtractmaskfromsilk no)
 			(outputformat 1)
 			(mirror no)
-			(drillshape 1)
+			(drillshape 0)
 			(scaleselection 1)
-			(outputdirectory "")
+			(outputdirectory "gerbers_v1")
 		)
 	)
 	(net 0 "")
@@ -1392,6 +1392,18 @@
 				(size 1.7 1.5)
 				(thickness 0.2)
 			)
+		)
+	)
+	(gr_text "To Back -->"
+		(at 156.21 84.328 90)
+		(layer "F.SilkS")
+		(uuid "c3ba44be-8529-4e00-85d1-22af4b270fda")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.1)
+			)
+			(justify left bottom)
 		)
 	)
 	(segment
