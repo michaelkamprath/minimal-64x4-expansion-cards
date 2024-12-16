@@ -3,22 +3,21 @@
 .org 0 "USER_APPS"
 init:
     spinit
-    ; jps speech_init
-
+    jps speech_init
 start:
 
     phs2i hello_world_str jps _PrintPtr pls2
-    phs2i hello_world_end
-    phs2i hello_world_start
+    phsptr hello_world_end
+    phsptr hello_world_start
     jps speak_synchronous
     pls2 pls2
 
-    phs2i press_any_key_str jps _Print pls2
+    phs2i press_any_key_str jps _PrintPtr pls2
     jps _WaitInput
 
-    phs2i daisy_p1_str jps _Print pls2
-    phs2i daisy_p1_end
-    phs2i daisy_p1_start
+    phs2i daisy_p1_str jps _PrintPtr pls2
+    phsptr daisy_p1_end
+    phsptr daisy_p1_start
     jps speak_synchronous
     pls2 pls2
 done:

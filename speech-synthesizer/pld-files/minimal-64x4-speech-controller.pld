@@ -24,7 +24,6 @@ NC   INH   NC   BUSY   STATEO  STATUSI  STATUSO  WSRST   RSRST  WSCLK  RSCLK   V
 ;   MMAP
 ;
 ; Active Low Output Lines
-;   INH
 ;   STATEO
 ;   STATUSO
 ;   WSRST
@@ -91,7 +90,7 @@ BUSY = RS + STATUSI + WS + READY
 ; Set the INH line to disable host computer RAM and ROM when
 ; ever the speech board is going to write to the data bus
 
-/INH = /MMAP * RI * /RO * /M1 * M0 * /BUSY * STATEO + /MMAP * RI * /RO * M1 * /M0 * STATUSO
+INH = /MMAP * RI * /RO * /M1 * M0 * /BUSY * STATEO + /MMAP * RI * /RO * M1 * /M0 * STATUSO
 
 ; TMS5220C Reset
 ;
