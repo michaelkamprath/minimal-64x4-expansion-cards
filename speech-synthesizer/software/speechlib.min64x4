@@ -191,7 +191,7 @@ speech_update_buffer:
 _send_8_bytes:
     ; need a small delay to ensure we aren't sending bytes too soon
     ; after a previous TMS5220 interaction
-    phsi $40 jps _delay pls
+    phsi $10 jps _delay pls
     mib 8,.counter
 .send_loop:
     ; ennsure buffer is not done
@@ -199,7 +199,6 @@ _send_8_bytes:
     fne .wait
     czz _speech_buffer_cur_ptr+0,_speech_buffer_end_ptr+0
     fne .wait
-    jps _Print "  got to end of buffer (cur == end)\n"
     fpa .done
     ; wait for board to not be busy, then wait 10 µs
 .wait:
@@ -209,13 +208,13 @@ _send_8_bytes:
     ldt _speech_buffer_cur_ptr
     stb SPEECH_COMMAND_REG              ; send the byte
     ; wait for the TMS9918A to catch up = t_wait = 10us => 80 clock cycles
-    phsi $08 jps _delay pls
+    phsi $04 jps _delay pls
     ; adjust current ptr and counter
     inv _speech_buffer_cur_ptr          ; increment buffer pointer
     deb .counter fne .send_loop
 .done:
     ; delay some before the next interaction
-    phsi $60 jps _delay pls
+    phsi $10 jps _delay pls
     rts
 .counter:   .byte 0
 
@@ -284,13 +283,7 @@ speech_get_status:
     ldb SPEECH_STATUS_REG
     phs                 ; save status byte to stack
     ; need to wait at least 12us before doing anything else
-    ldi $04
-.delay:
-    nop                 ; 16 clock cycles
-    nop
-    nop
-    nop
-    nop
-    dec fne .delay
+    phsi $04 jps _delay pls
+    ; and return
     pls                 ; get status byte back
     rts
