@@ -21,7 +21,9 @@ SPEECH_STATUS_BUFFER_LOW    = b01000000
 SPEECH_STATUS_BUFFER_EMPTY  = b00100000
 
 ; Zero Page Usage
-.memzone ZERO_PAGE_APPS
+; Most apps us forst few bytes of zero page directly. 
+; We will offset a little to ensure no collisionms.
+.org $40 "ZERO_PAGE_APPS"
 #mute
 
 _speech_buffer_cur_ptr: .2byte 0
@@ -39,7 +41,7 @@ _speech_buffer_end_ptr: .2byte 0
 ;       None
 ;
 speech_init:
-    jps _Print "Starting speech\n"
+    jps _SerialPrint "Starting speech\n"
     ; initialize buffer pointers
     miv 0,_speech_buffer_cur_ptr
     miv 0,_speech_buffer_end_ptr
@@ -55,20 +57,20 @@ speech_init:
     nop nop nop nop nop nop
     deb .counter fne .loop              ; decrement counter and loop if zero not set
     pls
-    jps _Print "  sending reset command\n"
+    jps _SerialPrint "  sending reset command\n"
     ; now send reset command
     phsi SPEECH_CMD_RESET
     jps _speech_send_cmd_data
     pls
     ; now wait 300 µs
     phsi $40 jps _delay pls
-    jps _Print "  done setting up speech\n"
+    jps _SerialPrint "  done setting up speech\n"
     rts
 .counter:   .byte 0
 
 
 .align
-; speak_external_buffer
+; speak_synchronous
 ;   Uses Speak External command to synchonously speak data in passed buffer.
 ;   Function returns when speaking is done.
 ;
@@ -79,10 +81,8 @@ speech_init:
 ;   Retruns:
 ;       None
 ;
-;   Uses A and X registers
-;
 speak_synchronous:
-    jps _Print "Sending speech synchronously ...\n"
+    jps _SerialPrint "Sending speech synchronously ...\n"
     ; start speech
     phs2s 5+0
     phs2s 3+2
@@ -98,7 +98,7 @@ speak_synchronous:
     jps speech_update_buffer
     fpa .buffer_loop
 .done_talking:
-    jps _Print "  done sending speech synchronously\n"
+    jps _SerialPrint "  done sending speech synchronously\n"
     rts
 
 
@@ -118,7 +118,7 @@ speak_synchronous:
 ;
 .align
 speech_start:
-    jps _Print "Start sending speech data ...\n"
+    jps _SerialPrint "Start sending speech data ...\n"
     ; first check if there is already something talking
     ciz 0,_speech_buffer_cur_ptr+0 fne .wait_for_talking
     ciz 0,_speech_buffer_cur_ptr+1 fne .wait_for_talking
@@ -138,9 +138,19 @@ _setup_talking:
     jps _send_8_bytes
     jps _send_8_bytes
     ; and we are done
-    ; jps _Print "  done sending initial speech data\n"
     rts
 
+.align
+speech_start_if_not_talking:
+    ; first check if there is already something talking
+    ciz 0,_speech_buffer_cur_ptr+0 fne .is_talking
+    ciz 0,_speech_buffer_cur_ptr+1 fne .is_talking
+    jps speech_get_status
+    ani SPEECH_STATUS_TALK cpi 0 fne .is_talking
+.start_talking:
+    jpa _setup_talking
+.is_talking:
+    rts
 
 ; speech_update_buffer
 ;   Checks to see if there is an ongoing speech operation and send the TMS5220 more data if
@@ -149,6 +159,7 @@ _setup_talking:
 ;   Arguments
 ;       None
 ;
+.align
 speech_update_buffer:
     ; first, check to see if we have a in-progress buffer, signified by a non-zero pointer
     ciz 0,_speech_buffer_cur_ptr+0 fne .check_interupt
@@ -170,7 +181,6 @@ speech_update_buffer:
     jps _send_8_bytes
     fpa .done
 .talking_stopped:
-    jps _Print "  talking stopped. resetting buffers.\n"
     pls                     ; pull the talking status that was pushed on stack
     ; TODO handle restarting speech on remaining buffer
 .buffer_done:

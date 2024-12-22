@@ -3134,301 +3134,6 @@
 				)
 			)
 		)
-		(symbol "Transistor_FET:BS250"
-			(pin_names hide)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(property "Reference" "Q"
-				(at 5.08 1.905 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left)
-				)
-			)
-			(property "Value" "BS250"
-				(at 5.08 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left)
-				)
-			)
-			(property "Footprint" "Package_TO_SOT_THT:TO-92_Inline"
-				(at 5.08 -1.905 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-						(italic yes)
-					)
-					(justify left)
-					(hide yes)
-				)
-			)
-			(property "Datasheet" "http://www.vishay.com/docs/70209/70209.pdf"
-				(at 5.08 -3.81 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left)
-					(hide yes)
-				)
-			)
-			(property "Description" "-0.18A Id, -45V Vds, P-Channel MOSFET, TO-92"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_keywords" "P-Channel MOSFET"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_fp_filters" "TO?92*"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(symbol "BS250_0_1"
-				(polyline
-					(pts
-						(xy 0.254 0) (xy -2.54 0)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.254 1.905) (xy 0.254 -1.905)
-					)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.762 -1.27) (xy 0.762 -2.286)
-					)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.762 0.508) (xy 0.762 -0.508)
-					)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.762 2.286) (xy 0.762 1.27)
-					)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.54 2.54) (xy 2.54 1.778)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.54 -2.54) (xy 2.54 0) (xy 0.762 0)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.762 1.778) (xy 3.302 1.778) (xy 3.302 -1.778) (xy 0.762 -1.778)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.286 0) (xy 1.27 0.381) (xy 1.27 -0.381) (xy 2.286 0)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.794 -0.508) (xy 2.921 -0.381) (xy 3.683 -0.381) (xy 3.81 -0.254)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 3.302 -0.381) (xy 2.921 0.254) (xy 3.683 0.254) (xy 3.302 -0.381)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(circle
-					(center 1.651 0)
-					(radius 2.794)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(circle
-					(center 2.54 -1.778)
-					(radius 0.254)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(circle
-					(center 2.54 1.778)
-					(radius 0.254)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
-			)
-			(symbol "BS250_1_1"
-				(pin passive line
-					(at 2.54 5.08 270)
-					(length 2.54)
-					(name "D"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -5.08 0 0)
-					(length 2.54)
-					(name "G"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 2.54 -5.08 90)
-					(length 2.54)
-					(name "S"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-		)
 		(symbol "minimal-64x4:-5V_Converter"
 			(exclude_from_sim no)
 			(in_bom yes)
@@ -5975,12 +5680,6 @@
 		(uuid "9fab48c7-3db1-4b86-940d-1c7c244b6106")
 	)
 	(junction
-		(at 143.51 134.62)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "a1dbf03c-235d-4371-bbe4-cc73c18a56b9")
-	)
-	(junction
 		(at 16.51 26.67)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6075,12 +5774,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "ee9a5f27-a1f0-4f48-91d6-91e6c6ce8def")
-	)
-	(junction
-		(at 151.13 134.62)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "f23875ec-4683-4134-adb6-e6d541cb948f")
 	)
 	(junction
 		(at 57.15 147.32)
@@ -7274,16 +6967,6 @@
 	)
 	(wire
 		(pts
-			(xy 151.13 127) (xy 151.13 134.62)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "2201979c-9b33-46db-9dec-183b492e3210")
-	)
-	(wire
-		(pts
 			(xy 130.81 157.48) (xy 130.81 162.56)
 		)
 		(stroke
@@ -8064,16 +7747,6 @@
 	)
 	(wire
 		(pts
-			(xy 143.51 142.24) (xy 143.51 134.62)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "57c7dcb0-02e8-41ca-b2b2-444a1e601074")
-	)
-	(wire
-		(pts
 			(xy 220.98 30.48) (xy 220.98 35.56)
 		)
 		(stroke
@@ -8521,16 +8194,6 @@
 			(type default)
 		)
 		(uuid "794188fe-32da-4735-a8dd-bec9c3fad2fc")
-	)
-	(wire
-		(pts
-			(xy 143.51 134.62) (xy 143.51 124.46)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "7a6dc574-c5ca-4182-8f78-e13f80cf0cb9")
 	)
 	(wire
 		(pts
@@ -9804,16 +9467,6 @@
 	)
 	(wire
 		(pts
-			(xy 151.13 134.62) (xy 151.13 137.16)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "d8f298dc-60a3-418f-a672-ebdd137ce022")
-	)
-	(wire
-		(pts
 			(xy 16.51 62.23) (xy 16.51 71.12)
 		)
 		(stroke
@@ -10104,7 +9757,7 @@
 	)
 	(wire
 		(pts
-			(xy 151.13 153.67) (xy 151.13 147.32)
+			(xy 151.13 124.46) (xy 151.13 153.67)
 		)
 		(stroke
 			(width 0)
@@ -10254,7 +9907,7 @@
 	)
 	(wire
 		(pts
-			(xy 143.51 124.46) (xy 139.065 124.46)
+			(xy 139.065 124.46) (xy 151.13 124.46)
 		)
 		(stroke
 			(width 0)
@@ -11318,7 +10971,7 @@
 		)
 		(uuid "f758435d-0b88-4dda-9182-c614b4bf8db1")
 	)
-	(label "~{INH}"
+	(label "INH"
 		(at 139.7 124.46 0)
 		(fields_autoplaced yes)
 		(effects
@@ -11557,82 +11210,6 @@
 				)
 				(justify right)
 				(hide yes)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Transistor_FET:BS250")
-		(at 148.59 142.24 0)
-		(mirror x)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(uuid "017b5487-f0a8-4b6b-8e4e-0b877de57a01")
-		(property "Reference" "Q1"
-			(at 153.797 143.4522 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "BS250"
-			(at 153.797 141.0279 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Package_TO_SOT_THT:TO-92_Inline"
-			(at 153.67 140.335 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-					(italic yes)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "http://www.vishay.com/docs/70209/70209.pdf"
-			(at 153.67 138.43 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
-		(property "Description" "-0.18A Id, -45V Vds, P-Channel MOSFET, TO-92"
-			(at 148.59 142.24 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "04493da4-3d66-4de2-b619-dd3c5010cead")
-		)
-		(pin "2"
-			(uuid "f762eef4-f44b-4aa1-be95-d3576dfcd702")
-		)
-		(pin "3"
-			(uuid "f201fbff-7705-41d6-9d1b-76cd01c9cf59")
-		)
-		(instances
-			(project "speech-synthesizer"
-				(path "/1974cd7e-7eab-479e-9e43-4655eb983e49"
-					(reference "Q1")
-					(unit 1)
-				)
 			)
 		)
 	)
@@ -14170,72 +13747,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:+5V")
-		(at 151.13 127 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "9892b9c3-7619-45ee-abdc-ada486cc63b9")
-		(property "Reference" "#PWR04"
-			(at 151.13 130.81 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Value" "+5V"
-			(at 151.13 122.8669 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 151.13 127 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" ""
-			(at 151.13 127 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+5V\""
-			(at 151.13 127 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "0cba9a3e-3148-4547-93ca-190764df280c")
-		)
-		(instances
-			(project "speech-synthesizer"
-				(path "/1974cd7e-7eab-479e-9e43-4655eb983e49"
-					(reference "#PWR04")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:GND")
 		(at 104.14 68.58 0)
 		(unit 1)
@@ -14571,74 +14082,6 @@
 			(project "speech-synthesizer"
 				(path "/1974cd7e-7eab-479e-9e43-4655eb983e49"
 					(reference "#PWR015")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:R")
-		(at 147.32 134.62 90)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "a2a2345c-15de-4421-b0e1-aa9f6a5330fe")
-		(property "Reference" "R2"
-			(at 147.32 129.4595 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "10K"
-			(at 147.32 131.8838 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal"
-			(at 147.32 136.398 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 147.32 134.62 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Resistor"
-			(at 147.32 134.62 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "4f31e543-5cc6-48c1-b947-00ccef0c95b8")
-		)
-		(pin "2"
-			(uuid "f335bbed-4e26-4fec-b7eb-50ee7d669fad")
-		)
-		(instances
-			(project "speech-synthesizer"
-				(path "/1974cd7e-7eab-479e-9e43-4655eb983e49"
-					(reference "R2")
 					(unit 1)
 				)
 			)
