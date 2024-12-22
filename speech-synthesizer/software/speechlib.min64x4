@@ -41,7 +41,6 @@ _speech_buffer_end_ptr: .2byte 0
 ;       None
 ;
 speech_init:
-    jps _SerialPrint "Starting speech\n"
     ; initialize buffer pointers
     miv 0,_speech_buffer_cur_ptr
     miv 0,_speech_buffer_end_ptr
@@ -57,14 +56,12 @@ speech_init:
     nop nop nop nop nop nop
     deb .counter fne .loop              ; decrement counter and loop if zero not set
     pls
-    jps _SerialPrint "  sending reset command\n"
     ; now send reset command
     phsi SPEECH_CMD_RESET
     jps _speech_send_cmd_data
     pls
     ; now wait 300 µs
     phsi $40 jps _delay pls
-    jps _SerialPrint "  done setting up speech\n"
     rts
 .counter:   .byte 0
 
@@ -82,7 +79,6 @@ speech_init:
 ;       None
 ;
 speak_synchronous:
-    jps _SerialPrint "Sending speech synchronously ...\n"
     ; start speech
     phs2s 5+0
     phs2s 3+2
@@ -98,7 +94,6 @@ speak_synchronous:
     jps speech_update_buffer
     fpa .buffer_loop
 .done_talking:
-    jps _SerialPrint "  done sending speech synchronously\n"
     rts
 
 
@@ -118,7 +113,6 @@ speak_synchronous:
 ;
 .align
 speech_start:
-    jps _SerialPrint "Start sending speech data ...\n"
     ; first check if there is already something talking
     ciz 0,_speech_buffer_cur_ptr+0 fne .wait_for_talking
     ciz 0,_speech_buffer_cur_ptr+1 fne .wait_for_talking
