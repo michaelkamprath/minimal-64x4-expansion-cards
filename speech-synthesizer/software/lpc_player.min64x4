@@ -3,18 +3,17 @@
 ; This application is a tool that allows you to stream raw LPC bytes into the app
 ; via the serial connection and the will be played on the TMS5220. The input is a specific format:
 ;
-;    { xx xx xx xx }
+;    xx xx xx xx 
 ;
-; where xx is a hex encoded byte (no preceeding "0x"). Anything preceeding the '{' or
-; trailing the '}' will be ignore. White space is used as a list seperator.
+; where xx is a hex encoded byte (no preceeding "0x").  White space and commas are used as a list seperator.
+; When data is done being entered, press ESCAPE to initiate conversation to speech.
 ;
 #require "slu4-min64x4-asm >= 1.1.0"
 
 DATA_BUFFER_SIZE = 4096
 
 ESCAPE_CHAR = 27
-OPEN_BRACE_CHAR = 0x7B
-CLOSE_BRACE_CHAR = 0x7D
+DELETE_CHAR = 0xf0      ; this is a Min64x4 value
 
 ; 'enums' used for indicating the finite state machine status.
 ; Values pertain to jump table offsets.
@@ -32,13 +31,13 @@ init:
 start_receive:
     jps _Clear
     mib 0,_YPos
-    jps _Print "Ready to receive encoded LPC from Serial\nExpected format: { 01 2 ab DE }\n>\n"
+    jps _Print "Ready to receive encoded LPC from Serial\nExpected format: 01 2 ab ... DE <ESCAPE>\nPress DELETE to cancel >\n"
     jps _SerialPrint "Ready to send encoded LPC >\n"
 
 
 start_read:
     miv data_buffer,data_buffer_ptr     ; set buffer ptr to start of buffer
-    miz READ_STATE_START,data_read_state ; set state machine to start
+    miz READ_STATE_DATA_WS,data_read_state ; set state machine to start
     phs                                 ; dummy push so that the loops can start with a pull
 .read_next_byte:
     pls                                 ; remove character on stack before continuing
@@ -61,10 +60,6 @@ start_read:
     .2byte .read_byte_closed
 
 .read_byte_start:
-    ; check to see if we've found an open brace yet
-    lds 1                               ; get character from stack
-    cpi OPEN_BRACE_CHAR                 ; is it a '{'?
-    fne .read_next_byte                 ; it's not. Next character
     miz READ_STATE_DATA_WS,data_read_state ; it is, change state machine
     fpa .read_next_byte                 ; next byte
 
@@ -79,10 +74,10 @@ start_read:
     feq .start_hex_capture              ; it is, start the hex capture
     jps is_escape                       ; determine if an escape character has been sent
     cpi 1
-    beq exit_loop_escape                ; it has bee. escape loop
+    beq .close_data_capture             ; it has bee. escape loop
     lds 1                               ; get the character on the stack
-    cpi CLOSE_BRACE_CHAR                ; compare to closing '}'
-    beq .close_data_capture             ; if it is, close the data capture
+    cpi DELETE_CHAR                     ; did the user cancel?
+    beq exit_loop_cancel 
     ; if we are here, we do not know what to do with the character.
     jpa exit_loop_error                 ; exit with an error
 
@@ -106,9 +101,12 @@ start_read:
     jps is_char_hex                     ; is it a hex?
     cpi 1                               ; check
     feq .eval_2_char_hex                ; it is, evaluate 2-char hex
-    lds 1                               ; get the character on the stack
-    cpi CLOSE_BRACE_CHAR                ; compare to closing '}'
+    jps is_escape                       ; user done?
+    cpi 1
     feq .close_then_evale_1_char_hex    ; it is. evaluate 1-char hex
+    lds 1
+    cpi DELETE_CHAR                     ; did the user cancel?
+    beq exit_loop_cancel 
     ; if we are here, we do not know what to do with the character.
     jpa exit_loop_error                 ; exit with an error
 .close_then_evale_1_char_hex:
@@ -153,7 +151,7 @@ exit_loop_error:
     jps _Print "ERROR - failed to parse data\n"
     jpa exit
 
-exit_loop_escape:
+exit_loop_cancel:
     pls
     jps _Print "User canceled - bye bye!\n"
     jpa exit
