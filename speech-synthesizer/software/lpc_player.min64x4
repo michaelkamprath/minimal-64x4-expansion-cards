@@ -163,16 +163,26 @@ exit_loop_buffer_full:
     jps _Print "ERROR - buffer full\n"
     jpa exit
 
+.align
 exit_loop_done:
     pls
     dev data_buffer_ptr                         ; decrement ptr since there is no "next value"
     mvv data_buffer_ptr,data_end_ptr
     jps _Print "Data read successfully!\nBuffer = {\n"
     miv data_buffer,data_buffer_ptr
+    miz 0,counter
 .print_loop:
     ldt data_buffer_ptr
     jas _PrintHex
-    jps _Print ", "
+    ciz 15,counter
+    feq .print_newline
+    jps _Print ","
+    inz counter
+    fpa .check_buffer_ptr
+.print_newline:
+    jps _Print "\n"
+    miz 0,counter
+.check_buffer_ptr:
     czz data_end_ptr+1,data_buffer_ptr+1
     bne .next_byte
     czz data_end_ptr+0,data_buffer_ptr+0
