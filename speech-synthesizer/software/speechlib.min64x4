@@ -32,7 +32,7 @@ _speech_buffer_end_ptr: .2byte 0
 
 #emit
 .memzone USER_APPS
-.align
+; .align
 ; speech_init
 ;
 ;   Prepares the TMS5220 for speech
@@ -66,7 +66,7 @@ speech_init:
 .counter:   .byte 0
 
 
-.align
+; .align
 ; speak_synchronous
 ;   Uses Speak External command to synchonously speak data in passed buffer.
 ;   Function returns when speaking is done.
@@ -134,7 +134,7 @@ _setup_talking:
     ; and we are done
     rts
 
-.align
+; .align
 speech_start_if_not_talking:
     ; first check if there is already something talking
     ciz 0,_speech_buffer_cur_ptr+0 fne .is_talking
@@ -153,7 +153,7 @@ speech_start_if_not_talking:
 ;   Arguments
 ;       None
 ;
-.align
+; .align
 speech_update_buffer:
     ; first, check to see if we have a in-progress buffer, signified by a non-zero pointer
     ciz 0,_speech_buffer_cur_ptr+0 fne .check_interupt
