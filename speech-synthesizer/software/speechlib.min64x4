@@ -195,7 +195,7 @@ speech_update_buffer:
 _send_8_bytes:
     ; need a small delay to ensure we aren't sending bytes too soon
     ; after a previous TMS5220 interaction
-    phsi $10 jps _delay pls
+    phsi $10 jps _delay pls             ; 1408 clock cycle delay
     mib 8,.counter
 .send_loop:
     ; ennsure buffer is not done
@@ -218,23 +218,25 @@ _send_8_bytes:
     deb .counter fne .send_loop
 .done:
     ; delay some before the next interaction
-    phsi $10 jps _delay pls
+    phsi $10 jps _delay pls             ; 1408 clock cycle delay
     rts
 .counter:   .byte 0
 
 
 ; _delay
 ;       Implements a delay. Performs 5 NOPs for each count.
+;       Total delay is 16 + COUNT*87 clock cycles, not including JPS
 ; 
 ;       Arguments
 ;       sp+3 : deplay count (1 byte)
 ; 
 _delay:
-    lds 3
+    lds 3                   ; 6 clock cycles
 .wait:
-    nop nop nop nop nop
-    dec bne .wait
-    rts
+    nop nop nop nop nop     ; 5x 16 clock cycles per count
+    dec                     ; 3 clock cycles per count
+    bne .wait               ; 4 clock cycles per count
+    rts                     ; 10 clock cycles
 
 
 ; _wait_on_speech_board_busy
@@ -285,9 +287,9 @@ speech_get_status:
     nop
     ; and fetch the status
     ldb SPEECH_STATUS_REG
-    phs                 ; save status byte to stack
-    ; need to wait at least 12us before doing anything else
-    phsi $04 jps _delay pls
+    phs                         ; save status byte to stack
+    ; need to wait at least 12uS before doing anything else
+    phsi $04 jps _delay pls     ; 364 clock cycles --> 45.5 uS
     ; and return
-    pls                 ; get status byte back
+    pls                         ; get status byte back
     rts

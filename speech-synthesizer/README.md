@@ -10,7 +10,7 @@ This project creates a TMS5220-base speech synthesizer board for the [Minimal 64
 This board supports both the TMS5220 and TMS5220C variants of the speech synthesizer chip.
 
 
-## General Design
+## Hardware Design
 The board responds to three memory mapped addresses (the board is adjustable to set the `_` value below, but it defaults to `0xC`0:
 
 * `0xFE_0` - **TMS5220 Command Register** - This address allows the host computer to write data to the TMS5220's command register, which is used for sending "external speech" data to the TMS5220. In general, the host computer will write certain TMS5220 commands and speech data to this address.
@@ -34,6 +34,33 @@ As a result, data interactions between the host computer and the TMS5220 need to
 4. The whole time this sequence is occurring, the ATF22V10C asserts the `BUSY` line for the board, which can be read by the host computer at address 0xFE02 via the 74HCT245. This then allows the host computer to query the board to determine if the TMS5220 is done with processing the data
 
 The board uses a similar sequence when reading data from the TMS5220, though that sequence is centered around the `/RS` line.
+
+## Software Design
+The provided `speechlib.min64x4` file contains all the subroutines needed to use this board on the Minimal 64x4 home computer.
+
+* `speech_init` - call to initialize the board
+* `speak_synchronous` - Speak the LPC data in a passed buffer synchronously. Push the folling arguments on the stack (in push order):
+  * **Buffer End Address** - The 2-byte end address of the data buffer
+  * **Buffer Start Address** - The 2-byte start address of the data buffer
+* `speech_start` - Speak the LPC data in a passed buffer asynchronously, synchronously waiting for any currently active talking to finish. Push the folling arguments on the stack (in push order):
+  * **Buffer End Address** - The 2-byte end address of the data buffer
+  * **Buffer Start Address** - The 2-byte start address of the data buffer
+* `speech_start_if_not_talking` - Speak the LPC data in a passed buffer asynchronously if there is no currently active talking. Push the folling arguments on the stack (in push order):
+  * **Buffer End Address** - The 2-byte end address of the data buffer
+  * **Buffer Start Address** - The 2-byte start address of the data buffer
+* `speech_update_buffer` - Call periodically, about every 1 ms, to enable asynchronous speaking. No arguments.
+* `speech_get_status` - Get the contents of the TMS5220 status register, which is returned in the `A` register. The following bit masks are defined to help interpret the results:
+  * `SPEECH_STATUS_TALK` - The TMS5220 is currently talking
+  * `SPEECH_STATUS_BUFFER_LOW` - The TMS5220 FIFO buffer is half empty. Time to send more LPC data. _Note:_ The `speech_update_buffer` functions takes care of updating the FIFO buffer if needed.
+  * `SPEECH_STATUS_BUFFER_EMPTY` - The TMS5220 FIFO buffer is empty.
+
+### Undocumentated Timining Issues
+The TMS5220 seems to have some timing requirements not documented in its datasheet. These requirements were exposed by the Minimal 64x4, which has a clock speed that is much faster than the host computers that the TMS5220 was designed for. These undocumented timing requirements were determined emperically and likely could be tweaked further.
+
+* **Read Cycle for Status Transfers to External Speech Data write** - The data sheet indicats that the `t_wait` after `/RS` goes high is 12 µS. However, I found that something closer to 175 µS was needed between a status read and then an external speech data write.
+* **External Speech Data write to Read Cycle for Status Transfers** -  Similar to the above, some extra time is needed between writing eexternal speech data and then reading the TMS5220 status. Again, I found this to be on the order of 175 µS.
+
+These values were "tweaked until it worked". The issues seem to be related to changing modes of interaction with the TMS5220. In contrast, writing an external speech data byte after a previous external speech data byte does adhere to the timing diagrams in the TMS5220 data sheet. Further experimentation would likely find better and/or smaller values for the undocumented delays.
 
 # Compiling the Software
 All software found in the [software](./software/) directory is compiled with [BespokeASM](https://github.com/michaelkamprath/bespokeasm) which supports the Minimal 64x4. [Carsten Herting](https://github.com/slu4coder), the creator of the Minimal 64x4, does provide an assembler for it. However, the provided assembler is white minimal. A key shortcoming is the inaqbility to import library code to the current compilation. BespokeASM enables importing libraries and a few other features that are in use by the software found in this project.
