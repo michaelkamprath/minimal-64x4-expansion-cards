@@ -1,17 +1,15 @@
 # TMS5220 Speech Synthesizer for Minimal 64x4 Computer
 This project creates a TMS5220-base speech synthesizer board for the [Minimal 64x4](https://github.com/slu4coder/Minimal-64x4-Home-Computer) expansion port. The high level deisgn criteria is:
 
-1. Accomadate the "slow memory" nature of the TMS5220 by using hardward to buffer the interactions between the CPU and the TMS5220 such that the CPU is free to do other things when the TMS5220 is processing data.
-  * This is in contrast to the typical hardware design among 1980's computers which was to halt the CPU while the TMS5220 was processing data sent to it.
-2. Only support "external" speech data.  PHROMs are not supported.
-  * Not supporting PHROMs greately simplifies the board, but also save money as original PHROMs are hard to come by in the mordern age. Most games of the 1980s did not use PHROM data, instead providing their own LPC-encoded speech data.
+1. Accomadate the "slow memory" nature of the TMS5220 by using hardward to buffer the interactions between the CPU and the TMS5220 such that the CPU is free to do other things when the TMS5220 is processing data. This is in contrast to the typical hardware design among 1980's computers which was to halt the CPU while the TMS5220 was processing data sent to it.
+2. Only support "external" speech data.  PHROMs are not supported. Not supporting PHROMs greately simplifies the board, but also save money as original PHROMs are hard to come by in the mordern age. Most games of the 1980s did not use PHROM data, instead providing their own LPC-encoded speech data.
 
 
 This board supports both the TMS5220 and TMS5220C variants of the speech synthesizer chip.
 
 
 ## Hardware Design
-The board responds to three memory mapped addresses (the board is adjustable to set the `_` value below, but it defaults to `0xC`0:
+The board responds to three memory mapped addresses (the board is adjustable to set the `_` value below, but it defaults to `0xC`:
 
 * `0xFE_0` - **TMS5220 Command Register** - This address allows the host computer to write data to the TMS5220's command register, which is used for sending "external speech" data to the TMS5220. In general, the host computer will write certain TMS5220 commands and speech data to this address.
 * `0xFE_1` - **TMS5220 Status Register** - This address allows the host computer to fetch the internal TMS5220 status register. To do that, the host computer needs to write some data to this address (any value as the value is not actually used) to start the sequence of events to get the internal status out of the TMS5220. When done, the status value will be readable by the host computer at this address. The status data being ready is indicated by the board's `BUSY` line readable at the **Board Status Register**. The `BUSY` line will be asserted high from the moment this address is written to until the moment the status value is ready to be read at this address.
