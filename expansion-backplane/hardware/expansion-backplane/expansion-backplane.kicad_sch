@@ -2995,6 +2995,12 @@
 		(uuid "450bf0e2-a8b5-4ffe-b947-8aa092eca598")
 	)
 	(junction
+		(at 212.0242 60.96)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "4b76e8fa-f0b8-40c7-98f4-e69f5975dc0e")
+	)
+	(junction
 		(at 236.22 95.25)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -3182,7 +3188,7 @@
 	)
 	(wire
 		(pts
-			(xy 245.11 97.79) (xy 245.11 73.66)
+			(xy 245.11 73.66) (xy 245.11 97.79)
 		)
 		(stroke
 			(width 0)
@@ -3462,6 +3468,16 @@
 	)
 	(wire
 		(pts
+			(xy 212.0242 60.96) (xy 217.17 60.96)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6cedba67-3592-4fbb-a919-69f3be2f01bb")
+	)
+	(wire
+		(pts
 			(xy 127 95.25) (xy 127 85.09)
 		)
 		(stroke
@@ -3722,6 +3738,16 @@
 	)
 	(wire
 		(pts
+			(xy 224.79 60.96) (xy 227.33 60.96)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c7d58f54-937b-4211-8a63-27d3c578bb41")
+	)
+	(wire
+		(pts
 			(xy 71.12 30.48) (xy 81.28 30.48)
 		)
 		(stroke
@@ -3879,6 +3905,17 @@
 			(type default)
 		)
 		(uuid "fec46c43-c52c-4a62-80bc-e3dff20bd761")
+	)
+	(text "Need to more strongly pull down the INH lin\nthan what the Minimal 64x4 provides so as\nto compensate for the high-Z state of the 74AHCT126."
+		(exclude_from_sim no)
+		(at 230.886 62.23 0)
+		(effects
+			(font
+				(size 0.9 0.9)
+			)
+			(justify left)
+		)
+		(uuid "567b3042-e1b6-4cfa-ad6d-8f98bdd9fd10")
 	)
 	(global_label "~{RI}"
 		(shape input)
@@ -7694,7 +7731,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "74LS126"
+		(property "Value" "74AHCT126"
 			(at 120.142 39.3121 0)
 			(effects
 				(font
@@ -7799,7 +7836,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS126"
+		(property "Value" "74AHCT126"
 			(at 113.03 68.1298 0)
 			(effects
 				(font
@@ -8171,7 +8208,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS126"
+		(property "Value" "74AHCT126"
 			(at 199.39 68.1298 0)
 			(effects
 				(font
@@ -8461,6 +8498,74 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:R")
+		(at 220.98 60.96 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "5dc888c6-776e-42a0-aca2-17109f42b006")
+		(property "Reference" "R6"
+			(at 220.98 55.7995 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "1K"
+			(at 220.98 58.2238 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
+			(at 220.98 62.738 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 220.98 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 220.98 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "6eace6ea-342f-405a-88d9-74080a824649")
+		)
+		(pin "1"
+			(uuid "361c80a8-c274-4e3a-a9ac-9823e6c82fcd")
+		)
+		(instances
+			(project ""
+				(path "/e49372f6-369a-421a-b977-37c09b53354c"
+					(reference "R6")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 209.55 82.55 0)
 		(unit 1)
@@ -8527,6 +8632,72 @@
 		)
 	)
 	(symbol
+		(lib_id "power:GND")
+		(at 227.33 60.96 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "6c1d844a-6017-4922-b673-e521747e0414")
+		(property "Reference" "#PWR023"
+			(at 227.33 67.31 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "GND"
+			(at 227.33 65.0931 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 227.33 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 227.33 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 227.33 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "3acbecbb-d406-41c5-9f2a-3069d590b529")
+		)
+		(instances
+			(project ""
+				(path "/e49372f6-369a-421a-b977-37c09b53354c"
+					(reference "#PWR023")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "74xx:74LS126")
 		(at 156.21 73.66 0)
 		(unit 3)
@@ -8544,7 +8715,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS126"
+		(property "Value" "74AHCT126"
 			(at 156.21 68.1298 0)
 			(effects
 				(font
@@ -9146,7 +9317,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS126"
+		(property "Value" "74AHCT126"
 			(at 69.85 68.1298 0)
 			(effects
 				(font
