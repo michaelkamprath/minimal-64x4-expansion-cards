@@ -25,14 +25,12 @@ SPEECH_STATUS_BUFFER_EMPTY  = b00100000
 ; We will offset a little to ensure no collisionms.
 .memzone ZERO_PAGE_LIBS
 #mute
-
 _speech_buffer_cur_ptr: .2byte 0
 _speech_buffer_end_ptr: .2byte 0
 
-
 #emit
 .memzone USER_APPS
-; .align
+.align
 ; speech_init
 ;
 ;   Prepares the TMS5220 for speech
@@ -66,7 +64,6 @@ speech_init:
 .counter:   .byte 0
 
 
-; .align
 ; speak_synchronous
 ;   Uses Speak External command to synchonously speak data in passed buffer.
 ;   Function returns when speaking is done.
@@ -94,6 +91,26 @@ speak_synchronous:
     jps speech_update_buffer
     fpa .buffer_loop
 .done_talking:
+    rts
+
+
+; is_talking
+;   indicates whether the spechlib is managing talking right now.
+;
+;   Arguments:
+;       None
+;
+;   Returns
+;       A : 1 if is talking, 0 if not
+;
+is_talking:
+    ciz 0,_speech_buffer_cur_ptr+0 fne .true
+    ciz 0,_speech_buffer_cur_ptr+1 fne .true
+.false:
+    ldi 0
+    rts
+.true:
+    ldi 1
     rts
 
 
@@ -183,9 +200,6 @@ speech_update_buffer:
     miv 0,_speech_buffer_end_ptr
 .done:
     rts
-
-
-
 
 
 .align
@@ -284,12 +298,8 @@ speech_get_status:
     mib 1,SPEECH_STATUS_REG
     ; now wait until TMS5220 is not busy
     jps _wait_on_speech_board_busy
-    nop
-    ; and fetch the status
-    ldb SPEECH_STATUS_REG
-    phs                         ; save status byte to stack
     ; need to wait at least 12uS before doing anything else
     phsi $04 jps _delay pls     ; 364 clock cycles --> 45.5 uS
-    ; and return
-    pls                         ; get status byte back
+    ; and fetch the status
+    ldb SPEECH_STATUS_REG
     rts

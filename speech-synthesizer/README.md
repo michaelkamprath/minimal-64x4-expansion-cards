@@ -52,7 +52,7 @@ The provided `speechlib.min64x4` file contains all the subroutines needed to use
   * `SPEECH_STATUS_BUFFER_LOW` - The TMS5220 FIFO buffer is half empty. Time to send more LPC data. _Note:_ The `speech_update_buffer` functions takes care of updating the FIFO buffer if needed.
   * `SPEECH_STATUS_BUFFER_EMPTY` - The TMS5220 FIFO buffer is empty.
 
-### Undocumentated Timining Issues
+### Undocumentated Timing Issues
 The TMS5220 seems to have some timing requirements not documented in its datasheet. These requirements were exposed by the Minimal 64x4, which has a clock speed that is much faster than the host computers that the TMS5220 was designed for. These undocumented timing requirements were determined emperically and likely could be tweaked further.
 
 * **Read Cycle for Status Transfers to External Speech Data write** - The data sheet indicats that the `t_wait` after `/RS` goes high is 12 µS. However, I found that something closer to 175 µS was needed between a status read and then an external speech data write.
@@ -61,7 +61,7 @@ The TMS5220 seems to have some timing requirements not documented in its datashe
 These values were "tweaked until it worked". The issues seem to be related to changing modes of interaction with the TMS5220. In contrast, writing an external speech data byte after a previous external speech data byte does adhere to the timing diagrams in the TMS5220 data sheet. Further experimentation would likely find better and/or smaller values for the undocumented delays.
 
 # Compiling the Software
-All software found in the [software](./software/) directory is compiled with [BespokeASM](https://github.com/michaelkamprath/bespokeasm) which supports the Minimal 64x4. [Carsten Herting](https://github.com/slu4coder), the creator of the Minimal 64x4, does provide an assembler for it. However, the provided assembler is white minimal. A key shortcoming is the inaqbility to import library code to the current compilation. BespokeASM enables importing libraries and a few other features that are in use by the software found in this project.
+All software found in the [software](./software/) directory is compiled with [BespokeASM](https://github.com/michaelkamprath/bespokeasm) which supports the Minimal 64x4. [Carsten Herting](https://github.com/slu4coder), the creator of the Minimal 64x4, does provide an assembler for it. However, the provided assembler is quite minimal. A key shortcoming is the inability to import library code to the current compilation. BespokeASM enables importing libraries and a few other features that are in use by the software found in this project.
 
 To compile the speech code found in this repository, use the following command:
 
