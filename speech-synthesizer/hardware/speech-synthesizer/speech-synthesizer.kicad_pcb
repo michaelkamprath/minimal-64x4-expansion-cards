@@ -680,6 +680,7 @@
 		(property "Reference" "TP2"
 			(at 0 -1.998 0)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "6b914eb2-3ba0-4323-a725-9f8120bacedd")
 			(effects
 				(font
@@ -2427,6 +2428,7 @@
 		(property "Reference" "TP1"
 			(at 0 -1.998 0)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "eae62be7-c86e-4c07-850f-23d2f72673bc")
 			(effects
 				(font
@@ -13496,6 +13498,18 @@
 			(justify left bottom mirror)
 		)
 	)
+	(gr_text "+5V"
+		(at 94.6912 75.9968 0)
+		(layer "F.SilkS")
+		(uuid "0a5f0226-13e1-4642-a8df-bc4df808486f")
+		(effects
+			(font
+				(size 0.7 0.7)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
 	(gr_text "10K"
 		(at 154.813 94.869 0)
 		(layer "F.SilkS")
@@ -13518,17 +13532,6 @@
 				(thickness 0.15)
 			)
 			(justify left bottom)
-		)
-	)
-	(gr_text "10K"
-		(at 76.708 121.412 0)
-		(layer "F.SilkS")
-		(uuid "208c7186-2f3a-4e13-8a39-62c803a38598")
-		(effects
-			(font
-				(size 0.8 0.8)
-				(thickness 0.1)
-			)
 		)
 	)
 	(gr_text "10 pF"
@@ -13554,7 +13557,7 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "v1.1 by Michael Kanmprath"
+	(gr_text "v1.1.1 by Michael Kanmprath"
 		(at 70.866 134.747 0)
 		(layer "F.SilkS")
 		(uuid "408d7205-29be-4e3a-b2fc-f4ec724557a4")
@@ -13597,6 +13600,30 @@
 		(effects
 			(font
 				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "GND"
+		(at 152.9588 73.1 0)
+		(layer "F.SilkS")
+		(uuid "656bd3ed-f2ec-4c44-bfd4-7b97cb03490c")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "GND"
+		(at 94.742 78.5368 0)
+		(layer "F.SilkS")
+		(uuid "67d6ee3e-5fb3-4c2b-a1dd-3709738ae950")
+		(effects
+			(font
+				(size 0.7 0.7)
 				(thickness 0.1)
 			)
 			(justify left bottom)
@@ -13672,6 +13699,18 @@
 			(justify left bottom)
 		)
 	)
+	(gr_text "ROMCLK"
+		(at 158.1912 73.1 0)
+		(layer "F.SilkS")
+		(uuid "b7f486f1-6fa8-4b36-bb96-2753bb210895")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom)
+		)
+	)
 	(gr_text "74HCT74"
 		(at 155.321 111.252 0)
 		(layer "F.SilkS")
@@ -13692,6 +13731,18 @@
 			(font
 				(size 1 1)
 				(thickness 0.15)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "-5V"
+		(at 94.6912 81.1276 0)
+		(layer "F.SilkS")
+		(uuid "d853445f-4f15-42ea-a7f8-170e67d1d447")
+		(effects
+			(font
+				(size 0.7 0.7)
+				(thickness 0.1)
 			)
 			(justify left bottom)
 		)
