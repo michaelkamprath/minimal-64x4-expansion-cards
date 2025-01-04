@@ -49,17 +49,17 @@ speech_init:
     mib 9,.counter
     phsi $ff
 .loop:
-    jps _speech_send_cmd_data
+    jps _speech_send_cmd
     jps _wait_on_speech_board_busy
     nop nop nop nop nop nop
     deb .counter fne .loop              ; decrement counter and loop if zero not set
     pls
     ; now send reset command
     phsi SPEECH_CMD_RESET
-    jps _speech_send_cmd_data
+    jps _speech_send_cmd
     pls
-    ; now wait 300 µs
-    phsi $40 jps _delay pls
+    ; now wait ~300 µs
+    phsi $20 jps _delay pls
     rts
 .counter:   .byte 0
 
@@ -143,7 +143,9 @@ _setup_talking:
     ms2v 5,_speech_buffer_end_ptr
     ; send speak external command
     phsi SPEECH_CMD_SPEAK_EXTERNAL
-    jps _speech_send_cmd_data
+    jps _speech_send_cmd
+    ; now wait ~42 µs
+    phsi 5 jps _delay pls
     pls
     ; send 16 bytes
     jps _send_8_bytes
@@ -207,9 +209,6 @@ speech_update_buffer:
 ;   Sends the next 8 bytes in the speech buffer. If less than
 ;   8 bytes left, will send just that.
 _send_8_bytes:
-    ; need a small delay to ensure we aren't sending bytes too soon
-    ; after a previous TMS5220 interaction
-    phsi $10 jps _delay pls             ; 1408 clock cycle delay
     mib 8,.counter
 .send_loop:
     ; ennsure buffer is not done
@@ -225,8 +224,8 @@ _send_8_bytes:
     ; send current byte
     ldt _speech_buffer_cur_ptr
     stb SPEECH_COMMAND_REG              ; send the byte
-    ; wait for the TMS9918A to catch up = t_wait = 10us => 80 clock cycles
-    phsi $04 jps _delay pls
+    ; wait for the TMS9918A to catch up = t_wait = ~12us
+    phsi $02 jps _delay pls
     ; adjust current ptr and counter
     inv _speech_buffer_cur_ptr          ; increment buffer pointer
     deb .counter fne .send_loop
@@ -240,6 +239,9 @@ _send_8_bytes:
 ; _delay
 ;       Implements a delay. Performs 5 NOPs for each count.
 ;       Total delay is 16 + COUNT*87 clock cycles, not including JPS
+;
+;       for a given time delay X s, Y count should be:
+;           Y = (X * (8000000 MHz) - 16)/87
 ; 
 ;       Arguments
 ;       sp+3 : deplay count (1 byte)
@@ -266,16 +268,16 @@ _wait_on_speech_board_busy:
     cpi 0 fne .wait                         ; wait until busy bit is off 
     rts
 
-; _speech_send_cmd_data
-;   sends a single byte to the TMS5220 after waiting for it
-;   to become not busy
+; _speech_send_cmd
+;   sends a single byte command to the TMS5220 after waiting for it
+;   to become not busy, the waits specified amount of delay.
 ;
 ;   Arguments
 ;       SP+3 - the byte to send to the TMS5220
 ;
 ;   Returns
 ;       none
-_speech_send_cmd_data:
+_speech_send_cmd:
     jps _wait_on_speech_board_busy
     lds 3
     stb SPEECH_COMMAND_REG              ; send value to command register
