@@ -1,7 +1,7 @@
 (kicad_pcb
-	(version 20240108)
+	(version 20241229)
 	(generator "pcbnew")
-	(generator_version "8.0")
+	(generator_version "9.0")
 	(general
 		(thickness 1.6)
 		(legacy_teardrops no)
@@ -9,41 +9,42 @@
 	(paper "A4")
 	(layers
 		(0 "F.Cu" signal)
-		(31 "B.Cu" signal)
-		(32 "B.Adhes" user "B.Adhesive")
-		(33 "F.Adhes" user "F.Adhesive")
-		(34 "B.Paste" user)
-		(35 "F.Paste" user)
-		(36 "B.SilkS" user "B.Silkscreen")
-		(37 "F.SilkS" user "F.Silkscreen")
-		(38 "B.Mask" user)
-		(39 "F.Mask" user)
-		(40 "Dwgs.User" user "User.Drawings")
-		(41 "Cmts.User" user "User.Comments")
-		(42 "Eco1.User" user "User.Eco1")
-		(43 "Eco2.User" user "User.Eco2")
-		(44 "Edge.Cuts" user)
-		(45 "Margin" user)
-		(46 "B.CrtYd" user "B.Courtyard")
-		(47 "F.CrtYd" user "F.Courtyard")
-		(48 "B.Fab" user)
-		(49 "F.Fab" user)
-		(50 "User.1" user)
-		(51 "User.2" user)
-		(52 "User.3" user)
-		(53 "User.4" user)
-		(54 "User.5" user)
-		(55 "User.6" user)
-		(56 "User.7" user)
-		(57 "User.8" user)
-		(58 "User.9" user)
+		(2 "B.Cu" signal)
+		(9 "F.Adhes" user "F.Adhesive")
+		(11 "B.Adhes" user "B.Adhesive")
+		(13 "F.Paste" user)
+		(15 "B.Paste" user)
+		(5 "F.SilkS" user "F.Silkscreen")
+		(7 "B.SilkS" user "B.Silkscreen")
+		(1 "F.Mask" user)
+		(3 "B.Mask" user)
+		(17 "Dwgs.User" user "User.Drawings")
+		(19 "Cmts.User" user "User.Comments")
+		(21 "Eco1.User" user "User.Eco1")
+		(23 "Eco2.User" user "User.Eco2")
+		(25 "Edge.Cuts" user)
+		(27 "Margin" user)
+		(31 "F.CrtYd" user "F.Courtyard")
+		(29 "B.CrtYd" user "B.Courtyard")
+		(35 "F.Fab" user)
+		(33 "B.Fab" user)
+		(39 "User.1" user)
+		(41 "User.2" user)
+		(43 "User.3" user)
+		(45 "User.4" user)
+		(47 "User.5" user)
+		(49 "User.6" user)
+		(51 "User.7" user)
+		(53 "User.8" user)
+		(55 "User.9" user)
 	)
 	(setup
 		(pad_to_mask_clearance 0)
 		(allow_soldermask_bridges_in_footprints no)
+		(tenting front back)
 		(pcbplotparams
-			(layerselection 0x00010fc_ffffffff)
-			(plot_on_all_layers_selection 0x0000000_00000000)
+			(layerselection 0x00000000_00000000_55555555_5755f5ff)
+			(plot_on_all_layers_selection 0x00000000_00000000_00000000_00000000)
 			(disableapertmacros no)
 			(usegerberextensions no)
 			(usegerberattributes yes)
@@ -53,7 +54,6 @@
 			(dashed_line_gap_ratio 3.000000)
 			(svgprecision 4)
 			(plotframeref no)
-			(viasonmask no)
 			(mode 1)
 			(useauxorigin no)
 			(hpglpennumber 1)
@@ -61,16 +61,19 @@
 			(hpglpendiameter 15.000000)
 			(pdf_front_fp_property_popups yes)
 			(pdf_back_fp_property_popups yes)
+			(pdf_metadata yes)
+			(pdf_single_document no)
 			(dxfpolygonmode yes)
 			(dxfimperialunits yes)
 			(dxfusepcbnewfont yes)
 			(psnegative no)
 			(psa4output no)
-			(plotreference yes)
-			(plotvalue yes)
-			(plotfptext yes)
-			(plotinvisibletext no)
+			(plot_black_and_white yes)
 			(sketchpadsonfab no)
+			(plotpadnumbers no)
+			(hidednponfab no)
+			(sketchdnponfab yes)
+			(crossoutdnponfab yes)
 			(subtractmaskfromsilk no)
 			(outputformat 1)
 			(mirror no)
@@ -166,7 +169,7 @@
 		(descr "C, Disc series, Radial, pin pitch=2.50mm, , diameter*width=3.4*2.1mm^2, Capacitor, http://www.vishay.com/docs/45233/krseries.pdf")
 		(tags "C Disc series Radial pin pitch 2.50mm  diameter 3.4mm width 2.1mm Capacitor")
 		(property "Reference" "C6"
-			(at 4.877 -0.045 -90)
+			(at 4.877 -0.045 270)
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "c5e0ed90-d7b6-4542-8f12-f6a2ecf79ee1")
@@ -178,25 +181,12 @@
 			)
 		)
 		(property "Value" "100 nF"
-			(at 1.25 2.3 -90)
+			(at 1.25 2.3 270)
 			(layer "F.Fab")
 			(uuid "7564fa20-9982-4aa1-a83b-dbe593381229")
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm"
-			(at 0 0 90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "ff5a1b71-e101-4846-9ad7-c638655dd68a")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -373,7 +363,7 @@
 			(uuid "44fe747c-3e0d-4a89-9030-4286319ddbe4")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 1.25 0 -90)
+			(at 1.25 0 270)
 			(layer "F.Fab")
 			(uuid "0902a919-5250-45c9-8118-b077ae33c877")
 			(effects
@@ -403,6 +393,7 @@
 			(pintype "passive")
 			(uuid "9175bd4d-9742-40dc-aef0-88eae1fcc0c6")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Capacitor_THT.3dshapes/C_Disc_D3.4mm_W2.1mm_P2.50mm.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -444,21 +435,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "0c97e7af-5dc2-4623-97ee-7c8a6a4c9a0c")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" ""
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -471,7 +449,7 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -659,6 +637,7 @@
 			(pintype "passive")
 			(uuid "5403e809-be8c-43b9-a3c1-305ed1435cc1")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Capacitor_THT.3dshapes/C_Disc_D3.4mm_W2.1mm_P2.50mm.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -696,19 +675,6 @@
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "27e3a97c-1c3f-4177-82a2-59c6e47fb959")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -751,7 +717,7 @@
 				(width 0.12)
 				(type solid)
 			)
-			(fill none)
+			(fill no)
 			(layer "F.SilkS")
 			(uuid "3bee94d7-ebe9-4298-80e0-11de8acaa0eb")
 		)
@@ -762,7 +728,7 @@
 				(width 0.05)
 				(type solid)
 			)
-			(fill none)
+			(fill no)
 			(layer "F.CrtYd")
 			(uuid "c72b82c5-2290-4f5e-a98f-4bb2f1cf729b")
 		)
@@ -786,6 +752,7 @@
 			(pintype "passive")
 			(uuid "4f53da44-3a2e-42bd-b8a0-06f90415c970")
 		)
+		(embedded_fonts no)
 	)
 	(footprint "Package_DIP:DIP-20_W7.62mm_Socket"
 		(layer "F.Cu")
@@ -794,7 +761,7 @@
 		(descr "20-lead though-hole mounted DIP package, row spacing 7.62 mm (300 mils), Socket")
 		(tags "THT DIP DIL PDIP 2.54mm 7.62mm 300mil Socket")
 		(property "Reference" "U3"
-			(at -0.127 -2.413 -90)
+			(at -0.127 -2.413 270)
 			(layer "F.SilkS")
 			(uuid "0c329dec-1fab-4a77-ab42-ddaa93f95599")
 			(effects
@@ -805,25 +772,12 @@
 			)
 		)
 		(property "Value" "74HCT245"
-			(at 3.81 25.19 -90)
+			(at 3.81 25.19 270)
 			(layer "F.Fab")
 			(uuid "1df95376-bf1b-49ef-a885-fe221e406dcb")
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Package_DIP:DIP-20_W7.62mm_Socket"
-			(at 0 0 90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "94afaf43-a26b-4d4d-a532-6ceb90407b69")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -1091,7 +1045,7 @@
 			(uuid "fcaa0c5c-544e-456e-a2e4-3d214f9be676")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 3.81 11.43 -90)
+			(at 3.81 11.43 270)
 			(layer "F.Fab")
 			(uuid "bfd675ec-98db-476b-b67e-276f059eab5b")
 			(effects
@@ -1321,6 +1275,7 @@
 			(pintype "power_in")
 			(uuid "773a56ea-a619-4e93-bca0-1ff99a347a5d")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-20_W7.62mm_Socket.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -1361,21 +1316,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-20_W7.62mm_Socket"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "c1a8272f-f784-4caa-9ca3-fbcd819feefc")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/cd54hc688.pdf"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -1388,7 +1330,7 @@
 			)
 		)
 		(property "Description" "8-bit magnitude comparator"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -1867,6 +1809,7 @@
 			(pintype "power_in")
 			(uuid "06be9651-d794-4946-853a-e1260b4231d9")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-20_W7.62mm_Socket.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -1908,21 +1851,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "3d06393a-4c39-4fdf-a8dd-6b2aa47a213a")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" ""
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -1935,7 +1865,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, closed/bridged"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -1962,7 +1892,7 @@
 				(width 0)
 				(type solid)
 			)
-			(fill solid)
+			(fill yes)
 			(layer "F.Cu")
 			(uuid "272fd59b-77e5-40d4-8e07-fcc0602c6eaf")
 		)
@@ -2162,6 +2092,7 @@
 			)
 			(uuid "28075431-c06d-4e68-b8e1-943b00379ced")
 		)
+		(embedded_fonts no)
 	)
 	(footprint "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm"
 		(layer "F.Cu")
@@ -2170,7 +2101,7 @@
 		(descr "C, Disc series, Radial, pin pitch=2.50mm, , diameter*width=3.4*2.1mm^2, Capacitor, http://www.vishay.com/docs/45233/krseries.pdf")
 		(tags "C Disc series Radial pin pitch 2.50mm  diameter 3.4mm width 2.1mm Capacitor")
 		(property "Reference" "C5"
-			(at 4.877 0.049 -90)
+			(at 4.877 0.049 270)
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "2f9d7128-81f5-4544-aa11-097156ceda2a")
@@ -2182,25 +2113,12 @@
 			)
 		)
 		(property "Value" "100 nF"
-			(at 1.25 2.3 -90)
+			(at 1.25 2.3 270)
 			(layer "F.Fab")
 			(uuid "e42b4041-975d-40b2-94da-ecd203427ced")
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm"
-			(at 0 0 90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "fdbad7ef-4f9f-4268-8502-53c5469ad5d0")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -2377,7 +2295,7 @@
 			(uuid "429d26a7-d591-457a-a580-3b351ba1e26d")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 1.25 0 -90)
+			(at 1.25 0 270)
 			(layer "F.Fab")
 			(uuid "e0d789d7-9061-4cb9-a4bd-51905514a476")
 			(effects
@@ -2407,6 +2325,7 @@
 			(pintype "passive")
 			(uuid "756f62f8-df4a-49ce-bf49-8f030eee5d69")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Capacitor_THT.3dshapes/C_Disc_D3.4mm_W2.1mm_P2.50mm.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -2444,19 +2363,6 @@
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D2.0mm"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "53ddba1f-193a-4552-aed4-1110606c4466")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -2499,7 +2405,7 @@
 				(width 0.12)
 				(type solid)
 			)
-			(fill none)
+			(fill no)
 			(layer "F.SilkS")
 			(uuid "3995f60c-ac5f-4060-a93b-44db6c8f948b")
 		)
@@ -2510,7 +2416,7 @@
 				(width 0.05)
 				(type solid)
 			)
-			(fill none)
+			(fill no)
 			(layer "F.CrtYd")
 			(uuid "02c6007e-a3e9-444c-9a75-a9940744609f")
 		)
@@ -2534,6 +2440,7 @@
 			(pintype "passive")
 			(uuid "7de7ff5d-00cf-45a3-a6c8-3435906cf524")
 		)
+		(embedded_fonts no)
 	)
 	(footprint "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal"
 		(layer "F.Cu")
@@ -2559,19 +2466,6 @@
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "0a2d625d-7074-4886-b4a2-f74536fcf309")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -2798,6 +2692,7 @@
 			(pintype "passive")
 			(uuid "ba43e148-3d86-4e6f-b216-ed4f87d9c502")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Resistor_THT.3dshapes/R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -2817,7 +2712,7 @@
 		(descr "20-lead though-hole mounted DIP package, row spacing 7.62 mm (300 mils), Socket")
 		(tags "THT DIP DIL PDIP 2.54mm 7.62mm 300mil Socket")
 		(property "Reference" "U5"
-			(at 0 -2.54 -90)
+			(at 0 -2.54 270)
 			(layer "F.SilkS")
 			(uuid "60670912-7b81-454b-898b-694293c4a66f")
 			(effects
@@ -2828,25 +2723,12 @@
 			)
 		)
 		(property "Value" "74HCT374"
-			(at 3.81 25.19 -90)
+			(at 3.81 25.19 270)
 			(layer "F.Fab")
 			(uuid "a4a5f04a-ed9f-4906-a90f-e7582fddcd83")
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Package_DIP:DIP-20_W7.62mm_Socket"
-			(at 0 0 90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "20fd76ff-6d14-4ce0-ac65-ac3548b9a7f7")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -3114,7 +2996,7 @@
 			(uuid "6960e27b-dadd-4bce-9e16-23939371125d")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 3.81 11.43 -90)
+			(at 3.81 11.43 270)
 			(layer "F.Fab")
 			(uuid "342fab9e-da5e-41e9-bc0a-5eae3c6f8440")
 			(effects
@@ -3344,6 +3226,7 @@
 			(pintype "power_in")
 			(uuid "f9bdb5e0-6352-48ae-bde9-fad208d7c5b7")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-20_W7.62mm_Socket.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -3385,21 +3268,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "55e1c391-2056-48d8-87a4-aa6a21ba3b5b")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" ""
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -3412,7 +3282,7 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -3600,6 +3470,7 @@
 			(pintype "passive")
 			(uuid "c0176947-717a-4bb4-9dca-978e28bf8f5d")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Capacitor_THT.3dshapes/C_Disc_D3.4mm_W2.1mm_P2.50mm.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -3641,21 +3512,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "1f774655-4cf8-4499-b59a-c57e38fd8312")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" ""
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -3668,7 +3526,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, closed/bridged"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -3695,7 +3553,7 @@
 				(width 0)
 				(type solid)
 			)
-			(fill solid)
+			(fill yes)
 			(layer "F.Cu")
 			(uuid "faa26ace-5409-4338-872a-f5c889d7a2a7")
 		)
@@ -3895,6 +3753,7 @@
 			)
 			(uuid "7a61c061-bb8e-4d31-968c-67095fc27327")
 		)
+		(embedded_fonts no)
 	)
 	(footprint "Potentiometer_THT:Potentiometer_Vishay_T73YP_Vertical"
 		(layer "F.Cu")
@@ -3920,19 +3779,6 @@
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Potentiometer_THT:Potentiometer_Vishay_T73YP_Vertical"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "81fdcd11-2890-47b5-9504-fa0667ed410e")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -4235,7 +4081,7 @@
 				(width 0.1)
 				(type solid)
 			)
-			(fill none)
+			(fill no)
 			(layer "F.Fab")
 			(uuid "c4a509fe-912b-4200-80b7-a8d3dbc2ab15")
 		)
@@ -4283,6 +4129,7 @@
 			(pintype "passive+no_connect")
 			(uuid "1f7b800b-c8a9-45aa-b73c-6f29058d2b09")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Potentiometer_THT.3dshapes/Potentiometer_Vishay_T73YP_Vertical.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -4302,7 +4149,7 @@
 		(descr "C, Disc series, Radial, pin pitch=2.50mm, , diameter*width=3.4*2.1mm^2, Capacitor, http://www.vishay.com/docs/45233/krseries.pdf")
 		(tags "C Disc series Radial pin pitch 2.50mm  diameter 3.4mm width 2.1mm Capacitor")
 		(property "Reference" "C7"
-			(at 4.877 0.115 -90)
+			(at 4.877 0.115 270)
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "751015b4-7bd3-4688-a73b-63342ee3e08d")
@@ -4314,25 +4161,12 @@
 			)
 		)
 		(property "Value" "100 nF"
-			(at 1.25 2.3 -90)
+			(at 1.25 2.3 270)
 			(layer "F.Fab")
 			(uuid "31ed1691-9e8d-4e76-9220-250b6bce03f7")
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm"
-			(at 0 0 90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "8cab6447-1132-461e-b674-ea6e841802cf")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -4509,7 +4343,7 @@
 			(uuid "231ab0c9-3aa9-4145-932e-aba99f1e983f")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 1.25 0 -90)
+			(at 1.25 0 270)
 			(layer "F.Fab")
 			(uuid "c2791a15-f662-473e-8b30-925143cbe270")
 			(effects
@@ -4539,6 +4373,7 @@
 			(pintype "passive")
 			(uuid "7df2e831-8e36-4003-b5ba-081a9edd49f9")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Capacitor_THT.3dshapes/C_Disc_D3.4mm_W2.1mm_P2.50mm.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -4575,19 +4410,6 @@
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "a804bfd3-f64c-427b-9b27-99f3c3116939")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -4814,6 +4636,7 @@
 			(pintype "passive")
 			(uuid "f22cd214-59a3-4efe-b67b-be010d8ecd05")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Resistor_THT.3dshapes/R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -4833,7 +4656,7 @@
 		(descr "20-lead though-hole mounted DIP package, row spacing 7.62 mm (300 mils), Socket")
 		(tags "THT DIP DIL PDIP 2.54mm 7.62mm 300mil Socket")
 		(property "Reference" "U4"
-			(at -0.137 -2.418 -90)
+			(at -0.137 -2.418 270)
 			(layer "F.SilkS")
 			(uuid "2042343c-b49f-4b0a-b344-f1a519534c05")
 			(effects
@@ -4844,25 +4667,12 @@
 			)
 		)
 		(property "Value" "74HCT374"
-			(at 3.81 25.19 -90)
+			(at 3.81 25.19 270)
 			(layer "F.Fab")
 			(uuid "7cec8953-077c-4967-b23f-91fa8a6f2ee4")
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Package_DIP:DIP-20_W7.62mm_Socket"
-			(at 0 0 90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "ad48fd21-74e5-43c0-b9a2-4f5241a277ac")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -5130,7 +4940,7 @@
 			(uuid "ae44d7b9-9941-4e66-830f-ea80e17c33d7")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 3.81 11.43 -90)
+			(at 3.81 11.43 270)
 			(layer "F.Fab")
 			(uuid "58ac7b9e-0775-4e22-a919-313a57768992")
 			(effects
@@ -5360,6 +5170,7 @@
 			(pintype "power_in")
 			(uuid "61183f3a-3232-4932-8f7a-261dcf993bfa")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-20_W7.62mm_Socket.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -5400,21 +5211,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-28_W15.24mm_Socket"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "333c826f-64c8-4f8b-82e1-089030855a9d")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" ""
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -5427,7 +5225,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -5993,6 +5791,7 @@
 			(pintype "input")
 			(uuid "d41d5587-a5ec-4889-b924-6cf6ced1f672")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-28_W15.24mm_Socket.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -6034,21 +5833,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "433abeae-62a9-413a-836c-f3a522d6f669")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" ""
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -6061,7 +5847,7 @@
 			)
 		)
 		(property "Description" "Unpolarized capacitor"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -6249,6 +6035,7 @@
 			(pintype "passive")
 			(uuid "e7dad1bc-1838-4c06-bb30-f2552aebddc7")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Capacitor_THT.3dshapes/C_Disc_D3.4mm_W2.1mm_P2.50mm.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -6268,7 +6055,7 @@
 		(descr "C, Disc series, Radial, pin pitch=2.50mm, , diameter*width=3.4*2.1mm^2, Capacitor, http://www.vishay.com/docs/45233/krseries.pdf")
 		(tags "C Disc series Radial pin pitch 2.50mm  diameter 3.4mm width 2.1mm Capacitor")
 		(property "Reference" "C8"
-			(at 4.877 0.021 -90)
+			(at 4.877 0.021 270)
 			(layer "F.SilkS")
 			(hide yes)
 			(uuid "ab2696b7-90df-4db4-9d83-824b10a607b7")
@@ -6280,25 +6067,12 @@
 			)
 		)
 		(property "Value" "100 nF"
-			(at 1.25 2.3 -90)
+			(at 1.25 2.3 270)
 			(layer "F.Fab")
 			(uuid "58d84af8-a1ee-4b8f-bf73-4de0094e35cc")
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm"
-			(at 0 0 90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "03d6ed60-384a-47df-b169-dfb39939eb89")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -6475,7 +6249,7 @@
 			(uuid "08411c96-49e0-4a19-acd0-6305b59e8fee")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 1.25 0 -90)
+			(at 1.25 0 270)
 			(layer "F.Fab")
 			(uuid "f9b79160-92d0-43f7-9cd5-f5d26139592a")
 			(effects
@@ -6505,6 +6279,7 @@
 			(pintype "passive")
 			(uuid "a7299b1f-85da-47fe-8317-df71b6ec46fc")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Capacitor_THT.3dshapes/C_Disc_D3.4mm_W2.1mm_P2.50mm.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -6524,7 +6299,7 @@
 		(descr "24-lead though-hole mounted DIP package, row spacing 7.62 mm (300 mils), Socket")
 		(tags "THT DIP DIL PDIP 2.54mm 7.62mm 300mil Socket")
 		(property "Reference" "U2"
-			(at 0 -2.413 -90)
+			(at 0 -2.413 270)
 			(layer "F.SilkS")
 			(uuid "341ea469-a058-4f58-99c4-f4b7c117deeb")
 			(effects
@@ -6535,25 +6310,12 @@
 			)
 		)
 		(property "Value" "ATF22V10C"
-			(at 3.81 30.27 -90)
+			(at 3.81 30.27 270)
 			(layer "F.Fab")
 			(uuid "0c3f70c1-1caa-49b1-a9b1-ed32bbdad601")
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Package_DIP:DIP-24_W7.62mm_Socket"
-			(at 0 0 90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "4eaf6aab-8905-4836-9b41-bce55b55d2e0")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -6820,7 +6582,7 @@
 			(uuid "e6bc5388-9ad9-432f-98c3-84e7e68fd6f5")
 		)
 		(fp_text user "${REFERENCE}"
-			(at 3.81 13.97 -90)
+			(at 3.81 13.97 270)
 			(layer "F.Fab")
 			(uuid "25431e4a-4d91-439c-8ae2-1685b8f2536d")
 			(effects
@@ -7094,6 +6856,7 @@
 			(pintype "power_in")
 			(uuid "3a4c925a-112b-4ec9-af52-b01e328603f7")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-24_W7.62mm_Socket.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -7134,21 +6897,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x16_P2.54mm_Horizontal"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "e90e2328-06e3-4aa2-888c-4f5fc65c07b5")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" ""
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -7161,7 +6911,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -9980,6 +9730,7 @@
 			(pintype "output")
 			(uuid "fa477180-0dad-4f3f-9336-0b905553b8a9")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Connector_PinHeader_2.54mm.3dshapes/PinHeader_2x16_P2.54mm_Horizontal.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -10021,21 +9772,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "62120436-80e6-4ea0-a9d8-ecbb9d4c46a7")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" ""
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -10048,7 +9786,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -10262,6 +10000,7 @@
 			)
 			(uuid "ffde5868-aed7-4f4c-b029-79b05c50e0a5")
 		)
+		(embedded_fonts no)
 	)
 	(footprint "Capacitor_THT:C_Disc_D4.7mm_W2.5mm_P5.00mm"
 		(layer "F.Cu")
@@ -10287,19 +10026,6 @@
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Capacitor_THT:C_Disc_D4.7mm_W2.5mm_P5.00mm"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "09875989-51a4-47b2-bfb2-0bfebd5d0db3")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -10506,6 +10232,7 @@
 			(pintype "passive")
 			(uuid "5e546c4b-bbff-4efb-b97e-1f9a4d99baf9")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Capacitor_THT.3dshapes/C_Disc_D4.7mm_W2.5mm_P5.00mm.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -10547,21 +10274,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "ce466b3e-400c-4b4a-891b-0615a7144809")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" ""
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -10574,7 +10288,7 @@
 			)
 		)
 		(property "Description" "Solder Jumper, 2-pole, open"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -10788,6 +10502,7 @@
 			)
 			(uuid "f0107c6e-38ef-4c54-9c52-ce1f196493bc")
 		)
+		(embedded_fonts no)
 	)
 	(footprint "Resistor_THT:R_Array_SIP5"
 		(layer "F.Cu")
@@ -10813,19 +10528,6 @@
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Resistor_THT:R_Array_SIP5"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "8015acb0-2375-4a66-ba40-e866af1261f0")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -11067,6 +10769,7 @@
 			(pintype "passive")
 			(uuid "1742d3a6-8f06-49b2-975f-d2fbfa3316dd")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Resistor_THT.3dshapes/R_Array_SIP5.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -11086,7 +10789,7 @@
 		(descr "TRS 3.5mm, horizontal, through-hole, https://www.cuidevices.com/product/resource/pdf/sj1-352xn.pdf")
 		(tags "TRS audio jack stereo horizontal")
 		(property "Reference" "J1"
-			(at 0 -8.8 -90)
+			(at 0 -8.8 270)
 			(layer "F.SilkS")
 			(uuid "d2213add-70ec-414d-944d-71ff10181dda")
 			(effects
@@ -11097,25 +10800,12 @@
 			)
 		)
 		(property "Value" "AudioJack3"
-			(at 0 -10 -90)
+			(at 0 -10 270)
 			(layer "F.Fab")
 			(uuid "aa8a9ddf-6bda-4b3a-a014-98c12051df20")
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Connector_Audio:Jack_3.5mm_CUI_SJ1-3523N_Horizontal"
-			(at 0 0 90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "4d1771c5-26af-494d-bf82-b1808e8c88db")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -11596,7 +11286,7 @@
 			)
 		)
 		(fp_text user "${REFERENCE}"
-			(at 0 -1.5 -90)
+			(at 0 -1.5 270)
 			(layer "F.Fab")
 			(uuid "94bbd8ce-1283-4b44-8c4b-be08d0744ce6")
 			(effects
@@ -11610,35 +11300,35 @@
 			(at -5 0 90)
 			(size 1.2 1.2)
 			(drill 1.2)
-			(layers "F&B.Cu" "*.Mask")
+			(layers "*.Cu" "*.Mask")
 			(uuid "ec98b45d-f0f6-4afb-b522-b350779a9e32")
 		)
 		(pad "" np_thru_hole circle
 			(at -5 2.5 90)
 			(size 1.2 1.2)
 			(drill 1.2)
-			(layers "F&B.Cu" "*.Mask")
+			(layers "*.Cu" "*.Mask")
 			(uuid "25cda5af-5568-4aaa-9382-f87cf163ca9f")
 		)
 		(pad "" np_thru_hole circle
 			(at 0 -5 90)
 			(size 1.2 1.2)
 			(drill 1.2)
-			(layers "F&B.Cu" "*.Mask")
+			(layers "*.Cu" "*.Mask")
 			(uuid "17f0eaf7-e4eb-4913-a5bc-ac07656c3c46")
 		)
 		(pad "" np_thru_hole circle
 			(at 5 0 90)
 			(size 1.2 1.2)
 			(drill 1.2)
-			(layers "F&B.Cu" "*.Mask")
+			(layers "*.Cu" "*.Mask")
 			(uuid "de98df5c-16de-4087-b10d-d519df6718e2")
 		)
 		(pad "" np_thru_hole circle
 			(at 5 2.5 90)
 			(size 1.2 1.2)
 			(drill 1.2)
-			(layers "F&B.Cu" "*.Mask")
+			(layers "*.Cu" "*.Mask")
 			(uuid "04549db4-8602-4acc-a256-a61d2459fd42")
 		)
 		(pad "R" thru_hole oval
@@ -11671,6 +11361,7 @@
 			(pintype "passive")
 			(uuid "131aef7f-afd7-4f1c-8124-de8eb035da7b")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Connector_Audio.3dshapes/Jack_3.5mm_CUI_SJ1-3523N_Horizontal.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -11711,21 +11402,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-14_W7.62mm_Socket"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "a225bfe2-5883-4426-b5b0-4fa4462cd72c")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/74HC_HCT74.pdf"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -11738,7 +11416,7 @@
 			)
 		)
 		(property "Description" "Dual D Flip-flop, Set & Reset"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -12151,6 +11829,7 @@
 			(pintype "power_in")
 			(uuid "d7980394-c98f-4f36-9f44-7f9be051b942")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-14_W7.62mm_Socket.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -12187,19 +11866,6 @@
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "minimal-64x4:-5V_Converter"
-			(at 0 0 90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "bf7e99b5-8b66-4b6a-868b-25b1f38d0bcb")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -12241,7 +11907,7 @@
 				(width 0.12)
 				(type default)
 			)
-			(fill none)
+			(fill no)
 			(layer "F.SilkS")
 			(uuid "7fcaba5a-5a60-41ed-a4c4-8856079c0a7f")
 		)
@@ -12252,7 +11918,7 @@
 				(width 0.12)
 				(type default)
 			)
-			(fill none)
+			(fill no)
 			(layer "F.CrtYd")
 			(uuid "5d5cce38-29d9-4a0e-90ad-bc359af8c1f4")
 		)
@@ -12315,6 +11981,7 @@
 			(pintype "power_out")
 			(uuid "30c8be1f-bda5-43fe-9e90-5c133d318477")
 		)
+		(embedded_fonts no)
 	)
 	(footprint "Capacitor_THT:C_Disc_D4.7mm_W2.5mm_P5.00mm"
 		(layer "F.Cu")
@@ -12340,19 +12007,6 @@
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Capacitor_THT:C_Disc_D4.7mm_W2.5mm_P5.00mm"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "2a4bcc96-4b61-419a-a306-abb1e463d649")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -12559,6 +12213,7 @@
 			(pintype "passive")
 			(uuid "02650923-ab0c-401e-b584-a93e3e997d9f")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Capacitor_THT.3dshapes/C_Disc_D4.7mm_W2.5mm_P5.00mm.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -12595,19 +12250,6 @@
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.15)
-				)
-			)
-		)
-		(property "Footprint" "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm"
-			(at 0 0 0)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "2ddef9ac-d560-4c73-bae3-df88afd09731")
-			(effects
-				(font
-					(size 1.27 1.27)
 					(thickness 0.15)
 				)
 			)
@@ -12794,6 +12436,7 @@
 			(pintype "passive")
 			(uuid "d5bb0cd8-1930-4d9e-84b3-57532bcfcfb8")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Capacitor_THT.3dshapes/C_Disc_D5.0mm_W2.5mm_P2.50mm.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -12834,21 +12477,8 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_DIP:DIP-20_W7.62mm_Socket"
-			(at 0 0 -90)
-			(unlocked yes)
-			(layer "F.Fab")
-			(hide yes)
-			(uuid "d4e34d17-77d7-4bd7-a7d9-0b2c50e6caf2")
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/cd54hc688.pdf"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -12861,7 +12491,7 @@
 			)
 		)
 		(property "Description" "8-bit magnitude comparator"
-			(at 0 0 -90)
+			(at 0 0 270)
 			(unlocked yes)
 			(layer "F.Fab")
 			(hide yes)
@@ -13340,6 +12970,7 @@
 			(pintype "power_in")
 			(uuid "ad46cf35-2f95-4283-8e23-0f0ae5151aee")
 		)
+		(embedded_fonts no)
 		(model "${KICAD8_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-20_W7.62mm_Socket.wrl"
 			(offset
 				(xyz 0 0 0)
@@ -13485,18 +13116,6 @@
 		)
 		(layer "Edge.Cuts")
 		(uuid "f593ab21-527f-4506-a825-608f8ffdb790")
-	)
-	(gr_text "JLCJLCJLCJLC"
-		(at 176.022 133.985 0)
-		(layer "B.SilkS")
-		(uuid "c453c013-4199-4adf-8dea-910222056f00")
-		(effects
-			(font
-				(size 1 1)
-				(thickness 0.1)
-			)
-			(justify left bottom mirror)
-		)
 	)
 	(gr_text "+5V"
 		(at 94.6912 75.9968 0)
@@ -13805,6 +13424,18 @@
 				(thickness 0.1)
 			)
 			(justify left bottom)
+		)
+	)
+	(gr_text "JLCJLCJLCJLC"
+		(at 176.022 133.985 0)
+		(layer "B.SilkS")
+		(uuid "c453c013-4199-4adf-8dea-910222056f00")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom mirror)
 		)
 	)
 	(segment
@@ -24497,4 +24128,5 @@
 			)
 		)
 	)
+	(embedded_fonts no)
 )
