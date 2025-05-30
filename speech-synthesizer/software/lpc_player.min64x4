@@ -178,6 +178,7 @@ exit_loop_done:
     inz counter
     fpa .check_buffer_ptr
 .print_newline:
+    jps _Print ","
     jps _Print "\n"
     miz 0,counter
 .check_buffer_ptr:
