@@ -21174,7 +21174,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 266.7 414.9203 90)
 			(effects
 				(font
@@ -22121,7 +22121,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 266.7 179.9703 90)
 			(effects
 				(font
@@ -23944,7 +23944,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 266.7 132.9803 90)
 			(effects
 				(font
@@ -25485,7 +25485,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 215.9 414.9203 90)
 			(effects
 				(font
@@ -25866,7 +25866,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 215.9 132.9803 90)
 			(effects
 				(font
@@ -26281,7 +26281,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 215.9 273.9503 90)
 			(effects
 				(font
@@ -28510,7 +28510,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 266.7 320.9403 90)
 			(effects
 				(font
@@ -29477,7 +29477,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 215.9 367.9303 90)
 			(effects
 				(font
@@ -30724,7 +30724,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 266.7 226.9603 90)
 			(effects
 				(font
@@ -32659,7 +32659,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 266.7 273.9503 90)
 			(effects
 				(font
@@ -33793,7 +33793,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 215.9 226.9603 90)
 			(effects
 				(font
@@ -35809,7 +35809,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 215.9 179.9703 90)
 			(effects
 				(font
@@ -36924,7 +36924,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 215.9 320.9403 90)
 			(effects
 				(font
@@ -37033,7 +37033,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 266.7 367.9303 90)
 			(effects
 				(font

@@ -328,7 +328,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm*")
-		(path "/a9a557c6-d3ff-4515-a17c-fe6da92a086c")
+		(path "/ebdc5252-1d51-4158-b015-59bbb56b8144")
 		(sheetname "/")
 		(sheetfile "multiplier-board.kicad_sch")
 		(attr smd)
@@ -2421,7 +2421,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm*")
-		(path "/e0bea902-23f5-4297-8a04-976210a084b0")
+		(path "/e65417e9-e763-4c12-b24b-464165f15fa6")
 		(sheetname "/")
 		(sheetfile "multiplier-board.kicad_sch")
 		(attr smd)
@@ -3016,7 +3016,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "deb26119-3bb1-45e9-97e8-a4d9f6e63aa1")
@@ -3679,7 +3679,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "5a946b46-9815-4052-a657-51568bc62392")
@@ -5224,7 +5224,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "ca5318b3-2d0a-4d2d-a8a2-6bd73726b009")
@@ -6154,7 +6154,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm*")
-		(path "/efcde841-5adc-46b3-bdef-0ee3ba05670c")
+		(path "/6a407176-dca2-473b-87cf-a4f7b1045313")
 		(sheetname "/")
 		(sheetfile "multiplier-board.kicad_sch")
 		(attr smd)
@@ -6949,7 +6949,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "d9fbb96c-66f7-4723-8480-5f6956fda5e5")
@@ -7412,7 +7412,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "97f7fc1b-b84f-47cf-a017-00b7516da16b")
@@ -8075,7 +8075,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "4936ddaa-c984-45d6-88ac-c578a30a117a")
@@ -9807,7 +9807,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm*")
-		(path "/33855599-5cd1-46c6-8baf-91a1fe930a71")
+		(path "/d133d2a9-eecc-40f7-b3d4-540df9f1b917")
 		(sheetname "/")
 		(sheetfile "multiplier-board.kicad_sch")
 		(attr smd)
@@ -10202,7 +10202,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "51107c32-261a-4d29-968e-1073fbd9ed5e")
@@ -11639,7 +11639,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "d59bf569-cf50-4b10-8e16-7422e826081c")
@@ -12138,7 +12138,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm*")
-		(path "/a89d1033-419a-46eb-b4ca-7b37cd5ebb06")
+		(path "/f2d71167-81c4-4355-9736-c35288ce462b")
 		(sheetname "/")
 		(sheetfile "multiplier-board.kicad_sch")
 		(attr smd)
@@ -13676,7 +13676,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "13b35bd4-f4d2-40e5-9622-8ef9a930c8ad")
@@ -15461,7 +15461,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "44eaba08-1b33-4a36-95eb-0b424c544f7a")
@@ -19153,7 +19153,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm*")
-		(path "/fdeb0322-b03e-4356-9993-273ab43c7694")
+		(path "/f5b9c485-94de-4c32-bec9-4c8f1872f257")
 		(sheetname "/")
 		(sheetfile "multiplier-board.kicad_sch")
 		(attr smd)
@@ -20522,7 +20522,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "757127cd-69e4-4106-9eaf-fc0148434e28")
@@ -21785,7 +21785,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "9580f12a-5a23-46b9-ac52-f674328dc96e")
@@ -23115,7 +23115,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm*")
-		(path "/e03542e6-c47c-4b57-a2e4-4450c678b3f7")
+		(path "/64917714-c88f-4cf7-96df-4faced05c289")
 		(sheetname "/")
 		(sheetfile "multiplier-board.kicad_sch")
 		(attr smd)
@@ -23910,7 +23910,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "836fd521-24ec-4d3f-8dfe-d56141762bd1")
@@ -25895,7 +25895,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm*")
-		(path "/a78d37e6-9bac-49ff-be1a-d0a57a313c4b")
+		(path "/c319b4c5-fabf-4e55-af80-9286c56e1fd1")
 		(sheetname "/")
 		(sheetfile "multiplier-board.kicad_sch")
 		(attr smd)
@@ -26526,7 +26526,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm*")
-		(path "/a3e2498d-de67-4cc6-beab-b8b324cb4226")
+		(path "/fa5b01f8-1da2-4abc-8632-dabf33452f5f")
 		(sheetname "/")
 		(sheetfile "multiplier-board.kicad_sch")
 		(attr smd)
@@ -27752,7 +27752,7 @@
 				)
 			)
 		)
-		(property "Value" "74LS283"
+		(property "Value" "74HCT283"
 			(at 0 5.9 90)
 			(layer "F.Fab")
 			(uuid "2f01e264-bf9f-4cfb-b25b-79944df96867")
