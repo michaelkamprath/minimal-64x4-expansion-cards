@@ -125,7 +125,7 @@
         "max_error": 0.005,
         "min_clearance": 0.0,
         "min_connection": 0.0,
-        "min_copper_edge_clearance": 0.2,
+        "min_copper_edge_clearance": 0.5,
         "min_groove_width": 0.0,
         "min_hole_clearance": 0.25,
         "min_hole_to_hole": 0.25,
@@ -189,7 +189,9 @@
       "track_widths": [
         0.0,
         0.21,
-        0.5
+        0.35,
+        0.5,
+        0.75
       ],
       "tuning_pattern_settings": {
         "diff_pair_defaults": {
@@ -221,6 +223,18 @@
         {
           "diameter": 0.0,
           "drill": 0.0
+        },
+        {
+          "diameter": 0.6,
+          "drill": 0.3
+        },
+        {
+          "diameter": 1.0,
+          "drill": 0.5
+        },
+        {
+          "diameter": 1.2,
+          "drill": 0.6
         }
       ],
       "zones_allow_external_fillets": false
@@ -465,7 +479,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "four-bit-multiplier.kicad_pro",
+    "filename": "multiplier-board.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -487,6 +501,34 @@
         "via_diameter": 0.6,
         "via_drill": 0.3,
         "wire_width": 6
+      },
+      {
+        "clearance": 0.2,
+        "diff_pair_gap": 0.5,
+        "diff_pair_width": 0.4,
+        "microvia_diameter": 0.6,
+        "microvia_drill": 0.3,
+        "name": "+5V",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "priority": 0,
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.5,
+        "via_diameter": 1.2,
+        "via_drill": 0.6
+      },
+      {
+        "clearance": 0.2,
+        "diff_pair_gap": 0.5,
+        "diff_pair_width": 0.4,
+        "microvia_diameter": 0.6,
+        "microvia_drill": 0.3,
+        "name": "GND",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "priority": 1,
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.5,
+        "via_diameter": 1.2,
+        "via_drill": 0.6
       }
     ],
     "meta": {
@@ -501,7 +543,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "gerbers_v1.0",
+      "plot": "gerbers_1.0",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "",
@@ -574,24 +616,12 @@
           "label": "Datasheet",
           "name": "Datasheet",
           "show": true
-        },
-        {
-          "group_by": false,
-          "label": "Description",
-          "name": "Description",
-          "show": false
-        },
-        {
-          "group_by": false,
-          "label": "#",
-          "name": "${ITEM_NUMBER}",
-          "show": false
         }
       ],
       "filter_string": "",
       "group_symbols": true,
       "include_excluded_from_bom": true,
-      "name": "",
+      "name": "Default Editing",
       "sort_asc": true,
       "sort_field": "Reference"
     },
@@ -637,7 +667,7 @@
   },
   "sheets": [
     [
-      "b6b2f6ce-d849-40e8-a9da-5146acb531b2",
+      "91d4d391-cd48-45b8-8681-d4fe02702c0f",
       "Root"
     ]
   ],
