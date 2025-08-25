@@ -1,0 +1,128 @@
+---
+globs: *.min64x4
+alwaysApply: false
+---
+
+Files with the *.min64x4 extension are assembly language files for the Minimal 64x4 computer, an 8-bit processor with 16-bit addressing (64K address space).
+
+**Documentation References:**
+- Complete instruction set: "Minimal 64x4 Instruction Set - Original.csv" in .cursor/rules/
+- BespokeASM syntax and features: "Assembly-Language-Syntax.md" in .cursor/rules/
+- BespokeASM is a configurable assembler - the Minimal 64x4 instruction set is loaded via configuration
+
+## Architecture Overview:
+- 8-bit data path with 16-bit addressing
+- Little endian byte order, expect when pushing multibyte values to the stack then it is big endian.
+- 256 instructions (0x00-0xFF opcodes)
+- Accumulator-based architecture (A register)
+- Stack operations supported
+- Zero-page addressing for fast operations
+- Support for byte, word (16-bit), and long (32-bit) operations
+- Flags: N (negative), C (carry), Z (zero)
+
+## Key Instruction Categories:
+- **Data Movement**: LDI, LDZ, LDB, STZ, STB, PHS, PLS, MIZ, MIB, etc.
+- **Arithmetic**: ADI, ADZ, ADB, SUI, SUZ, SUB, INC, DEC, etc.
+- **Logic**: ANI, ANZ, ORI, ORZ, XRI, XRZ, NOT, NEG, etc.
+- **Bit Operations**: LL0-LL7 (left shift), RL0-RL7 (rotate left), LR0-LR7 (right shift)
+- **Branching**: BCC, BCS, BEQ, BNE, BPL, BMI, BGT, BLE, plus fast branches (FCC, FCS, etc.)
+- **Jumps**: JPA (absolute), JPR (relative), JAR (A-indexed), JPS (subroutine)
+- **Compare**: CPI, CPZ, CPB, CIZ, CIB, etc.
+- **I/O**: OUT (UART output), INT (UART input), INK (PS/2 input), WIN (wait for input)
+- **Memory**: Clear operations (CLZ, CLB, CLV, CLW), FLASH operations (RDB, WDB, etc.)
+
+## Assembly Syntax Features:
+- Uses BespokeASM assembler with version requirements (#require directive)
+- Memory zones: .memzone ZERO_PAGE_LIBS, .memzone USER_APPS
+- Alignment: .align directive
+- Origin: .org directive  
+- Binary literals: b01100000
+- Hexadecimal literals: $FEC0, 0xFF
+- Labels and constants supported
+- Comments with ; (semicolon)
+
+## Code Style Guidelines:
+- No trailing whitespace on any lines
+- Keep code clean and properly formatted
+- Use consistent indentation for readability
+- Same-line comments within a subroutine should align their semicolons (;) at the same column for readability
+- Example:
+  ```
+  LDS 6              ; A = value1_lsb
+  STZ _temp_val1     ; Store LSB of first value
+  LDS 5              ; A = value1_msb
+  STZ _temp_val1+1   ; Store MSB of first value
+  ```
+
+## Mnemonic Convention Rules:
+Each mnemonic consists of exactly 3 letters with systematic naming:
+
+**Data Transfer Instructions:**
+- **M__**: Move (source ≠ A, destination ≠ A)
+- **L__**: Load (source ≠ A, destination = A)
+- **S__**: Store (source = A, destination ≠ A)
+
+**Control Flow:**
+- **J__**: Jump instructions
+- **B__**: Conditional branch instructions
+- **F__**: Fast 8-bit branching
+
+**Single-Argument Functions (2-letter prefix):**
+- **CL**: Clear, **NO**: NOT, **NE**: Negate
+- **IN**: Increment, **DE**: Decrement
+- **LL**: Logical left shift, **LR**: Logical right shift
+- **RL**: Rotate left, **RR**: Rotate right
+- **AN**: AND, **OR**: OR, **XR**: XOR
+- **AD**: Add, **SU**: Subtract, **CP**: Compare
+- **AC**: Add with carry, **SC**: Subtract with carry
+
+**Addressing Mode Suffixes:**
+- **I**: Immediate value
+- **Z**: Zero-page byte, **V**: Zero-page word, **Q**: Zero-page long
+- **B**: Absolute byte, **W**: Absolute word, **L**: Absolute long
+- **T**: Zero-page pointer, **R**: Absolute pointer
+- **A**: A-indexed, **P**: Page addressing
+
+**Memory-Destination Instructions:**
+Use dot notation (e.g., AD.Z vs ADZ) to distinguish between storing result in memory vs. accumulator.
+
+**Direct Opcode Mapping:**
+Each mnemonic maps to exactly one opcode. Arguments appear in memory order, enabling easy self-modifying code.
+
+**Subroutine Call Convention:**
+When a subroutine is called through JPS (Jump to Subroutine), the return address is pushed onto the stack first. Therefore, any parameters that were pushed onto the stack prior to the JPS call start at SP+3 (SP+1 and SP+2 contain the return address).
+
+**Critical Stack Management Rules:**
+- NEVER use PLS to "clean up" parameters from the stack within a subroutine - this pulls the return address and will crash the program when RTS executes
+- Subroutines should only PLS items they have explicitly pushed with PHS
+- Parameter cleanup is typically the caller's responsibility, not the subroutine's
+- The return address at SP+1 and SP+2 must remain intact for RTS to work properly
+- Only modify the stack pointer or pull stack items if you understand exactly what you're doing
+
+**Memory Management Best Practices:**
+- Use BespokeASM memory zones (.memzone ZERO_PAGE_LIBS, .memzone USER_APPS) instead of hardcoded addresses
+- Declare labeled variables in appropriate memory zones rather than using raw addresses like 0, 1, 2, etc.
+- This prevents address conflicts and makes code relocatable and maintainable
+- For multi-byte values, use +1, +2, etc. offsets from the base label (e.g., _temp_val1+1 for MSB)
+
+**Instruction Efficiency:**
+- Take advantage of native 16-bit and 32-bit operations (AVV, ABW, SVV, etc.) instead of manual byte-by-byte arithmetic
+- These instructions handle carry propagation automatically and are more efficient
+- Check the instruction set for specialized operations before implementing manual algorithms
+- **CRITICAL**: Always prefer word/long operations over manual byte operations:
+  - Use AVV/SVV for 16-bit arithmetic instead of ADB+ACB sequences
+  - Use INW/DEW for 16-bit increment/decrement instead of manual carry handling
+  - Use LLW/CLW/etc. for 16-bit operations instead of byte-by-byte implementations
+- **Zero-page optimization**: Always use zero-page variants when variables are in zero-page:
+  - LDZ/STZ instead of LDB/STB (40% faster: 3 vs 5 cycles)
+  - LLV/CLV/INV/DEV instead of LLW/CLW/INW/DEW for zero-page words
+  - DEZ/INZ instead of DEB/INB for zero-page bytes
+- **Multi-byte shifts and rotates**: 
+  - Use CLC + RRZ sequence for 16-bit logical right shift on zero-page
+  - Chain rotate operations with carry for multi-byte shifts
+  - The instruction set has asymmetries (more left than right operations)
+- **Algorithm efficiency**: Choose algorithms that leverage hardware strengths:
+  - Shift-and-add for multiplication instead of summation loops
+  - Use 32-bit result storage for 16-bit multiplication to handle overflow
+  - Fixed iteration counts often better than variable loops
+- The Minimal 64x4 has extensive multi-byte support - leverage it!

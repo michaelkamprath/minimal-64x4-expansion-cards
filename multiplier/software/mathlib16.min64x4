@@ -1,0 +1,194 @@
+#require "slu4-min64x4-asm >= 1.1.0"
+.memzone ZERO_PAGE_LIBS
+#mute
+_temp_val1: .2byte 0
+_temp_val2: .2byte 0
+_mul_result: .4byte 0       ; 32-bit result for multiplication
+_mul_multiplicand: .4byte 0 ; 32-bit shifted multiplicand
+_mul_counter: .byte 0       ; Loop counter for multiplication
+
+#emit
+
+.memzone USER_APPS
+.align
+
+; add16
+;
+; Adds two 16-bit integers from the stack
+;
+; Usage:
+;   Push first 16-bit value (big-endian: MSB first, then LSB)
+;   Push second 16-bit value (big-endian: MSB first, then LSB)
+;   JPS add16
+;   Result is left on stack in place of first value
+;   Caller must clean up stack (remove both values or just second value as needed)
+;
+; Stack layout after JPS call (top to bottom):
+;   SP+1: return address msb  (pushed by JPS)
+;   SP+2: return address lsb  (pushed by JPS)
+;   SP+3: value2_msb  (second value high byte)
+;   SP+4: value2_lsb  (second value low byte)
+;   SP+5: value1_msb  (first value high byte)
+;   SP+6: value1_lsb  (first value low byte)
+;
+; Result: value1 location contains value1 + value2, value2 remains on stack
+;
+add16:
+    ; Copy first 16-bit value to _temp_val1
+    LDS 6                     ; A = value1_lsb
+    STZ _temp_val1            ; Store LSB of first value
+    LDS 5                     ; A = value1_msb
+    STZ _temp_val1+1          ; Store MSB of first value
+
+    ; Copy second 16-bit value to _temp_val2
+    LDS 4                     ; A = value2_lsb
+    STZ _temp_val2            ; Store LSB of second value
+    LDS 3                     ; A = value2_msb
+    STZ _temp_val2+1          ; Store MSB of second value
+
+    ; Add the two 16-bit words: _temp_val1 = _temp_val1 + _temp_val2
+    AVV _temp_val2,_temp_val1 ; Add _temp_val2 to _temp_val1
+
+    ; Copy result back to stack
+    LDZ _temp_val1            ; A = result LSB
+    STS 6                     ; Store back to value1_lsb position
+    LDZ _temp_val1+1          ; A = result MSB
+    STS 5                     ; Store back to value1_msb position
+
+    RTS                ; Return
+
+; sub16
+;
+; Subtracts second 16-bit integer from first 16-bit integer on the stack
+;
+; Usage:
+;   Push first 16-bit value (big-endian: MSB first, then LSB) - minuend
+;   Push second 16-bit value (big-endian: MSB first, then LSB) - subtrahend
+;   JPS sub16
+;   Result is left on stack in place of first value (first - second)
+;   Caller must clean up stack (remove both values or just second value as needed)
+;
+; Stack layout after JPS call (top to bottom):
+;   SP+1: return address msb  (pushed by JPS)
+;   SP+2: return address lsb  (pushed by JPS)
+;   SP+3: value2_msb  (subtrahend high byte)
+;   SP+4: value2_lsb  (subtrahend low byte)
+;   SP+5: value1_msb  (minuend high byte)
+;   SP+6: value1_lsb  (minuend low byte)
+;
+; Result: value1 location contains value1 - value2, value2 remains on stack
+;
+sub16:
+    ; Copy first 16-bit value (minuend) to _temp_val1
+    LDS 6                     ; A = value1_lsb
+    STZ _temp_val1            ; Store LSB of first value
+    LDS 5                     ; A = value1_msb
+    STZ _temp_val1+1          ; Store MSB of first value
+
+    ; Copy second 16-bit value (subtrahend) to _temp_val2
+    LDS 4                     ; A = value2_lsb
+    STZ _temp_val2            ; Store LSB of second value
+    LDS 3                     ; A = value2_msb
+    STZ _temp_val2+1          ; Store MSB of second value
+
+    ; Subtract the two 16-bit words: _temp_val1 = _temp_val1 - _temp_val2
+    SVV _temp_val2,_temp_val1 ; Subtract _temp_val2 from _temp_val1
+
+    ; Copy result back to stack
+    LDZ _temp_val1            ; A = result LSB
+    STS 6                     ; Store back to value1_lsb position
+    LDZ _temp_val1+1          ; A = result MSB
+    STS 5                     ; Store back to value1_msb position
+
+    RTS                ; Return
+
+; mul16
+;
+; Multiplies two unsigned 16-bit integers using shift-and-add algorithm
+; Result is 32-bit to handle overflow
+;
+; Usage:
+;   Push first 16-bit value (big-endian: MSB first, then LSB) - multiplicand
+;   Push second 16-bit value (big-endian: MSB first, then LSB) - multiplier
+;   JPS mul16
+;   Result is 32-bit value left on stack in place of both input values
+;   Caller must clean up stack as needed
+;
+; Stack layout after JPS call (top to bottom):
+;   SP+1: return address msb  (pushed by JPS)
+;   SP+2: return address lsb  (pushed by JPS)
+;   SP+3: value2_msb  (multiplier high byte)
+;   SP+4: value2_lsb  (multiplier low byte)
+;   SP+5: value1_msb  (multiplicand high byte)
+;   SP+6: value1_lsb  (multiplicand low byte)
+;
+; Result: 32-bit product overwrites both input values on stack
+;   SP+3: result bits 31-24 (most significant)
+;   SP+4: result bits 23-16
+;   SP+5: result bits 15-8
+;   SP+6: result bits 7-0   (least significant)
+;
+mul16:
+    ; Clear result accumulator
+    CLQ _mul_result           ; Clear 32-bit result
+
+    ; Initialize 32-bit multiplicand with 16-bit input value
+    CLQ _mul_multiplicand     ; Clear 32-bit multiplicand
+    LDS 6                     ; A = multiplicand LSB
+    STZ _mul_multiplicand     ; Store LSB
+    LDS 5                     ; A = multiplicand MSB
+    STZ _mul_multiplicand+1   ; Store MSB
+    ; Upper 16 bits of _mul_multiplicand are already 0
+
+    ; Load multiplier into _temp_val2
+    LDS 4                     ; A = multiplier LSB
+    STZ _temp_val2            ; Store LSB
+    LDS 3                     ; A = multiplier MSB
+    STZ _temp_val2+1          ; Store MSB
+
+    ; Initialize counter - optimize for 8-bit vs 16-bit multiplier
+    LDZ _temp_val2+1          ; A = multiplier MSB
+    CPI 0                     ; Check if high byte is zero
+    BNE .use_16_iterations    ; If high byte != 0, need full 16 iterations
+    MIZ 8,_mul_counter        ; Set counter to 8 (only need 8 iterations for 8-bit multiplier)
+    JPA .mul_loop             ; Jump directly to loop
+.use_16_iterations:
+    MIZ 16,_mul_counter       ; Set counter to 16 (need full 16 iterations)
+
+.mul_loop:
+    ; Check if LSB of multiplier is set
+    LDZ _temp_val2                ; A = multiplier LSB
+    ANI 1                         ; Check bit 0
+    BEQ .mul_skip_add             ; If bit 0 is 0, skip addition
+
+    ; Add 32-bit multiplicand to 32-bit result
+    AVV _mul_multiplicand,_mul_result     ; Add low 16 bits
+    BCC .no_carry_high                    ; If no carry, skip high addition
+    INW _mul_result+2                     ; Increment high word if carry
+.no_carry_high:
+    AVV _mul_multiplicand+2,_mul_result+2 ; Add high 16 bits
+
+.mul_skip_add:
+    ; Shift 32-bit multiplicand left (multiply by 2)
+    LLQ _mul_multiplicand         ; Left shift 32-bit zero-page long
+
+    ; Shift multiplier right (divide by 2)
+    CLC                           ; Clear carry flag (ensures 0 is shifted in)
+    RRZ _temp_val2+1              ; Rotate right MSB (bit 0 goes to carry)
+    RRZ _temp_val2                ; Rotate right LSB (carry from MSB goes to bit 7)
+
+    ; Decrement counter and continue if not zero
+    DEZ _mul_counter              ; Decrement counter
+    BNE .mul_loop                 ; Continue if not zero
+
+    ; Copy 32-bit result back to stack
+    LDZ _mul_result+3             ; A = result bits 31-24
+    STS 3                         ; Store to SP+3
+    LDZ _mul_result+2             ; A = result bits 23-16
+    STS 4                         ; Store to SP+4
+    LDZ _mul_result+1             ; A = result bits 15-8
+    STS 5                         ; Store to SP+5
+    LDZ _mul_result               ; A = result bits 7-0
+    STS 6                         ; Store to SP+6
+
+    RTS                           ; Return
