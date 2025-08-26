@@ -1,6 +1,6 @@
 ---
 globs: *.min64x4
-alwaysApply: false
+alwaysApply: true
 ---
 
 Files with the *.min64x4 extension are assembly language files for the Minimal 64x4 computer, an 8-bit processor with 16-bit addressing (64K address space).
@@ -33,19 +33,23 @@ Files with the *.min64x4 extension are assembly language files for the Minimal 6
 
 ## Assembly Syntax Features:
 - Uses BespokeASM assembler with version requirements (#require directive)
+- **All files must start with**: `#require "slu4-min64x4-asm >= 1.1.0"`
 - Memory zones: .memzone ZERO_PAGE_LIBS, .memzone USER_APPS
 - Alignment: .align directive
-- Origin: .org directive  
+- Origin: .org directive
 - Binary literals: b01100000
 - Hexadecimal literals: $FEC0, 0xFF
 - Labels and constants supported
 - Comments with ; (semicolon)
 
 ## Code Style Guidelines:
+- **Every code file must start with the version requirement**: `#require "slu4-min64x4-asm >= 1.1.0"`
 - No trailing whitespace on any lines
 - Keep code clean and properly formatted
 - Use consistent indentation for readability
 - Same-line comments within a subroutine should align their semicolons (;) at the same column for readability
+- For related groups of constants or variables, align semicolons for improved readability
+- **Use named constants instead of magic numbers** for better readability and maintainability
 - Example:
   ```
   LDS 6              ; A = value1_lsb
@@ -53,6 +57,49 @@ Files with the *.min64x4 extension are assembly language files for the Minimal 6
   LDS 5              ; A = value1_msb
   STZ _temp_val1+1   ; Store MSB of first value
   ```
+
+### Constants and Magic Numbers:
+**Always prefer named constants over magic numbers:**
+
+**BAD - Using magic numbers:**
+```assembly
+STB $0080           ; What is $0080? Not immediately clear
+LDI 50              ; What does 50 represent?
+CPI $20             ; What is $20?
+```
+
+**GOOD - Using named constants:**
+```assembly
+; Define constants at the top of the file
+GRAPHICS_X_LSB = $0080      ; X coordinate LSB for graphics functions
+MAX_ITERATIONS = 50         ; Maximum iterations for algorithm
+SPACE_CHAR = $20           ; ASCII space character
+
+; Use constants in code
+STB GRAPHICS_X_LSB          ; Clear intent: storing graphics X coordinate
+LDI MAX_ITERATIONS          ; Self-documenting: maximum iterations
+CPI SPACE_CHAR             ; Obvious: comparing with space character
+```
+
+**Benefits of named constants:**
+- **Self-documenting code**: Intent is immediately clear
+- **Maintainability**: Change value in one place only
+- **Error reduction**: Typos in constant names cause assembly errors
+- **Readability**: Code reads like natural language
+
+**Common categories for constants:**
+- **API addresses**: `GRAPHICS_X_LSB = $0080`, `UART_DATA = $F100`
+- **Configuration values**: `MAX_ITERATIONS = 50`, `BUFFER_SIZE = 256`
+- **ASCII characters**: `CR = $0D`, `LF = $0A`, `SPACE = $20`
+- **Bit masks**: `BIT_7 = $80`, `LOWER_NIBBLE = $0F`
+- **Algorithm parameters**: `SCALE_FACTOR = 1 << 13`, `THRESHOLD = 1000`
+
+**Mathematical expressions in constants:**
+- BespokeASM supports mathematical expressions in constant definitions
+- Use expressions to make constants self-updating: `ESCAPE_RADIUS = 4 * SCALE_FACTOR`
+- For powers of 2, use left shift instead of power operator: `SCALE_FACTOR = 1 << SCALE_BITS` (not `2 ** SCALE_BITS`)
+- Supported operators: `+`, `-`, `*`, `/`, `%`, `&`, `|`, `^`, `>>`, `<<`
+- Power operator `**` is NOT supported - use bit shifts for powers of 2
 
 ## Mnemonic Convention Rules:
 Each mnemonic consists of exactly 3 letters with systematic naming:
@@ -104,6 +151,8 @@ When a subroutine is called through JPS (Jump to Subroutine), the return address
 - Declare labeled variables in appropriate memory zones rather than using raw addresses like 0, 1, 2, etc.
 - This prevents address conflicts and makes code relocatable and maintainable
 - For multi-byte values, use +1, +2, etc. offsets from the base label (e.g., _temp_val1+1 for MSB)
+- **Define named constants for API addresses and special values** instead of using magic numbers
+- Group related constants together and document their purpose clearly
 
 **Instruction Efficiency:**
 - Take advantage of native 16-bit and 32-bit operations (AVV, ABW, SVV, etc.) instead of manual byte-by-byte arithmetic
@@ -117,7 +166,7 @@ When a subroutine is called through JPS (Jump to Subroutine), the return address
   - LDZ/STZ instead of LDB/STB (40% faster: 3 vs 5 cycles)
   - LLV/CLV/INV/DEV instead of LLW/CLW/INW/DEW for zero-page words
   - DEZ/INZ instead of DEB/INB for zero-page bytes
-- **Multi-byte shifts and rotates**: 
+- **Multi-byte shifts and rotates**:
   - Use CLC + RRZ sequence for 16-bit logical right shift on zero-page
   - Chain rotate operations with carry for multi-byte shifts
   - The instruction set has asymmetries (more left than right operations)
@@ -126,3 +175,134 @@ When a subroutine is called through JPS (Jump to Subroutine), the return address
   - Use 32-bit result storage for 16-bit multiplication to handle overflow
   - Fixed iteration counts often better than variable loops
 - The Minimal 64x4 has extensive multi-byte support - leverage it!
+
+## 2's Complement and Multi-byte Operations:
+**Correct 2's Complement Algorithm:**
+- 2's complement = bitwise NOT + 1 (applied to entire multi-byte value)
+- **Step 1**: Use NOZ to bitwise NOT all bytes
+- **Step 2**: Use INZ on LSB, then LDI 0 and use AC.Z to propagate carry through remaining bytes
+- **NEVER** use NEZ on individual bytes for multi-byte 2's complement - this is incorrect
+
+**Example for 16-bit 2's complement:**
+```
+NOZ value       ; NOT LSB
+NOZ value+1     ; NOT MSB
+INZ value       ; Increment LSB (sets carry if overflow)
+LDI 0           ; A = 0
+AC.Z value+1    ; Add A (0) + carry to MSB
+```
+
+**Flag Behavior Critical Rules:**
+- **LDZ does NOT set flags** - always follow with CPI/CIZ if you need to test the value
+- Use CIZ (Compare Immediate with Zero-page) instead of LDZ+CPI for efficiency
+- AC.Z adds accumulator + carry to zero-page location (need LDI 0 first for carry propagation)
+- XR.Z XORs accumulator with zero-page location and stores result in zero-page
+
+## Minimal 64x4 Operating System API
+The BespokeASM configuration file for the Minimal 64x4 contains the following API functions and data. They may be refered to as their name (API Function or API Data) rather than the address.
+### API Functions
+
+The following list shows the available API functions and data.
+
+| Address | API Function | Description |
+|---------|--------------|-------------|
+| 0xf000 | _Start | Start vector of the OS in RAM |
+| 0xf003 | _Prompt | Hands back control to the input prompt |
+| 0xf006 | _MemMove | Moves memory area (may be overlapping) |
+| 0xf009 | _Random | Returns a pseudo-random byte (see _RandomState) |
+| 0xf00c | _ScanPS2 | Scans the PS/2 register for new input |
+| 0xf00f | _ResetPS2 | Resets the state of PS/2 SHIFT, ALTGR, CTRL |
+| 0xf012 | _ReadInput | Reads any input (PS/2 or serial) |
+| 0xf015 | _WaitInput | Waits for any input (PS/2 or serial) |
+| 0xf018 | _ReadLine | Reads a command line into _ReadBuffer |
+| 0xf01b | _SkipSpace | Skips whitespaces (<= 39) in command line |
+| 0xf01e | _ReadHex | Parses command line input for a HEX value |
+| 0xf021 | _SerialWait | Waits for a UART transmission to complete |
+| 0xf024 | _SerialPrint | Transmits a zero-terminated string via UART |
+| 0xf027 | _FindFile | Searches for file <name> given by _ReadPtr |
+| 0xf02a | _LoadFile | Loads a file <name> given by _ReadPtr |
+| 0xf02d | _SaveFile | Saves data to file <name> defined at _ReadPtr |
+| 0xf030 | _ClearVRAM | Clears the video RAM including blanking areas |
+| 0xf033 | _Clear | Clears the visible video RAM (viewport) |
+| 0xf036 | _ClearRow | Clears the current row from cursor pos onwards |
+| 0xf039 | _ScrollUp | Scrolls up the viewport by 8 pixels |
+| 0xf03c | _ScrollDn | Scrolls down the viewport by 8 pixels |
+| 0xf03f | _Char | Outputs a char at the cursor pos (non-advancing) |
+| 0xf042 | _PrintChar | Prints a char at the cursor pos (advancing) |
+| 0xf045 | _Print | Prints a zero-terminated immediate string |
+| 0xf048 | _PrintPtr | Prints a zero-terminated string at an address |
+| 0xf04b | _PrintHex | Prints a HEX number (advancing) |
+| 0xf04e | _SetPixel | Sets a pixel at position (x, y) - see Graphics API section |
+| 0xf051 | _Line | Draws a line using Bresenham's algorithm |
+| 0xf054 | _Rect | Draws a rectangle at (x, y) of size (w, h) |
+| 0xf057 | _ClearPixel | Clears a pixel at position (x, y) - see Graphics API section |
+
+### API Data
+The following operating system data is available in the zero page. Note that the memoryzones ZERO_PAGE_LIBS and ZERO_PAGE_APPS do not overlap with these zero page addresses.
+
+| Address | API Data | Data Size | Description |
+|---------|----------|-----------|-------------|
+| 0x0080 | Graphics X | 2 bytes | X coordinate for graphics functions (little-endian) |
+| 0x0082 | Graphics Y | 1 byte | Y coordinate for graphics functions |
+| 0x00c0 | _XPos | 1 byte | Horizontal cursor position (see _Print) |
+| 0x00c1 | _YPos | 1 byte | Vertical cursor position (see _Print) |
+| 0x00c2 | _RandomState | 4 bytes | _Random state seed |
+| 0x00c6 | _ReadNum | 3 bytes | Number parsed by _ReadHex |
+| 0x00c9 | _ReadPtr | 2 bytes | Command line parsing pointer |
+| 0x00cb | | 2 bytes | unused |
+| 0x00cd | _ReadBuffer | 2 bytes | Address of command line input buffer |
+
+### Predefined Menmory Zones
+The following memory zones are defined by the BespokeASM configuration file for the Minimal 64x4. Their name may be used by BespokeASM memory zone directives.
+
+| Name | Start Address | End Address | Description |
+|------|---------------|-------------|-------------|
+| ZERO_PAGE_APPS | 0x0000 | 0x003F | Zero page memory zone for application functions |
+| ZERO_PAGE_LIBS | 0x0040 | 0x007F | Zero page memory zone for non-OS library functions |
+| USER_APPS | 0x8000 | 0xEFFF | Memory zone for user code (application and non-OS library) |
+
+### Graphics API
+The Minimal 64x4 has a 400 horizontal by 240 vertical pixel display.
+
+**Graphics Function Calling Conventions:**
+Graphics functions use dedicated zero-page memory locations for parameters instead of stack-based parameter passing:
+
+| Address | Parameter | Data Size | Description |
+|---------|-----------|-----------|-------------|
+| 0x0080 | X coordinate | 2 bytes | Horizontal pixel position (0-399, little-endian) |
+| 0x0082 | Y coordinate | 1 byte | Vertical pixel position (0-239) |
+
+**_SetPixel Usage:**
+```assembly
+; Define constants for readability (recommended)
+GRAPHICS_X_LSB = $0080      ; X coordinate LSB
+GRAPHICS_X_MSB = $0081      ; X coordinate MSB
+GRAPHICS_Y = $0082          ; Y coordinate
+
+; Set pixel at coordinates (pixel_x, pixel_y)
+LDZ pixel_x         ; A = X coordinate LSB
+STB GRAPHICS_X_LSB  ; Store X LSB at graphics API address
+LDZ pixel_x+1       ; A = X coordinate MSB  
+STB GRAPHICS_X_MSB  ; Store X MSB at graphics API address
+LDZ pixel_y         ; A = Y coordinate (1 byte)
+STB GRAPHICS_Y      ; Store Y at graphics API address
+JPS _SetPixel       ; Call function
+```
+
+**_ClearPixel Usage:**
+```assembly
+; Clear pixel at coordinates (pixel_x, pixel_y)
+LDZ pixel_x         ; A = X coordinate LSB
+STB GRAPHICS_X_LSB  ; Store X LSB at graphics API address
+LDZ pixel_x+1       ; A = X coordinate MSB
+STB GRAPHICS_X_MSB  ; Store X MSB at graphics API address
+LDZ pixel_y         ; A = Y coordinate (1 byte)
+STB GRAPHICS_Y      ; Store Y at graphics API address
+JPS _ClearPixel     ; Call function
+```
+
+**Important Notes:**
+- These zero-page parameter locations may be modified by other OS API calls
+- Always set coordinates immediately before calling graphics functions
+- Do not rely on coordinates persisting between graphics calls
+- Y coordinate is limited to 1 byte (0-239) since display height is 240 pixels
