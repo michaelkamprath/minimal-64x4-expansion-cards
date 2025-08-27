@@ -241,11 +241,7 @@ multiply_i16:
     INZ _mul_sign_flag            ; Set sign flag to 1
 
     ; Convert first value to positive (2's complement)
-    NOZ _temp_val1                ; NOT LSB
-    NOZ _temp_val1+1              ; NOT MSB
-    INZ _temp_val1                ; Increment LSB (sets carry if overflow)
-    LDI 0                         ; A = 0
-    AC.Z _temp_val1+1             ; Add A (0) + carry to MSB
+    NEV _temp_val1
 
 .check_second_sign:
     ; load second value (multiplier)
@@ -265,11 +261,7 @@ multiply_i16:
     XR.Z _mul_sign_flag           ; XOR A (1) with sign flag, store result in sign flag
 
     ; Convert second value to positive (2's complement)
-    NOZ _temp_val2                ; NOT LSB
-    NOZ _temp_val2+1              ; NOT MSB
-    INZ _temp_val2                ; Increment LSB (sets carry if overflow)
-    LDI 0                         ; A = 0
-    AC.Z _temp_val2+1             ; Add A (0) + carry to MSB
+    NEV _temp_val2
 
 .call_multiply_u16:
     ; Push positive values onto stack for multiply_u16
@@ -299,23 +291,7 @@ multiply_i16:
     ; Check if result should be negative
     CIZ 0,_mul_sign_flag          ; Compare 0 with sign flag
     BEQ .return_result          ; If 0, result should be positive
-
-    ; Convert 32-bit result to negative (2's complement)
-    ; Step 1: Bitwise NOT all bytes
-    NOZ _mul_result               ; NOT LSB
-    NOZ _mul_result+1             ; NOT byte 1
-    NOZ _mul_result+2             ; NOT byte 2
-    NOZ _mul_result+3             ; NOT MSB
-
-    ; Step 2: Add 1 to the entire 32-bit number with carry propagation
-    INZ _mul_result               ; Increment LSB (sets carry if overflow)
-    LDI 0                         ; A = 0
-    AC.Z _mul_result+1            ; Add A (0) + carry to byte 1
-    LDI 0                         ; A = 0 (AC.Z changes A, so reset it)
-    AC.Z _mul_result+2            ; Add A (0) + carry to byte 2
-    LDI 0                         ; A = 0 (AC.Z changes A, so reset it)
-    AC.Z _mul_result+3            ; Add A (0) + carry to MSB
-
+    NEQ _mul_result
 
 .return_result:
     ; copy result to return locations in stack and RTS
