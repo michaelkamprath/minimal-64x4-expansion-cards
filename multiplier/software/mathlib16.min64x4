@@ -159,14 +159,15 @@ multiply_u16:
 .mul_loop:
     ; Check if LSB of multiplier is set
     LDZ _temp_val2                ; A = multiplier LSB
-    ANI 1                         ; Check bit 0
-    BEQ .mul_skip_add             ; If bit 0 is 0, skip addition
+    ANI 1                         ; Isolate bit 0
+    CPI 1                         ; Compare with 1 to set flags
+    BNE .mul_skip_add             ; If bit 0 is not 1, skip addition
 
-    ; Add 32-bit multiplicand to 32-bit result
+    ; Add 32-bit multiplicand to 32-bit result with proper carry propagation
     AVV _mul_multiplicand,_mul_result     ; Add low 16 bits
-    BCC .no_carry_high                    ; If no carry, skip high addition
-    INW _mul_result+2                     ; Increment high word if carry
-.no_carry_high:
+    BCC .no_carry                         ; If no carry, skip increment
+    INW _mul_result+2                     ; Propagate carry to high word
+.no_carry:
     AVV _mul_multiplicand+2,_mul_result+2 ; Add high 16 bits
 
 .mul_skip_add:
@@ -232,8 +233,9 @@ multiply_i16:
 
     ; Check if first value is negative
     LDZ _temp_val1+1              ; A = value1_msb
-    ANI $80                       ; Check sign bit (bit 7)
-    BEQ .check_second_sign        ; If positive, check second value
+    ANI $80                       ; Isolate sign bit (bit 7)
+    CPI $80                       ; Compare with $80 to set flags
+    BNE .check_second_sign        ; If not negative, check second value
 
     ; First value is negative, set sign flag
     INZ _mul_sign_flag            ; Set sign flag to 1
@@ -254,8 +256,9 @@ multiply_i16:
 
     ; Check if second value is negative
     LDZ _temp_val2+1              ; A = value2_msb
-    ANI $80                       ; Check sign bit (bit 7)
-    BEQ .call_multiply_u16        ; If positive, proceed to multiplication
+    ANI $80                       ; Isolate sign bit (bit 7)
+    CPI $80                       ; Compare with $80 to set flags
+    BNE .call_multiply_u16        ; If not negative, proceed to multiplication
 
     ; Second value is negative, flip sign flag
     LDI 1                         ; A = 1
@@ -270,27 +273,28 @@ multiply_i16:
 
 .call_multiply_u16:
     ; Push positive values onto stack for multiply_u16
-    ; multiply_u16 expects: first value (multiplicand), then second value (multiplier)
-    ; Push first value (MSB first, then LSB) - use converted positive values
-    LDZ _temp_val1+1              ; A = value1_msb (positive)
-    PHS                           ; Push MSB
+    ; multiply_u16 expects: LSB first, then MSB for each value
+    ; Push first value (LSB first, then MSB) - use converted positive values
     LDZ _temp_val1                ; A = value1_lsb (positive)
     PHS                           ; Push LSB
-
-    ; Push second value (MSB first, then LSB) - use converted positive values
-    LDZ _temp_val2+1              ; A = value2_msb (positive)
+    LDZ _temp_val1+1              ; A = value1_msb (positive)
     PHS                           ; Push MSB
+
+    ; Push second value (LSB first, then MSB) - use converted positive values
     LDZ _temp_val2                ; A = value2_lsb (positive)
     PHS                           ; Push LSB
+    LDZ _temp_val2+1              ; A = value2_msb (positive)
+    PHS                           ; Push MSB
+
 
     ; Call multiply_u16 with positive values
     JPS multiply_u16              ; This populates _mul_result and overwrites stack with 32-bit result
 
-    ; Clean up the 4 bytes pushed by multiply_u16 result. Result is already in _mul_result, which we can use directly.
-    PLS                           ; Remove result byte 0
-    PLS                           ; Remove result byte 1
-    PLS                           ; Remove result byte 2
-    PLS                           ; Remove result byte 3
+    ; Pulling the result off the stack. Not saving it because _mul_result already has the value from multiply_u16.
+    PLS
+    PLS
+    PLS
+    PLS
 
     ; Check if result should be negative
     CIZ 0,_mul_sign_flag          ; Compare 0 with sign flag
@@ -307,8 +311,11 @@ multiply_i16:
     INZ _mul_result               ; Increment LSB (sets carry if overflow)
     LDI 0                         ; A = 0
     AC.Z _mul_result+1            ; Add A (0) + carry to byte 1
+    LDI 0                         ; A = 0 (AC.Z changes A, so reset it)
     AC.Z _mul_result+2            ; Add A (0) + carry to byte 2
+    LDI 0                         ; A = 0 (AC.Z changes A, so reset it)
     AC.Z _mul_result+3            ; Add A (0) + carry to MSB
+
 
 .return_result:
     ; copy result to return locations in stack and RTS
@@ -320,4 +327,5 @@ multiply_i16:
     STS 5                         ; Store to SP+5
     LDZ _mul_result               ; A = result bits 7-0
     STS 6                         ; Store to SP+6
+
     RTS                           ; Return

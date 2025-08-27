@@ -1,0 +1,433 @@
+#require "slu4-min64x4-asm >= 1.1.0"
+.memzone ZERO_PAGE_APPS
+#mute
+
+; Variables for Mandelbrot calculation
+_pixel_x: .2byte 0          ; Current pixel X coordinate (0-399)
+_pixel_y: .2byte 0          ; Current pixel Y coordinate (0-239)
+_complex_real: .2byte 0     ; Real part of complex number (scaled integer)
+_complex_imag: .2byte 0     ; Imaginary part of complex number (scaled integer)
+_z_real: .2byte 0           ; Z real part for iteration
+_z_imag: .2byte 0           ; Z imaginary part for iteration
+_z_real_sq: .2byte 0        ; Z real squared
+_z_imag_sq: .2byte 0        ; Z imaginary squared
+_iteration_count: .byte 0   ; Current iteration count
+_temp_result: .4byte 0      ; Temporary result for calculations
+_temp_offset: .2byte 0      ; Temporary value for offset calculations
+
+; Constants for integer arithmetic (using 9-bit fractional part)
+; SCALE_FACTOR = 2^9 = 512 (0x200)
+; This allows us to represent numbers from -64.0 to +63.999... in 16-bit signed integers
+; Real range: approximately -2.5 to +1.0 (standard Mandelbrot view)
+; Imaginary range: approximately -1.25 to +1.25
+SCALE_BITS = 9                      ; Number of fractional bits
+SCALE_FACTOR = 1 << SCALE_BITS      ; 2^9 = 512 (1 shifted left 9 times)
+LEVEL1_ITERATIONS = 4               ; Number of iterations to do at level 1
+MAX_ITERATIONS = 20                 ; Maximum iterations before assuming point is in set
+ESCAPE_RADIUS_SQ = 4 * SCALE_FACTOR ; 4.0 * SCALE_FACTOR (standard Mandelbrot escape radius)
+
+; Coordinate mapping constants
+; Real: map screen X (0-399) to complex range (-2.5 to +1.5)
+; Range = 4.0, so scale = 4.0 * SCALE_FACTOR / 400 = 5.12 ≈ 5
+REAL_SCALE = 4 * SCALE_FACTOR / 400         ; 4.0 * SCALE_FACTOR / 400 (using integer math)
+REAL_OFFSET = -25 * SCALE_FACTOR / 10       ; -2.5 * SCALE_FACTOR
+
+; Imaginary: map screen Y (0-239) to complex range (-1.5 to +1.5)
+; Range = 3.0, so scale = 3.0 * SCALE_FACTOR / 240 = 6.4 ≈ 6
+IMAG_SCALE = 3 * SCALE_FACTOR / 240         ; 3.0 * SCALE_FACTOR / 240 (using integer math)
+IMAG_OFFSET = -15 * SCALE_FACTOR / 10       ; -1.5 * SCALE_FACTOR
+
+; Graphics API zero-page addresses (OS API calling conventions)
+GRAPHICS_X_LSB = $0080      ; X coordinate LSB for graphics functions
+GRAPHICS_X_MSB = $0081      ; X coordinate MSB for graphics functions
+GRAPHICS_Y = $0082          ; Y coordinate for graphics functions
+
+#emit
+
+.memzone USER_APPS
+
+init:
+    spinit                  ; init the stack pointer
+    JPS _Clear              ; Clear the screen
+
+    ; Initialize pixel coordinates
+    CLV _pixel_x            ; Start at X = 0
+    CLV _pixel_y            ; Start at Y = 0
+
+start:
+main_loop:
+    ; Convert pixel coordinates to complex number
+    ; complex_real = (pixel_x * REAL_SCALE) + REAL_OFFSET
+
+    ; Push pixel_x and REAL_SCALE for multiplication
+    ; Correct order: LSB first, then MSB for each value
+    LDZ _pixel_x            ; LSB of pixel_x (multiplicand)
+    PHS
+    LDZ _pixel_x+1          ; MSB of pixel_x (multiplicand)
+    PHS
+    LDI LSB(REAL_SCALE)     ; LSB of REAL_SCALE (multiplier)
+    PHS
+    LDI BYTE1(REAL_SCALE)   ; MSB of REAL_SCALE (multiplier)
+    PHS
+
+    JPS multiply_i16        ; Result is 32-bit on stack
+
+    ; Get lower 16 bits of result (pixel * scale doesn't need 13-bit shift)
+    PLS                     ; Remove bits 31-24 (MSB)
+    PLS                     ; Remove bits 23-16
+    PLS                     ; Get bits 15-8
+    STZ _complex_real+1     ; Store as MSB
+    PLS                     ; Get bits 7-0 (LSB)
+    STZ _complex_real       ; Store as LSB
+
+    ; Add REAL_OFFSET to _complex_real
+    ; Store REAL_OFFSET in _temp_offset for AVV operation
+    LDI LSB(REAL_OFFSET)
+    STZ _temp_offset
+    LDI BYTE1(REAL_OFFSET)
+    STZ _temp_offset+1
+
+    ; Add _temp_offset (REAL_OFFSET) to _complex_real
+    AVV _temp_offset,_complex_real
+
+    ; Convert pixel_y to complex_imag
+    ; complex_imag = (pixel_y * IMAG_SCALE) + IMAG_OFFSET
+
+    ; Push pixel_y and IMAG_SCALE for multiplication
+    ; Correct order: LSB first, then MSB for each value
+    LDZ _pixel_y            ; LSB of pixel_y (multiplicand)
+    PHS
+    LDZ _pixel_y+1          ; MSB of pixel_y (multiplicand)
+    PHS
+    LDI LSB(IMAG_SCALE)     ; LSB of IMAG_SCALE (multiplier)
+    PHS
+    LDI BYTE1(IMAG_SCALE)   ; MSB of IMAG_SCALE (multiplier)
+    PHS
+
+    JPS multiply_i16        ; Result is 32-bit on stack
+
+    ; Get lower 16 bits of result (pixel * scale doesn't need 13-bit shift)
+    PLS                     ; Remove bits 31-24 (MSB)
+    PLS                     ; Remove bits 23-16
+    PLS                     ; Get bits 15-8
+    STZ _complex_imag+1     ; Store as MSB
+    PLS                     ; Get bits 7-0 (LSB)
+    STZ _complex_imag       ; Store as LSB
+
+    ; Add IMAG_OFFSET to _complex_imag
+    ; Store IMAG_OFFSET in _temp_offset for AVV operation
+    LDI LSB(IMAG_OFFSET)
+    STZ _temp_offset
+    LDI BYTE1(IMAG_OFFSET)
+    STZ _temp_offset+1
+
+    ; Add _temp_offset (IMAG_OFFSET) to _complex_imag
+    AVV _temp_offset,_complex_imag
+
+    ; Set pixel initially for every point being evaluated
+    ; Set X coordinate (2 bytes)
+    LDZ _pixel_x            ; A = pixel_x LSB
+    STB GRAPHICS_X_LSB      ; Store X LSB at graphics API address
+    LDZ _pixel_x+1          ; A = pixel_x MSB
+    STB GRAPHICS_X_MSB      ; Store X MSB at graphics API address
+
+    ; Set Y coordinate (1 byte)
+    LDZ _pixel_y            ; A = pixel_y LSB (Y is 1 byte, so only use LSB)
+    STB GRAPHICS_Y          ; Store Y at graphics API address
+
+    JPS _SetPixel           ; Call OS function to set pixel
+
+    ; Call Mandelbrot iteration function
+    JPS mandelbrot_iterate
+
+    ; Check if point is in the set (iteration_count == MAX_ITERATIONS)
+    LDZ _iteration_count
+    CPI MAX_ITERATIONS
+    BEQ .clear_pixel
+    CPI LEVEL1_ITERATIONS
+    BNE next_pixel          ; If  different, not max iterations - leave pixel set
+
+    ; clear pixel if _pixel_x%2 = pixel_y%2
+    MZZ _pixel_x,_temp_result+0
+    MZZ _pixel_y,_temp_result+1
+    LDI 1
+    AN.Z _temp_result+0
+    LDI 1
+    AN.Z _temp_result+1
+    CZZ _temp_result+0,_temp_result+1
+    BNE next_pixel
+
+.clear_pixel:
+    ; Set X coordinate (2 bytes)
+    LDZ _pixel_x            ; A = pixel_x LSB
+    STB GRAPHICS_X_LSB      ; Store X LSB at graphics API address
+    LDZ _pixel_x+1          ; A = pixel_x MSB
+    STB GRAPHICS_X_MSB      ; Store X MSB at graphics API address
+
+    ; Set Y coordinate (1 byte)
+    LDZ _pixel_y            ; A = pixel_y LSB (Y is 1 byte, so only use LSB)
+    STB GRAPHICS_Y          ; Store Y at graphics API address
+    JPS _ClearPixel         ; Call OS function to clear pixel
+
+next_pixel:
+    ; Increment pixel_x
+    INW _pixel_x
+
+    ; Check if we've reached the end of a row (X >= 400)
+    LDZ _pixel_x+1          ; Check MSB
+    CPI BYTE1(400)
+    BGT next_row            ; If MSB > BYTE1(400), go to next row
+    BNE continue_row        ; If MSB != BYTE1(400), continue in row
+    LDZ _pixel_x            ; MSB equal, check LSB
+    CPI LSB(400)
+    BCS next_row            ; If X >= 400, go to next row
+
+continue_row:
+    JPA main_loop           ; Continue with same row
+
+next_row:
+    ; Reset pixel_x to 0 and increment pixel_y
+    CLV _pixel_x
+    INW _pixel_y
+
+    ; Check if we've finished all rows (Y >= 240)
+    LDZ _pixel_y+1          ; Check MSB
+    CPI BYTE1(240)
+    BGT program_done        ; If MSB > BYTE1(240), we're done
+    BNE main_loop           ; If MSB != BYTE1(240), continue
+    LDZ _pixel_y            ; MSB equal, check LSB
+    CPI LSB(240)
+    BCS program_done        ; If Y >= 240, we're done
+    JPA main_loop           ; Otherwise continue
+
+program_done:
+    ; Wait for input before returning to prompt
+    JPS _WaitInput
+    JPS _Prompt             ; Return to OS prompt
+
+; Mandelbrot iteration function using integer arithmetic
+; Based on the algorithm from https://github.com/rahra/intfract
+; Uses _complex_real and _complex_imag as input
+; Returns iteration count in _iteration_count
+mandelbrot_iterate:
+    ; Initialize z = 0 + 0i
+    CLV _z_real
+    CLV _z_imag
+    CLZ _iteration_count
+
+iteration_loop:
+    ; Calculate z_real^2 (scaled integer multiplication)
+    ; Correct order: LSB first, then MSB for each value
+    LDZ _z_real             ; LSB of z_real (multiplicand)
+    PHS
+    LDZ _z_real+1           ; MSB of z_real (multiplicand)
+    PHS
+    LDZ _z_real             ; LSB of z_real (multiplier, duplicate for squaring)
+    PHS
+    LDZ _z_real+1           ; MSB of z_real (multiplier, duplicate for squaring)
+    PHS
+
+    JPS multiply_i16        ; z_real^2 as 32-bit result on stack
+
+    ; Shift right by SCALE_BITS (13) to normalize fixed-point multiplication
+    LDI SCALE_BITS
+    PHS                     ; Push shift count
+    JPS right_shift_32      ; Shift the 32-bit result
+
+    ; Get the scaled result from stack (shift count remains on stack)
+    PLS                     ; Remove shift count parameter
+    PLS                     ; Remove bits 31-24 (not needed for 16-bit result)
+    PLS                     ; Remove bits 23-16 (not needed for 16-bit result)
+    PLS                     ; Get bits 15-8
+    STZ _z_real_sq+1        ; Store as MSB
+    PLS                     ; Get bits 7-0 (LSB)
+    STZ _z_real_sq
+
+    ; Calculate z_imag^2 (scaled integer multiplication)
+    ; Correct order: LSB first, then MSB for each value
+    LDZ _z_imag             ; LSB of z_imag (multiplicand)
+    PHS
+    LDZ _z_imag+1           ; MSB of z_imag (multiplicand)
+    PHS
+    LDZ _z_imag             ; LSB of z_imag (multiplier, duplicate for squaring)
+    PHS
+    LDZ _z_imag+1           ; MSB of z_imag (multiplier, duplicate for squaring)
+    PHS
+
+    JPS multiply_i16        ; z_imag^2 as 32-bit result on stack
+
+    ; Shift right by SCALE_BITS (13) to normalize fixed-point multiplication
+    LDI SCALE_BITS
+    PHS                     ; Push shift count
+    JPS right_shift_32      ; Shift the 32-bit result
+    
+    ; Get the scaled result from stack (shift count remains on stack)
+    PLS                     ; Remove shift count parameter
+    PLS                     ; Remove bits 31-24 (not needed for 16-bit result)
+    PLS                     ; Remove bits 23-16 (not needed for 16-bit result)
+    PLS                     ; Get bits 15-8
+    STZ _z_imag_sq+1
+    PLS                     ; Get bits 7-0 (LSB)
+    STZ _z_imag_sq
+
+    
+    
+
+    ; Check escape condition: z_real_sq + z_imag_sq > ESCAPE_RADIUS_SQ
+    ; Calculate z_real_sq + z_imag_sq using 16-bit addition
+    ; Store result in _temp_offset for comparison
+    
+    ; Copy z_real_sq to _temp_offset
+    LDZ _z_real_sq
+    STZ _temp_offset
+    LDZ _z_real_sq+1
+    STZ _temp_offset+1
+    
+    ; Add z_imag_sq to _temp_offset (z_real_sq + z_imag_sq)
+    AVV _z_imag_sq,_temp_offset
+    
+    ; Compare _temp_offset with ESCAPE_RADIUS_SQ
+    LDZ _temp_offset+1      ; Get MSB of sum
+    CPI BYTE1(ESCAPE_RADIUS_SQ)
+    BGT escaped             ; If MSB > BYTE1(ESCAPE_RADIUS_SQ), escaped
+    BNE continue_iteration  ; If MSB != BYTE1(ESCAPE_RADIUS_SQ), continue
+    LDZ _temp_offset        ; MSB equal, check LSB
+    CPI LSB(ESCAPE_RADIUS_SQ)
+    BCS escaped             ; If sum >= ESCAPE_RADIUS_SQ, escaped
+
+continue_iteration:
+    ; Check iteration limit
+    LDZ _iteration_count
+    CPI MAX_ITERATIONS
+    BEQ escaped             ; If MSB == MAX_ITERATIONS stop
+
+update_z:
+    ; Calculate new z following Mandelbrot iteration: z = z^2 + c
+    ; New z_imag = 2*z_real*z_imag + complex_imag
+    ; New z_real = z_real^2 - z_imag^2 + complex_real
+
+    ; Calculate 2*z_real*z_imag for new imaginary part
+    ; Correct order: LSB first, then MSB for each value
+    LDZ _z_real             ; LSB of z_real (multiplicand)
+    PHS
+    LDZ _z_real+1           ; MSB of z_real (multiplicand)
+    PHS
+    LDZ _z_imag             ; LSB of z_imag (multiplier)
+    PHS
+    LDZ _z_imag+1           ; MSB of z_imag (multiplier)
+    PHS
+
+    JPS multiply_i16        ; z_real * z_imag as 32-bit result
+
+    ; Shift right by SCALE_BITS-1 (8) to get 2*z_real*z_imag in one step
+    LDI SCALE_BITS-1
+    PHS                     ; Push shift count
+    JPS right_shift_32      ; Shift the 32-bit result
+    
+    ; Get the scaled result from stack (this is already 2*z_real*z_imag)
+    PLS                     ; Remove shift count parameter
+    PLS                     ; Remove bits 31-24 (not needed for 16-bit result)
+    PLS                     ; Remove bits 23-16 (not needed for 16-bit result)
+    PLS                     ; Get bits 15-8
+    STZ _temp_result+1
+    PLS                     ; Get bits 7-0 (LSB)
+    STZ _temp_result
+
+    ; Add complex_imag to get new z_imag
+    ; _temp_result already contains 2*z_real*z_imag, add complex_imag to it
+    AVV _complex_imag,_temp_result
+
+    ; Calculate new z_real = z_real^2 - z_imag^2 + complex_real
+    ; Copy z_real_sq to z_real, then subtract z_imag_sq
+    LDZ _z_real_sq
+    STZ _z_real
+    LDZ _z_real_sq+1
+    STZ _z_real+1
+
+    ; Subtract z_imag_sq from z_real (z_real = z_real_sq - z_imag_sq)
+    SVV _z_imag_sq,_z_real
+
+    ; Add complex_real to get final z_real
+    AVV _complex_real,_z_real
+
+    ; Update z_imag with calculated value
+    LDZ _temp_result+1      ; Get stored z_imag MSB
+    STZ _z_imag+1
+    LDZ _temp_result        ; Get stored z_imag LSB
+    STZ _z_imag
+
+    ; Increment iteration count
+    INZ _iteration_count
+
+    ; Continue iteration
+    JPA iteration_loop
+
+escaped:
+    RTS                     ; Return with iteration count in _iteration_count
+
+; right_shift_32
+;
+; Right shifts a 32-bit value by a specified number of bits
+;
+; Usage:
+;   Push 32-bit value (MSB first: bits 31-24, 23-16, 15-8, 7-0)
+;   Push shift count (1 byte)
+;   JPS right_shift_32
+;   Result is 32-bit value left on stack in place of input value
+;   Shift count parameter remains on stack
+;
+; Stack layout after JPS call (top to bottom):
+;   SP+1: return address msb  (pushed by JPS)
+;   SP+2: return address lsb  (pushed by JPS)
+;   SP+3: shift_count
+;   SP+4: value bits 31-24 (MSB)
+;   SP+5: value bits 23-16
+;   SP+6: value bits 15-8
+;   SP+7: value bits 7-0   (LSB)
+;
+right_shift_32:
+    ; Load the shift count
+    LDS 3                   ; A = shift_count
+    STZ _temp_offset        ; Store shift count temporarily
+
+    ; Check if shift count is 0
+    CIZ 0,_temp_offset
+    BEQ .shift_done
+
+    ; Load 32-bit value into _temp_result
+    LDS 7                   ; A = bits 7-0 (LSB)
+    STZ _temp_result
+    LDS 6                   ; A = bits 15-8
+    STZ _temp_result+1
+    LDS 5                   ; A = bits 23-16
+    STZ _temp_result+2
+    LDS 4                   ; A = bits 31-24 (MSB)
+    STZ _temp_result+3
+
+.shift_loop:
+    ; Perform one right shift across all 4 bytes
+    CLC                     ; Clear carry for logical right shift
+    RRZ _temp_result+3      ; Shift MSB (bits 31-24)
+    RRZ _temp_result+2      ; Shift bits 23-16
+    RRZ _temp_result+1      ; Shift bits 15-8
+    RRZ _temp_result        ; Shift LSB (bits 7-0)
+    
+    ; Decrement shift count and continue if not zero
+    DEZ _temp_offset
+    BNE .shift_loop
+    
+.shift_done:
+    ; Store result back to stack, replacing the original 32-bit value
+    ; The shift count at SP+3 is left unchanged
+    LDZ _temp_result+3      ; A = result bits 31-24
+    STS 4                   ; Store to SP+4 (original MSB position)
+    LDZ _temp_result+2      ; A = result bits 23-16
+    STS 5                   ; Store to SP+5
+    LDZ _temp_result+1      ; A = result bits 15-8
+    STS 6                   ; Store to SP+6
+    LDZ _temp_result        ; A = result bits 7-0
+    STS 7                   ; Store to SP+7 (original LSB position)
+    
+    RTS                     ; Return
+
+#include "mathlib16.min64x4"
