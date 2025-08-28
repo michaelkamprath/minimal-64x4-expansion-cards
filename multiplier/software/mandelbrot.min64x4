@@ -260,7 +260,7 @@ iteration_loop:
     LDI SCALE_BITS
     PHS                     ; Push shift count
     JPS right_shift_32      ; Shift the 32-bit result
-    
+
     ; Get the scaled result from stack (shift count remains on stack)
     PLS                     ; Remove shift count parameter
     PLS                     ; Remove bits 31-24 (not needed for 16-bit result)
@@ -270,22 +270,19 @@ iteration_loop:
     PLS                     ; Get bits 7-0 (LSB)
     STZ _z_imag_sq
 
-    
-    
-
     ; Check escape condition: z_real_sq + z_imag_sq > ESCAPE_RADIUS_SQ
     ; Calculate z_real_sq + z_imag_sq using 16-bit addition
     ; Store result in _temp_offset for comparison
-    
+
     ; Copy z_real_sq to _temp_offset
     LDZ _z_real_sq
     STZ _temp_offset
     LDZ _z_real_sq+1
     STZ _temp_offset+1
-    
+
     ; Add z_imag_sq to _temp_offset (z_real_sq + z_imag_sq)
     AVV _z_imag_sq,_temp_offset
-    
+
     ; Compare _temp_offset with ESCAPE_RADIUS_SQ
     LDZ _temp_offset+1      ; Get MSB of sum
     CPI BYTE1(ESCAPE_RADIUS_SQ)
@@ -323,7 +320,7 @@ update_z:
     LDI SCALE_BITS-1
     PHS                     ; Push shift count
     JPS right_shift_32      ; Shift the 32-bit result
-    
+
     ; Get the scaled result from stack (this is already 2*z_real*z_imag)
     PLS                     ; Remove shift count parameter
     PLS                     ; Remove bits 31-24 (not needed for 16-bit result)
@@ -411,11 +408,11 @@ right_shift_32:
     RRZ _temp_result+2      ; Shift bits 23-16
     RRZ _temp_result+1      ; Shift bits 15-8
     RRZ _temp_result        ; Shift LSB (bits 7-0)
-    
+
     ; Decrement shift count and continue if not zero
     DEZ _temp_offset
     BNE .shift_loop
-    
+
 .shift_done:
     ; Store result back to stack, replacing the original 32-bit value
     ; The shift count at SP+3 is left unchanged
@@ -427,7 +424,7 @@ right_shift_32:
     STS 6                   ; Store to SP+6
     LDZ _temp_result        ; A = result bits 7-0
     STS 7                   ; Store to SP+7 (original LSB position)
-    
+
     RTS                     ; Return
 
 #include "mathlib16.min64x4"
