@@ -103,49 +103,18 @@ sub16:
 
     RTS                ; Return
 
-; multiply_u16
+
+
+; _multiplication_core
 ;
-; Multiplies two unsigned 16-bit integers using shift-and-add algorithm
-; Result is 32-bit to handle overflow
+; Core multiplication algorithm that operates on zero-page variables
+; Expects multiplicand to be in _mul_multiplicand (32-bit) and multiplier in _temp_val2 (16-bit)
+; Returns 32-bit result in _mul_result
+; This is an internal subroutine - not intended for direct external use
 ;
-; Usage:
-;   Push first 16-bit value (big-endian: MSB first, then LSB) - multiplicand
-;   Push second 16-bit value (big-endian: MSB first, then LSB) - multiplier
-;   JPS mul16
-;   Result is 32-bit value left on stack in place of both input values
-;   Caller must clean up stack as needed
-;
-; Stack layout after JPS call (top to bottom):
-;   SP+1: return address msb  (pushed by JPS)
-;   SP+2: return address lsb  (pushed by JPS)
-;   SP+3: value2_msb  (multiplier high byte)
-;   SP+4: value2_lsb  (multiplier low byte)
-;   SP+5: value1_msb  (multiplicand high byte)
-;   SP+6: value1_lsb  (multiplicand low byte)
-;
-; Result: 32-bit product overwrites both input values on stack
-;   SP+3: result bits 31-24 (most significant)
-;   SP+4: result bits 23-16
-;   SP+5: result bits 15-8
-;   SP+6: result bits 7-0   (least significant)
-;
-multiply_u16:
+_multiplication_core:
     ; Clear result accumulator
     CLQ _mul_result           ; Clear 32-bit result
-
-    ; Initialize 32-bit multiplicand with 16-bit input value
-    CLQ _mul_multiplicand     ; Clear 32-bit multiplicand
-    LDS 6                     ; A = multiplicand LSB
-    STZ _mul_multiplicand     ; Store LSB
-    LDS 5                     ; A = multiplicand MSB
-    STZ _mul_multiplicand+1   ; Store MSB
-    ; Upper 16 bits of _mul_multiplicand are already 0
-
-    ; Load multiplier into _temp_val2
-    LDS 4                     ; A = multiplier LSB
-    STZ _temp_val2            ; Store LSB
-    LDS 3                     ; A = multiplier MSB
-    STZ _temp_val2+1          ; Store MSB
 
     ; Initialize counter - optimize for 8-bit vs 16-bit multiplier
     LDZ _temp_val2+1          ; A = multiplier MSB
@@ -183,6 +152,51 @@ multiply_u16:
     DEZ _mul_counter              ; Decrement counter
     BNE .mul_loop                 ; Continue if not zero
 
+    RTS                           ; Return with result in _mul_result
+
+; multiply_u16
+;
+; Multiplies two unsigned 16-bit integers using shift-and-add algorithm
+; Result is 32-bit to handle overflow
+;
+; Usage:
+;   Push first 16-bit value (big-endian: MSB first, then LSB) - multiplicand
+;   Push second 16-bit value (big-endian: MSB first, then LSB) - multiplier
+;   JPS mul16
+;   Result is 32-bit value left on stack in place of both input values
+;   Caller must clean up stack as needed
+;
+; Stack layout after JPS call (top to bottom):
+;   SP+1: return address msb  (pushed by JPS)
+;   SP+2: return address lsb  (pushed by JPS)
+;   SP+3: value2_msb  (multiplier high byte)
+;   SP+4: value2_lsb  (multiplier low byte)
+;   SP+5: value1_msb  (multiplicand high byte)
+;   SP+6: value1_lsb  (multiplicand low byte)
+;
+; Result: 32-bit product overwrites both input values on stack
+;   SP+3: result bits 31-24 (most significant)
+;   SP+4: result bits 23-16
+;   SP+5: result bits 15-8
+;   SP+6: result bits 7-0   (least significant)
+multiply_u16:
+    ; Load multiplicand from stack into 32-bit _mul_multiplicand
+    CLQ _mul_multiplicand     ; Clear 32-bit multiplicand
+    LDS 6                     ; A = multiplicand LSB
+    STZ _mul_multiplicand     ; Store LSB
+    LDS 5                     ; A = multiplicand MSB
+    STZ _mul_multiplicand+1   ; Store MSB
+    ; Upper 16 bits of _mul_multiplicand are already 0
+
+    ; Load multiplier from stack into _temp_val2
+    LDS 4                     ; A = multiplier LSB
+    STZ _temp_val2            ; Store LSB
+    LDS 3                     ; A = multiplier MSB
+    STZ _temp_val2+1          ; Store MSB
+
+    ; Call core multiplication algorithm
+    JPS _multiplication_core  ; Multiply values in zero-page
+
     ; Copy 32-bit result back to stack
     LDZ _mul_result+3             ; A = result bits 31-24
     STS 3                         ; Store to SP+3
@@ -197,7 +211,7 @@ multiply_u16:
 
 ; multiply_i16
 ;
-; Multiplies two signed 16-bit integers using multiply_u16
+; Multiplies two signed 16-bit integers using _multiplication_core
 ; Handles sign detection and conversion automatically
 ;
 ; Usage:
@@ -222,7 +236,7 @@ multiply_u16:
 ;   SP+6: result bits 7-0   (least significant)
 ;
 multiply_i16:
-    ; Check if first value (multiplicand) is negative
+    ; Load first value (multiplicand) from stack
     LDS 5                         ; A = value1_msb
     STZ _temp_val1+1              ; Store for later use
     LDS 6                         ; A = value1_lsb
@@ -244,7 +258,7 @@ multiply_i16:
     NEV _temp_val1
 
 .check_second_sign:
-    ; load second value (multiplier)
+    ; Load second value (multiplier) from stack
     LDS 3                         ; A = value2_msb
     STZ _temp_val2+1              ; Store for later use
     LDS 4                         ; A = value2_lsb
@@ -254,7 +268,7 @@ multiply_i16:
     LDZ _temp_val2+1              ; A = value2_msb
     ANI $80                       ; Isolate sign bit (bit 7)
     CPI $80                       ; Compare with $80 to set flags
-    BNE .call_multiply_u16        ; If not negative, proceed to multiplication
+    BNE .setup_multiplicand       ; If not negative, proceed to setup
 
     ; Second value is negative, flip sign flag
     LDI 1                         ; A = 1
@@ -263,38 +277,26 @@ multiply_i16:
     ; Convert second value to positive (2's complement)
     NEV _temp_val2
 
-.call_multiply_u16:
-    ; Push positive values onto stack for multiply_u16
-    ; multiply_u16 expects: LSB first, then MSB for each value
-    ; Push first value (LSB first, then MSB) - use converted positive values
-    LDZ _temp_val1                ; A = value1_lsb (positive)
-    PHS                           ; Push LSB
-    LDZ _temp_val1+1              ; A = value1_msb (positive)
-    PHS                           ; Push MSB
+.setup_multiplicand:
+    ; Setup 32-bit multiplicand from positive _temp_val1
+    CLQ _mul_multiplicand         ; Clear 32-bit multiplicand
+    LDZ _temp_val1                ; A = multiplicand LSB (positive)
+    STZ _mul_multiplicand         ; Store LSB
+    LDZ _temp_val1+1              ; A = multiplicand MSB (positive)
+    STZ _mul_multiplicand+1       ; Store MSB
+    ; Upper 16 bits of _mul_multiplicand are already 0
+    ; _temp_val2 already contains positive multiplier
 
-    ; Push second value (LSB first, then MSB) - use converted positive values
-    LDZ _temp_val2                ; A = value2_lsb (positive)
-    PHS                           ; Push LSB
-    LDZ _temp_val2+1              ; A = value2_msb (positive)
-    PHS                           ; Push MSB
-
-
-    ; Call multiply_u16 with positive values
-    JPS multiply_u16              ; This populates _mul_result and overwrites stack with 32-bit result
-
-    ; Pulling the result off the stack. Not saving it because _mul_result already has the value from multiply_u16.
-    PLS
-    PLS
-    PLS
-    PLS
+    ; Call core multiplication algorithm
+    JPS _multiplication_core      ; Multiply values in zero-page
 
     ; Check if result should be negative
     CIZ 0,_mul_sign_flag          ; Compare 0 with sign flag
-    BEQ .return_result          ; If 0, result should be positive
-    NEQ _mul_result
+    BEQ .return_result            ; If 0, result should be positive
+    NEQ _mul_result               ; Convert result to negative
 
 .return_result:
-    ; copy result to return locations in stack and RTS
+    ; Copy result to return locations in stack
     LDZ _mul_result+3             ; A = result bits 31-24
     STS 3                         ; Store to SP+3
     LDZ _mul_result+2             ; A = result bits 23-16
