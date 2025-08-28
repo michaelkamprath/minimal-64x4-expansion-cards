@@ -16951,6 +16951,16 @@
 		)
 		(uuid "22d11042-2eec-42f3-b06d-6c20b2b7cbfc")
 	)
+	(label "BIN"
+		(at 149.86 473.71 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "24f6c455-f42a-4ba8-92fd-ce0c03974bf7")
+	)
 	(label "BUS0"
 		(at 199.39 515.62 90)
 		(effects
@@ -17251,6 +17261,16 @@
 		)
 		(uuid "9d23bd74-8958-425b-ac46-d420be215465")
 	)
+	(label "ADDR_HIGH"
+		(at 38.1 421.64 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "a1867e4e-7b4f-4194-b386-30734f7df87e")
+	)
 	(label "BUS4"
 		(at 132.08 553.72 90)
 		(effects
@@ -17270,6 +17290,16 @@
 			(justify left bottom)
 		)
 		(uuid "a385d210-4b9f-48c4-85f5-7beac7760b91")
+	)
+	(label "RHIGH"
+		(at 149.86 471.17 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "a445f4a8-6921-4e96-8e9e-65f182fb978d")
 	)
 	(label "BUS3"
 		(at 191.77 515.62 90)
@@ -17300,6 +17330,16 @@
 			(justify left bottom)
 		)
 		(uuid "a5b9d87e-9a50-4e22-9aca-4a01f290b45e")
+	)
+	(label "AIN"
+		(at 149.86 476.25 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "a738aba0-0def-41de-b2ed-3d458b41f1e1")
 	)
 	(label "BUS0"
 		(at 303.53 515.62 90)
@@ -17390,6 +17430,16 @@
 			(justify left bottom)
 		)
 		(uuid "c22b5ffd-6da8-4dc4-9d53-f53acb2dfa2b")
+	)
+	(label "RLOW"
+		(at 149.86 468.63 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "c4fef935-566e-4aad-86f1-c3f4c03a9c64")
 	)
 	(label "BUS6"
 		(at 340.36 515.62 90)
@@ -22421,7 +22471,7 @@
 				)
 			)
 		)
-		(property "Value" "ATF16V10C"
+		(property "Value" "ATF16V8C"
 			(at 136.652 452.3048 0)
 			(effects
 				(font

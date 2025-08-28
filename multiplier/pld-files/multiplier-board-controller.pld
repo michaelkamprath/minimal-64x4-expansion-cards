@@ -1,0 +1,50 @@
+GAL16V8
+multiplier
+
+CLK  RI   RO     RST  NC    ADDRHIGH  ADDR0  ADDR1  ADDR2  GND
+NC   AIN  BIN  RHIGH  RLOW  NC        NC     NC     INH    VCC
+
+;
+; Multiplier Board Controller Logic
+;
+; Memory Map for Multiplier Board (assuming 4-bit address decode)
+;   Address | Function
+;   --------+---------
+;   0x0     | Input A (read from bus)
+;   0x1     | Input B (read from bus)
+;   0x2     | Result Low Byte (write to bus)
+;   0x3     | Result High Byte (write to bus)
+;
+; Pin Definitions:
+;   CLK      - System clock
+;   /RI      - Read/Input strobe (active low)
+;   /RO      - Read/Output strobe (active low)
+;   /RST     - Reset (active low)
+;   ADDRHIGH - High bit of address bus
+;   ADDR0-2  - Address bits 0-2
+;   AIN      - Load Input A register (active high)
+;   BIN      - Load Input B register (active high)
+;   /RHIGH   - Output enable for high byte result (active low)
+;   /RLOW    - Output enable for low byte result (active low)
+;   INH      - Inhibit host system bus (active high)
+
+; Input A register load - address 0x0, write operation
+AIN.R = /RI * RO * /ADDRHIGH * /ADDR0 * /ADDR1 * /ADDR2
+
+; Input B register load - address 0x1, write operation
+BIN.R = /RI * RO * /ADDRHIGH * ADDR0 * /ADDR1 * /ADDR2
+
+; Result low byte output enable - address 0x2, read operation
+/RLOW = RI * /RO * /ADDRHIGH * /ADDR0 * ADDR1 * /ADDR2
+
+; Result high byte output enable - address 0x3, read operation
+/RHIGH = RI * /RO * /ADDRHIGH * ADDR0 * ADDR1 * /ADDR2
+
+; Inhibit host system when multiplier is driving the data bus
+INH = /RLOW + /RHIGH
+
+DESCRIPTION
+
+GAL16V10 controller for hardware multiplier expansion board.
+Provides address decoding and control signals for 8x8 bit multiplication
+with 16-bit result output on the Minimal 64x4 computer system.
