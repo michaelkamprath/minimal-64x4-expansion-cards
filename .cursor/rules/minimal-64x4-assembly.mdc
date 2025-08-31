@@ -8,14 +8,14 @@ Files with the *.min64x4 extension are assembly language files for the Minimal 6
 **Documentation References:**
 - Complete instruction set: "Minimal 64x4 Instruction Set - Original.csv" in .cursor/rules/
 - BespokeASM syntax and features: "Assembly-Language-Syntax.md" in .cursor/rules/
-- BespokeASM is a configurable assembler - the Minimal 64x4 instruction set is loaded via configuration
+- BespokeASM is a configurable assembler - the Minimal 64x4 instruction set is loaded via YAML configuration file
 
 ## Architecture Overview:
 - 8-bit data path with 16-bit addressing
-- Little endian byte order, expect when pushing multibyte values to the stack then it is big endian.
+- Little endian byte order
+- Stack operations supported.The stack pointer decrements when values are pushed onto the stack. Multi-byte values are pushed on the stack LSB first and MSB last.
 - 256 instructions (0x00-0xFF opcodes)
 - Accumulator-based architecture (A register)
-- Stack operations supported
 - Zero-page addressing for fast operations
 - Support for byte, word (16-bit), and long (32-bit) operations
 - Flags: N (negative), C (carry), Z (zero)
@@ -26,14 +26,13 @@ Files with the *.min64x4 extension are assembly language files for the Minimal 6
 - **Logic**: ANI, ANZ, ORI, ORZ, XRI, XRZ, NOT, NEG, etc.
 - **Bit Operations**: LL0-LL7 (left shift), RL0-RL7 (rotate left), LR0-LR7 (right shift)
 - **Branching**: BCC, BCS, BEQ, BNE, BPL, BMI, BGT, BLE, plus fast branches (FCC, FCS, etc.)
-- **Jumps**: JPA (absolute), JPR (relative), JAR (A-indexed), JPS (subroutine)
+- **Jumps**: JPA (absolute), JPR (relative), JAR (A-indexed), JPS (subroutine), JAS (same as JPS but does not alter A register)
 - **Compare**: CPI, CPZ, CPB, CIZ, CIB, etc.
 - **I/O**: OUT (UART output), INT (UART input), INK (PS/2 input), WIN (wait for input)
 - **Memory**: Clear operations (CLZ, CLB, CLV, CLW), FLASH operations (RDB, WDB, etc.)
 
 ## Assembly Syntax Features:
 - Uses BespokeASM assembler with version requirements (#require directive)
-- **All files must start with**: `#require "slu4-min64x4-asm >= 1.1.0"`
 - Memory zones: .memzone ZERO_PAGE_LIBS, .memzone USER_APPS
 - Alignment: .align directive
 - Origin: .org directive
@@ -50,13 +49,6 @@ Files with the *.min64x4 extension are assembly language files for the Minimal 6
 - Same-line comments within a subroutine should align their semicolons (;) at the same column for readability
 - For related groups of constants or variables, align semicolons for improved readability
 - **Use named constants instead of magic numbers** for better readability and maintainability
-- Example:
-  ```
-  LDS 6              ; A = value1_lsb
-  STZ _temp_val1     ; Store LSB of first value
-  LDS 5              ; A = value1_msb
-  STZ _temp_val1+1   ; Store MSB of first value
-  ```
 
 ### Constants and Magic Numbers:
 **Always prefer named constants over magic numbers:**
@@ -80,22 +72,8 @@ STB GRAPHICS_X_LSB          ; Clear intent: storing graphics X coordinate
 LDI MAX_ITERATIONS          ; Self-documenting: maximum iterations
 CPI SPACE_CHAR             ; Obvious: comparing with space character
 ```
-
-**Benefits of named constants:**
-- **Self-documenting code**: Intent is immediately clear
-- **Maintainability**: Change value in one place only
-- **Error reduction**: Typos in constant names cause assembly errors
-- **Readability**: Code reads like natural language
-
-**Common categories for constants:**
-- **API addresses**: `GRAPHICS_X_LSB = $0080`, `UART_DATA = $F100`
-- **Configuration values**: `MAX_ITERATIONS = 50`, `BUFFER_SIZE = 256`
-- **ASCII characters**: `CR = $0D`, `LF = $0A`, `SPACE = $20`
-- **Bit masks**: `BIT_7 = $80`, `LOWER_NIBBLE = $0F`
-- **Algorithm parameters**: `SCALE_FACTOR = 1 << 13`, `THRESHOLD = 1000`
-
-**Mathematical expressions in constants:**
-- BespokeASM supports mathematical expressions in constant definitions
+## Mathematical Expressions
+- BespokeASM supports mathematical expressions in constant definitions and operands.
 - Use expressions to make constants self-updating: `ESCAPE_RADIUS = 4 * SCALE_FACTOR`
 - For powers of 2, use left shift instead of power operator: `SCALE_FACTOR = 1 << SCALE_BITS` (not `2 ** SCALE_BITS`)
 - Supported operators: `+`, `-`, `*`, `/`, `%`, `&`, `|`, `^`, `>>`, `<<`
@@ -147,7 +125,7 @@ When a subroutine is called through JPS (Jump to Subroutine), the return address
 - Only modify the stack pointer or pull stack items if you understand exactly what you're doing
 
 **Memory Management Best Practices:**
-- Use BespokeASM memory zones (.memzone ZERO_PAGE_LIBS, .memzone USER_APPS) instead of hardcoded addresses
+- Use BespokeASM memory zones defined for the Minimal 64x4 (.memzone ZERO_PAGE_LIBS, .memzone USER_APPS) instead of hardcoded addresses
 - Declare labeled variables in appropriate memory zones rather than using raw addresses like 0, 1, 2, etc.
 - This prevents address conflicts and makes code relocatable and maintainable
 - For multi-byte values, use +1, +2, etc. offsets from the base label (e.g., _temp_val1+1 for MSB)
@@ -176,27 +154,10 @@ When a subroutine is called through JPS (Jump to Subroutine), the return address
   - Fixed iteration counts often better than variable loops
 - The Minimal 64x4 has extensive multi-byte support - leverage it!
 
-## 2's Complement and Multi-byte Operations:
-**Correct 2's Complement Algorithm:**
-- 2's complement = bitwise NOT + 1 (applied to entire multi-byte value)
-- **Step 1**: Use NOZ to bitwise NOT all bytes
-- **Step 2**: Use INZ on LSB, then LDI 0 and use AC.Z to propagate carry through remaining bytes
-- **NEVER** use NEZ on individual bytes for multi-byte 2's complement - this is incorrect
-
-**Example for 16-bit 2's complement:**
-```
-NOZ value       ; NOT LSB
-NOZ value+1     ; NOT MSB
-INZ value       ; Increment LSB (sets carry if overflow)
-LDI 0           ; A = 0
-AC.Z value+1    ; Add A (0) + carry to MSB
-```
-
 **Flag Behavior Critical Rules:**
 - **LDZ does NOT set flags** - always follow with CPI/CIZ if you need to test the value
 - Use CIZ (Compare Immediate with Zero-page) instead of LDZ+CPI for efficiency
 - AC.Z adds accumulator + carry to zero-page location (need LDI 0 first for carry propagation)
-- XR.Z XORs accumulator with zero-page location and stores result in zero-page
 
 ## Minimal 64x4 Operating System API
 The BespokeASM configuration file for the Minimal 64x4 contains the following API functions and data. They may be refered to as their name (API Function or API Data) rather than the address.
@@ -224,17 +185,17 @@ The following list shows the available API functions and data.
 | 0xf02d | _SaveFile | Saves data to file <name> defined at _ReadPtr |
 | 0xf030 | _ClearVRAM | Clears the video RAM including blanking areas |
 | 0xf033 | _Clear | Clears the visible video RAM (viewport) |
-| 0xf036 | _ClearRow | Clears the current row from cursor pos onwards |
+| 0xf036 | _ClearRow | Clears the current row from cursor pos onwards - See Graphics API section |
 | 0xf039 | _ScrollUp | Scrolls up the viewport by 8 pixels |
 | 0xf03c | _ScrollDn | Scrolls down the viewport by 8 pixels |
-| 0xf03f | _Char | Outputs a char at the cursor pos (non-advancing) |
-| 0xf042 | _PrintChar | Prints a char at the cursor pos (advancing) |
+| 0xf03f | _Char | Outputs a char at the cursor pos (non-advancing). Value is in A register. |
+| 0xf042 | _PrintChar | Prints a char at the cursor pos (advancing). Value is in A register. |
 | 0xf045 | _Print | Prints a zero-terminated immediate string |
-| 0xf048 | _PrintPtr | Prints a zero-terminated string at an address |
-| 0xf04b | _PrintHex | Prints a HEX number (advancing) |
+| 0xf048 | _PrintPtr | Prints a zero-terminated string at an address. Buffer pointer passed on stack. |
+| 0xf04b | _PrintHex | Prints a HEX number (advancing). Value is in A register. |
 | 0xf04e | _SetPixel | Sets a pixel at position (x, y) - see Graphics API section |
-| 0xf051 | _Line | Draws a line using Bresenham's algorithm |
-| 0xf054 | _Rect | Draws a rectangle at (x, y) of size (w, h) |
+| 0xf051 | _Line | Draws a line using Bresenham's algorithm - see Graphics API section |
+| 0xf054 | _Rect | Draws a rectangle at (x, y) of size (w, h) - see Graphics API section |
 | 0xf057 | _ClearPixel | Clears a pixel at position (x, y) - see Graphics API section |
 
 ### API Data
@@ -282,7 +243,7 @@ GRAPHICS_Y = $0082          ; Y coordinate
 ; Set pixel at coordinates (pixel_x, pixel_y)
 LDZ pixel_x         ; A = X coordinate LSB
 STB GRAPHICS_X_LSB  ; Store X LSB at graphics API address
-LDZ pixel_x+1       ; A = X coordinate MSB  
+LDZ pixel_x+1       ; A = X coordinate MSB
 STB GRAPHICS_X_MSB  ; Store X MSB at graphics API address
 LDZ pixel_y         ; A = Y coordinate (1 byte)
 STB GRAPHICS_Y      ; Store Y at graphics API address
@@ -366,7 +327,7 @@ bespokeasm -n -p -c path/to/slu4-minimal-64x4.yaml your_program.min64x4
 - `-c CONFIG_FILE`: Specify the instruction set configuration file (required)
 - `-n`: No output binary file generation (useful for syntax checking)
 - `-p`: Pretty print the assembled code with addresses and byte codes
-- `-t intel_hex`: print the compiled code in Intel hex format
+- `-t intel_hex`: print the compiled code in Intel hex format. The Minimal 64x4 hardware requires the program to be sent to it using Intel hex format.
 - `-o OUTPUT_FILE`: Specify output binary file name (default: program_name.bin)
 
 ### Common Compilation Errors and Solutions
@@ -457,7 +418,6 @@ _test_var: .2byte 0
 
 #emit
 .memzone USER_APPS
-.align
 
 test_program:
     spinit                  ; Initialize stack
@@ -475,10 +435,9 @@ test_program:
 **Verify Memory Zone Usage:**
 - Variables should be in `.memzone ZERO_PAGE_APPS` or `.memzone ZERO_PAGE_LIBS`
 - Code should be in `.memzone USER_APPS`
-- Use `.align` directive after switching to USER_APPS
 
 **Validate Include Paths:**
-- Ensure included files (like `mathlib16.min64x4`) are in the correct directory
+- Ensure included files (like `mathlib16.min64x4`) are in the correct directory or use the `-I` flag to specify the containing directory path when compiling.
 - Check that library files compile independently if needed
 
 **Example Complete Test Session:**

@@ -201,8 +201,7 @@ next_row:
     JPA main_loop           ; Otherwise continue
 
 program_done:
-    ; Wait for input before returning to prompt
-    JPS _WaitInput
+    JPS _WaitInput          ; Wait for user input before returning to prompt
     JPS _Prompt             ; Return to OS prompt
 
 ; Mandelbrot iteration function using integer arithmetic

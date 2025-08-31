@@ -8,6 +8,16 @@ _mul_multiplicand: .4byte 0 ; 32-bit shifted multiplicand
 _mul_counter: .byte 0       ; Loop counter for multiplication
 _mul_sign_flag: .byte 0     ; Sign flag for signed multiplication
 
+#ifdef USE_ACCELERATOR
+; Hardware multiplier accelerator memory-mapped registers
+MULTIPLIER_A = $FED0            ; Input register for 8-bit multiplicand A
+MULTIPLIER_B = $FED1            ; Input register for 8-bit multiplicand B
+MULTIPLIER_RESULT_LSB = $FED2   ; Output register for LSB of 16-bit result
+MULTIPLIER_RESULT_MSB = $FED3   ; Output register for MSB of 16-bit result
+
+; Hardware accelerated version requires no additional variables
+#endif
+
 #emit
 
 .memzone USER_APPS
@@ -105,6 +115,69 @@ sub16:
 
 
 
+#ifdef USE_ACCELERATOR
+#print magenta "Compiling hardware accelerated multiplication"
+; _multiplication_core_accelerated
+;
+; Hardware-accelerated multiplication algorithm that operates on zero-page variables
+; Expects multiplicand to be in _mul_multiplicand (only low 16 bits used) and multiplier in _temp_val2 (16-bit)
+; Returns 32-bit result in _mul_result
+; Uses hardware accelerator for 8x8 multiplications to build 16x16 result
+; This is an internal subroutine - not intended for direct external use
+;
+_multiplication_core:
+    ; Clear result accumulator
+    CLQ _mul_result           ; Clear 32-bit result
+
+    ; Extract the 16-bit values from the inputs
+    ; Multiplicand A = _mul_multiplicand (low 16 bits): A_high, A_low
+    ; Multiplier B = _temp_val2: B_high, B_low
+
+    ; Perform A_low × B_low (contributes to result bits 0-15)
+    MZB _mul_multiplicand+0,MULTIPLIER_A
+    MZB _temp_val2+0,MULTIPLIER_B
+
+    ; Read 16-bit result from hardware
+    MBZ MULTIPLIER_RESULT_LSB,_mul_result+0
+    MBZ MULTIPLIER_RESULT_MSB,_mul_result+1
+
+    ; Perform A_high × B_low (contributes to result bits 8-23)
+    MZB _mul_multiplicand+1,MULTIPLIER_A
+    MZB _temp_val2+0,MULTIPLIER_B
+
+    ; Add 16-bit result directly to _mul_result at byte offset 1
+    LDB MULTIPLIER_RESULT_LSB ; A = result LSB
+    AD.Z _mul_result+1        ; Add to _mul_result[1], store result in _mul_result[1]
+    LDB MULTIPLIER_RESULT_MSB ; A = result MSB
+    AC.Z _mul_result+2        ; Add with carry to _mul_result[2], store result in _mul_result[2]
+    LDI 0                     ; A = 0 (for carry propagation)
+    AC.Z _mul_result+3        ; Add carry to byte 3 (0 + carry)
+
+    ; Perform A_low × B_high (contributes to result bits 8-23)
+    MZB _mul_multiplicand+0,MULTIPLIER_A
+    MZB _temp_val2+1,MULTIPLIER_B
+
+    ; Add 16-bit result directly to _mul_result at byte offset 1
+    LDB MULTIPLIER_RESULT_LSB ; A = result LSB
+    AD.Z _mul_result+1        ; Add to _mul_result[1], store result in _mul_result[1]
+    LDB MULTIPLIER_RESULT_MSB ; A = result MSB
+    AC.Z _mul_result+2        ; Add with carry to _mul_result[2], store result in _mul_result[2]
+    LDI 0                     ; A = 0 (for carry propagation)
+    AC.Z _mul_result+3        ; Add carry to byte 3 (0 + carry)
+
+    ; Perform A_high × B_high (contributes to result bits 16-31)
+    MZB _mul_multiplicand+1,MULTIPLIER_A
+    MZB _temp_val2+1,MULTIPLIER_B
+
+    ; Add 16-bit result directly to _mul_result at byte offset 2
+    LDB MULTIPLIER_RESULT_LSB ; A = result LSB
+    AD.Z _mul_result+2        ; Add to _mul_result[2], store result in _mul_result[2]
+    LDB MULTIPLIER_RESULT_MSB ; A = result MSB
+    AC.Z _mul_result+3        ; Add to _mul_result[3], store result in _mul_result[3]
+
+    RTS                       ; Return with result in _mul_result
+
+#else
 ; _multiplication_core
 ;
 ; Core multiplication algorithm that operates on zero-page variables
@@ -112,16 +185,16 @@ sub16:
 ; Returns 32-bit result in _mul_result
 ; This is an internal subroutine - not intended for direct external use
 ;
+.align
 _multiplication_core:
     ; Clear result accumulator
     CLQ _mul_result           ; Clear 32-bit result
 
     ; Initialize counter - optimize for 8-bit vs 16-bit multiplier
-    LDZ _temp_val2+1          ; A = multiplier MSB
-    CPI 0                     ; Check if high byte is zero
-    BNE .use_16_iterations    ; If high byte != 0, need full 16 iterations
+    CIZ 0,_temp_val2+1        ; Check if high byte is zero
+    FNE .use_16_iterations    ; If high byte != 0, need full 16 iterations
     MIZ 8,_mul_counter        ; Set counter to 8 (only need 8 iterations for 8-bit multiplier)
-    JPA .mul_loop             ; Jump directly to loop
+    FPA .mul_loop             ; Jump directly to loop
 .use_16_iterations:
     MIZ 16,_mul_counter       ; Set counter to 16 (need full 16 iterations)
 
@@ -130,11 +203,11 @@ _multiplication_core:
     LDZ _temp_val2                ; A = multiplier LSB
     ANI 1                         ; Isolate bit 0
     CPI 1                         ; Compare with 1 to set flags
-    BNE .mul_skip_add             ; If bit 0 is not 1, skip addition
+    FNE .mul_skip_add             ; If bit 0 is not 1, skip addition
 
     ; Add 32-bit multiplicand to 32-bit result with proper carry propagation
     AVV _mul_multiplicand,_mul_result     ; Add low 16 bits
-    BCC .no_carry                         ; If no carry, skip increment
+    FCC .no_carry                         ; If no carry, skip increment
     INW _mul_result+2                     ; Propagate carry to high word
 .no_carry:
     AVV _mul_multiplicand+2,_mul_result+2 ; Add high 16 bits
@@ -150,9 +223,11 @@ _multiplication_core:
 
     ; Decrement counter and continue if not zero
     DEZ _mul_counter              ; Decrement counter
-    BNE .mul_loop                 ; Continue if not zero
+    FNE .mul_loop                 ; Continue if not zero
 
     RTS                           ; Return with result in _mul_result
+
+#endif
 
 ; multiply_u16
 ;
@@ -249,7 +324,7 @@ multiply_i16:
     LDZ _temp_val1+1              ; A = value1_msb
     ANI $80                       ; Isolate sign bit (bit 7)
     CPI $80                       ; Compare with $80 to set flags
-    BNE .check_second_sign        ; If not negative, check second value
+    FNE .check_second_sign        ; If not negative, check second value
 
     ; First value is negative, set sign flag
     INZ _mul_sign_flag            ; Set sign flag to 1
@@ -268,7 +343,7 @@ multiply_i16:
     LDZ _temp_val2+1              ; A = value2_msb
     ANI $80                       ; Isolate sign bit (bit 7)
     CPI $80                       ; Compare with $80 to set flags
-    BNE .setup_multiplicand       ; If not negative, proceed to setup
+    FNE .setup_multiplicand       ; If not negative, proceed to setup
 
     ; Second value is negative, flip sign flag
     LDI 1                         ; A = 1
@@ -292,7 +367,7 @@ multiply_i16:
 
     ; Check if result should be negative
     CIZ 0,_mul_sign_flag          ; Compare 0 with sign flag
-    BEQ .return_result            ; If 0, result should be positive
+    FEQ .return_result            ; If 0, result should be positive
     NEQ _mul_result               ; Convert result to negative
 
 .return_result:
