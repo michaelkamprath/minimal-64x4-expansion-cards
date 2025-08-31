@@ -20,8 +20,8 @@ NC   AIN  BIN  RHIGH  RLOW  NC        NC     NC     INH    VCC
 ;   /RI      - Read/Input strobe (active low)
 ;   /RO      - Read/Output strobe (active low)
 ;   /RST     - Reset (active low)
-;   ADDRHIGH - High bit of address bus
-;   ADDR0-2  - Address bits 0-2
+;   ADDRHIGH - High bit of address bus (active low)
+;   ADDR0-2  - Address bits 0-2 (active high)
 ;   AIN      - Load Input A register (active high)
 ;   BIN      - Load Input B register (active high)
 ;   /RHIGH   - Output enable for high byte result (active low)
@@ -41,10 +41,10 @@ BIN.R = /RI * RO * /ADDRHIGH * ADDR0 * /ADDR1 * /ADDR2
 /RHIGH = RI * /RO * /ADDRHIGH * ADDR0 * ADDR1 * /ADDR2
 
 ; Inhibit host system when multiplier is driving the data bus
-INH = /RLOW + /RHIGH
+INH = RI * /RO * /ADDRHIGH * /ADDR0 * ADDR1 * /ADDR2 + RI * /RO * /ADDRHIGH * ADDR0 * ADDR1 * /ADDR2
 
 DESCRIPTION
 
-GAL16V10 controller for hardware multiplier expansion board.
+GAL16V8 controller for hardware multiplier expansion board.
 Provides address decoding and control signals for 8x8 bit multiplication
 with 16-bit result output on the Minimal 64x4 computer system.
