@@ -8,10 +8,10 @@ galasm multiplier-board-controller.pld
 ```
 
 ## Programming the 22V10
-The `ATF16V8C(UES)` type should be used when programming the ATF16V8C with `minipro`.
+The `ATF16V8C` type should be used when programming the ATF16V8C with `minipro`.
 
 ```sh
-minipro -p "ATF16V8C(UES)" -w multiplier-board-controller.jed
+minipro -p "ATF16V8C" -w multiplier-board-controller.jed
 ```
 
 ## More Information
