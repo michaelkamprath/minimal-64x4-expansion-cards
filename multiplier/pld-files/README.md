@@ -1,7 +1,7 @@
 # `PLD` Files for Programmable Logic
 
 ## Compiling PLD
-The `.pld` files in this directory may be compiled with [GALasm](https://github.com/daveho/GALasm), producing a `.jed` file amonst others. Then the `.jed` file is used to program a `ATF16V8C` or `GAL16V8`.
+The `.pld` files in this directory may be compiled with [GALasm](https://github.com/daveho/GALasm) or [galette](https://github.com/simon-frankau/galette), producing a `.jed` file amonst others. Then the `.jed` file is used to program a `ATF16V8C` or `GAL16V8`.
 
 ```sh
 galasm multiplier-board-controller.pld

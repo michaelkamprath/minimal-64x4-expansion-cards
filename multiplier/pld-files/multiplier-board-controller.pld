@@ -29,10 +29,10 @@ NC   AIN  BIN  RHIGH  RLOW  NC        NC     NC     INH    VCC
 ;   INH      - Inhibit host system bus (active high)
 
 ; Input A register load - address 0x0, write operation
-AIN.R = /RI * RO * /ADDRHIGH * /ADDR0 * /ADDR1 * /ADDR2
+AIN = /RI * RO * /ADDRHIGH * /ADDR0 * /ADDR1 * /ADDR2 * CLK
 
 ; Input B register load - address 0x1, write operation
-BIN.R = /RI * RO * /ADDRHIGH * ADDR0 * /ADDR1 * /ADDR2
+BIN = /RI * RO * /ADDRHIGH * ADDR0 * /ADDR1 * /ADDR2 * CLK
 
 ; Result low byte output enable - address 0x2, read operation
 /RLOW = RI * /RO * /ADDRHIGH * /ADDR0 * ADDR1 * /ADDR2

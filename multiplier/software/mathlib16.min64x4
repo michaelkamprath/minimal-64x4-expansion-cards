@@ -117,7 +117,29 @@ sub16:
 
 #ifdef USE_ACCELERATOR
 #print magenta "Compiling hardware accelerated multiplication"
-; _multiplication_core_accelerated
+
+; _multiplication8_core
+;
+; Core multiplication algorithm that operates on zero-page variables
+; Expects multiplicand to be in _mul_multiplicand (16-bit) and multiplier in _temp_val2 (8-bit)
+; Returns 16-bit result in _mul_result
+; This is an internal subroutine - not intended for direct external use
+;
+_multiplication8_core:
+    ; Clear result accumulator
+    CLQ _mul_result           ; Clear 32-bit variable, use 16-bits
+
+    MZB _mul_multiplicand,MULTIPLIER_A
+    MZB _temp_val2,MULTIPLIER_B
+
+    ; Read 16-bit result from hardware
+    MBZ MULTIPLIER_RESULT_LSB,_mul_result+0
+    MBZ MULTIPLIER_RESULT_MSB,_mul_result+1
+
+    RTS
+
+
+; _multiplication16_core_accelerated
 ;
 ; Hardware-accelerated multiplication algorithm that operates on zero-page variables
 ; Expects multiplicand to be in _mul_multiplicand (only low 16 bits used) and multiplier in _temp_val2 (16-bit)
@@ -125,7 +147,7 @@ sub16:
 ; Uses hardware accelerator for 8x8 multiplications to build 16x16 result
 ; This is an internal subroutine - not intended for direct external use
 ;
-_multiplication_core:
+_multiplication16_core:
     ; Clear result accumulator
     CLQ _mul_result           ; Clear 32-bit result
 
@@ -178,7 +200,48 @@ _multiplication_core:
     RTS                       ; Return with result in _mul_result
 
 #else
-; _multiplication_core
+
+; _multiplication8_core
+;
+; Core multiplication algorithm that operates on zero-page variables
+; Expects multiplicand to be in _mul_multiplicand (16-bit) and multiplier in _temp_val2 (8-bit)
+; Returns 16-bit result in _mul_result
+; This is an internal subroutine - not intended for direct external use
+;
+.align
+_multiplication8_core:
+    ; Clear result accumulator
+    CLQ _mul_result           ; Clear 32-bit result, though 16-bit is used
+
+    ; Initialize counter
+    MIZ 8,_mul_counter        ; Set counter to 8 (only need 8 iterations for 8-bit multiplier)
+
+.mul_loop:
+    ; Check if LSB of multiplier is set
+    LDZ _temp_val2                ; A = multiplier LSB
+    ANI 1                         ; Isolate bit 0
+    CPI 1                         ; Compare with 1 to set flags
+    FNE .mul_skip_add             ; If bit 0 is not 1, skip addition
+
+    ; Add 16-bit multiplicand to 16-bit result with proper carry propagation
+    AVV _mul_multiplicand,_mul_result     ; Add low 16 bits
+
+
+.mul_skip_add:
+    ; Shift 16-bit multiplicand left (multiply by 2)
+    LLV _mul_multiplicand         ; Left shift 16-bit zero-page word
+
+    ; Shift multiplier right (divide by 2)
+    CLC                           ; Clear carry flag (ensures 0 is shifted in)
+    RRZ _temp_val2                ; Rotate right LSB (carry from MSB goes to bit 7)
+
+    ; Decrement counter and continue if not zero
+    DEZ _mul_counter              ; Decrement counter
+    FNE .mul_loop                 ; Continue if not zero
+
+    RTS
+
+; _multiplication16_core
 ;
 ; Core multiplication algorithm that operates on zero-page variables
 ; Expects multiplicand to be in _mul_multiplicand (32-bit) and multiplier in _temp_val2 (16-bit)
@@ -186,7 +249,7 @@ _multiplication_core:
 ; This is an internal subroutine - not intended for direct external use
 ;
 .align
-_multiplication_core:
+_multiplication16_core:
     ; Clear result accumulator
     CLQ _mul_result           ; Clear 32-bit result
 
@@ -229,6 +292,27 @@ _multiplication_core:
 
 #endif
 
+
+multiply_u8:
+    ; Load multiplicand from stack into 16-bit _mul_multiplicand
+    CLQ _mul_multiplicand     ; Clear 32-bit multiplicand variable, only 16 bits used
+    CLV _temp_val2
+    LDS 4                     ; A = multiplicand LSB
+    STZ _mul_multiplicand
+    ; Load multiplier from stack into _temp_val2
+    LDS 3                     ; A = multiplier LSB
+    STZ _temp_val2            ; Store LSB
+
+    ; Call core multiplication algorithm
+    JPS _multiplication8_core  ; Multiply values in zero-page
+
+    ; Copy 16-bit result back to stack
+    LDZ _mul_result+1             ; A = result bits 31-24
+    STS 3                         ; Store to SP+3
+    LDZ _mul_result+0             ; A = result bits 23-16
+    STS 4                         ; Store to SP+4
+    RTS
+
 ; multiply_u16
 ;
 ; Multiplies two unsigned 16-bit integers using shift-and-add algorithm
@@ -270,7 +354,7 @@ multiply_u16:
     STZ _temp_val2+1          ; Store MSB
 
     ; Call core multiplication algorithm
-    JPS _multiplication_core  ; Multiply values in zero-page
+    JPS _multiplication8_core  ; Multiply values in zero-page
 
     ; Copy 32-bit result back to stack
     LDZ _mul_result+3             ; A = result bits 31-24
@@ -286,7 +370,7 @@ multiply_u16:
 
 ; multiply_i16
 ;
-; Multiplies two signed 16-bit integers using _multiplication_core
+; Multiplies two signed 16-bit integers using _multiplication16_core
 ; Handles sign detection and conversion automatically
 ;
 ; Usage:
@@ -310,6 +394,7 @@ multiply_u16:
 ;   SP+5: result bits 15-8
 ;   SP+6: result bits 7-0   (least significant)
 ;
+.align
 multiply_i16:
     ; Load first value (multiplicand) from stack
     LDS 5                         ; A = value1_msb
@@ -363,7 +448,7 @@ multiply_i16:
     ; _temp_val2 already contains positive multiplier
 
     ; Call core multiplication algorithm
-    JPS _multiplication_core      ; Multiply values in zero-page
+    JPS _multiplication16_core      ; Multiply values in zero-page
 
     ; Check if result should be negative
     CIZ 0,_mul_sign_flag          ; Compare 0 with sign flag
