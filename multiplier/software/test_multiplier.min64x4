@@ -5,11 +5,11 @@
 .memzone ZERO_PAGE_APPS
 #mute
 ; variables for hardware multiplier
-_value_a: .byte 0
-_value_b: .byte 0
+_value_a:   .byte  0
+_value_b:   .byte  0
 _sw_result: .2byte 0
 _hw_result: .2byte 0
-_loop: .4byte 0
+_loop:      .4byte 0
 
 ; hardware multiplier registers
 MULTIPLIER_A = $FED0
