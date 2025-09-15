@@ -8,7 +8,8 @@
 ;   by Michael Kamprath 2024
 ;   requires compilation by BespokeASM
 ; ------------------------------------------------------
-#require "slu4-min64x4-asm >= 1.1.0"
+#require __LANGUAGE_NAME__ == slu4-min64x4-asm
+#require __LANGUAGE_VERSION__ >= 1.1.0
 
 BYTECODE_LL0 = 0x07
 SHIP_DESTROYED_WAITFRAMES = 60
