@@ -1,5 +1,6 @@
 #require __LANGUAGE_NAME__ == slu4-min64x4-asm
 #require __LANGUAGE_VERSION__ >= 1.1.0
+#create-scope "mathlib16" prefix="ml16_"
 
 .memzone ZERO_PAGE_LIBS
 #mute
@@ -46,7 +47,7 @@ MULTIPLIER_RESULT_MSB = $FED3   ; Output register for MSB of 16-bit result
 ;
 ; Result: value1 location contains value1 + value2, value2 remains on stack
 ;
-add16:
+ml16_add:
     ; Copy first 16-bit value to _temp_val1
     LDS 6                     ; A = value1_lsb
     STZ _temp_val1            ; Store LSB of first value
@@ -91,7 +92,7 @@ add16:
 ;
 ; Result: value1 location contains value1 - value2, value2 remains on stack
 ;
-sub16:
+ml16_sub:
     ; Copy first 16-bit value (minuend) to _temp_val1
     LDS 6                     ; A = value1_lsb
     STZ _temp_val1            ; Store LSB of first value
@@ -340,7 +341,7 @@ multiply_u8:
 ;   SP+4: result bits 23-16
 ;   SP+5: result bits 15-8
 ;   SP+6: result bits 7-0   (least significant)
-multiply_u16:
+ml16_unsigned_multiply:
     ; Load multiplicand from stack into 32-bit _mul_multiplicand
     CLQ _mul_multiplicand     ; Clear 32-bit multiplicand
     LDS 6                     ; A = multiplicand LSB
@@ -397,7 +398,7 @@ multiply_u16:
 ;   SP+6: result bits 7-0   (least significant)
 ;
 .align
-multiply_i16:
+ml16_signed_multiply:
     ; Load first value (multiplicand) from stack
     LDS 5                         ; A = value1_msb
     STZ _temp_val1+1              ; Store for later use

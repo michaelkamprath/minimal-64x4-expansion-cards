@@ -4,6 +4,7 @@
 ;
 #require __LANGUAGE_NAME__ == slu4-min64x4-asm
 #require __LANGUAGE_VERSION__ >= 1.1.0
+#create-scope "speechlib" prefix="speech_"
 
 SPEECH_COMMAND_REG     = $FEC0
 SPEECH_STATUS_REG      = $FEC1
@@ -22,7 +23,7 @@ SPEECH_STATUS_BUFFER_LOW    = b01000000
 SPEECH_STATUS_BUFFER_EMPTY  = b00100000
 
 ; Zero Page Usage
-; Most apps us forst few bytes of zero page directly. 
+; Most apps us forst few bytes of zero page directly.
 ; We will offset a little to ensure no collisionms.
 .memzone ZERO_PAGE_LIBS
 #mute
@@ -104,7 +105,7 @@ speak_synchronous:
 ;   Returns
 ;       A : 1 if is talking, 0 if not
 ;
-is_talking:
+speech_is_talking:
     ciz 0,_speech_buffer_cur_ptr+0 fne .true
     ciz 0,_speech_buffer_cur_ptr+1 fne .true
 .false:

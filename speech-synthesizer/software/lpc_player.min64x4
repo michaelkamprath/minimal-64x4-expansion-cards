@@ -9,6 +9,7 @@
 ; When data is done being entered, press ESCAPE to initiate conversation to speech.
 ;
 #require "slu4-min64x4-asm >= 1.1.0"
+#use-scope "speechlib"
 
 DATA_BUFFER_SIZE = 4096
 
