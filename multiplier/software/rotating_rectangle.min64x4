@@ -26,14 +26,17 @@ _x0_cos:        .2byte 0
 _y0_sin:        .2byte 0
 _y0_cos:        .2byte 0
 
+_counter:       .2byte 0
 #emit
 
-_RECTANGLE_WIDTH = 120
-_RECTANGLE_HEIGHT = 60
+_RECTANGLE_WIDTH = 200
+_RECTANGLE_HEIGHT = 50 
 
 _CENTER_X = 200
 _CENTER_Y = 120
 
+_DELAY_COUNTER = $0800
+_QUIT_CHAR = 27                 ; ESC will be used to quit program
 
 GRAPHICS_X1 = 0x0080
 GRAPHICS_Y1 = 0x0082
@@ -54,21 +57,31 @@ init:
     MIZ _CENTER_Y,_center_y
 start:
     JPS _calc_vertices
-    JPS _ClearVRAM
+    JPS _Clear
     JPS _draw_wireframe
     INZ _angle
 
     ; slow things down
-    LDI $FF
+
+    MIV _DELAY_COUNTER,_counter
 .loop:
-    DEC
-    FNE .loop
+    PHS
+    JPS _ReadInput
+    CPI 0
+    BNE .user_pause
+    PLS
+    DEV _counter
+    BNE .loop               ; this will stop at $00FF since DEV sets flags based on MSB
 
     JPA start
 
+.user_pause:
+    JPS _WaitInput
+    CPI _QUIT_CHAR
+    BEQ program_done
+    JPA start
 
 program_done:
-    JPS _WaitInput          ; Wait for user input before returning to prompt
     JPS _Prompt             ; Return to OS prompt
 
 
@@ -98,6 +111,7 @@ _draw_wireframe:
     JPS _Line
     RTS
 
+.align
 _calc_vertices:
     ; get trig values
     LDZ _angle
