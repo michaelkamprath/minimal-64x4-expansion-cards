@@ -345,10 +345,16 @@ Where `filename.asm` is the name of the file desired to be included. BespokeASM 
 
 When an assembly file is included by this directive, it is functionally equivalent to the the contents of the included file be present where the `#include` directive is. If `.org` directives are used in the included file, care should be taken such that the address of instructions do not collide between source files. BespokeASM will error if it detects that two or more instructions occupy the same address.
 
+The `#include` directive is affected by [conditional compilation](#compilation-control). If the `#include` directive appears inside an inactive conditional block (e.g., within `#if 0` ... `#endif`), the file will not be included.
+
 The inclusion of assembly files can be nested. However, BespokeASM will error if any given file ends up being included more than once.
 
 #### Require Language Version
-An assembly source file can require a version check of the assembly language version as identified `identifier` key of [the General section](./Instruction-Set-Configuration-File#general) of the assembly language configuration file being used for compilation. This is done using a `#require` preprocessor directive. The specific format is:
+An assembly source file can require a version check of the assembly language version as identified `identifier` key of [the General section](./Instruction-Set-Configuration-File#general) of the assembly language configuration file being used for compilation. This is done using a `#require` preprocessor directive. Failing to meet the version requirement will cause the assembly process to exit with an error.
+
+The `#require` directive supports two syntax formats:
+
+**Legacy String Format:**
 ```asm
 #require "language-id comparator version-string"
 ```
@@ -357,12 +363,25 @@ where:
 * `comparator` is a comparison operator, such as `>=`, `>`, `==`, etc. The most common comparison operator will be `>=`.
 * `version-string` is a semantic version string, e.g. `1.2.3`
 
-The version check is done at the moment the line with the `#require` preprocessor directive is processed. This means any given code file can have multiple `#require` checks. This is useful if you want to enforce a version range. For example:
+Examples:
 ```asm
 #require "test-lang >= 0.5.0"
 #require "test-lang < 1.0.0"
 ```
-This would requires that the configuration file being used for compilation be for the language with the name `test-lang` and be a version between `0.5.0` inclusive and `1.0.0` exclusive. 
+
+**Symbol-Based Format:**
+```asm
+#require symbol-expression comparator symbol-expression
+```
+This format uses the same [symbol expression](#language-version-symbols) syntax as compilation control directives and supports the built-in language version symbols.
+
+The version check is done at the moment the line with the `#require` preprocessor directive is processed. This means any given code file can have multiple `#require` checks. This is useful if you want to enforce a version range.
+
+Examples:
+```asm
+#require __LANGUAGE_NAME__ == test-lang
+#require __LANGUAGE_VERSION__ >= 2.0.1
+```
 
 #### Creating Memory Zones
 A memory zone can be defined with the following directive
@@ -382,9 +401,60 @@ C-like preprocessor macros can be defined with the `#define` directive. The synt
 ```
 Where `<symbol>` is the symbol for the macro that can be used elsewhere in the code, and `<value>` is the replacement value for wherever that symbol is used. The `<value>` can be left empty, which is equivalent to assigning an empty string to be the replacement value for the `<symbol>`. If the replacement value is intend to be interpreted as a string, it should be quoted with either single or double quotes.
 
-Later, when a defined `<symbol>` is used in code, **BespokeASM** will immediately replace the `<symbol>`'s text with the defined `<value>` for that `<symbol>`. If the `<symbol>` is not defined when that line of code is read, then no replacement occurs. Symbol replacement is done recursively, so if one preprocessor macro symbol's replacement value is a string that contains another preprocessor mark symbol, that second preprocessor macro symbol is then replaced. This continues until nor symbol replacement occurs. An error will be generated if a symbol replacement loop is detected (e.g., symbol A is replaced by symbol B, which itself is replaced by symbol A). 
+Later, when a defined `<symbol>` is used in code, **BespokeASM** will immediately replace the `<symbol>`'s text with the defined `<value>` for that `<symbol>`. If the `<symbol>` is not defined when that line of code is read, then no replacement occurs. Symbol replacement is done recursively, so if one preprocessor macro symbol's replacement value is a string that contains another preprocessor mark symbol, that second preprocessor macro symbol is then replaced. This continues until nor symbol replacement occurs. An error will be generated if a symbol replacement loop is detected (e.g., symbol A is replaced by symbol B, which itself is replaced by symbol A).
 
-Note that parametric preprocessor macro symbols (e.g., `FOO(x)`) are not allowed. While this feature can be used to create simple code macros in code, complex and even parametric macros should be created with [Instructions Macros feature](https://github.com/michaelkamprath/bespokeasm/wiki/Instruction-Set-Configuration-File#instruction-macros). Similarly, these preprocessor macros can be used to define constants in code, but the [constant label feature](#constant-label) is a better way to do that. The primary use case for preprocessor macros is to define symbols that can be used in [compilation control](#compilation-control). 
+Note that parametric preprocessor macro symbols (e.g., `FOO(x)`) are not allowed. While this feature can be used to create simple code macros in code, complex and even parametric macros should be created with [Instructions Macros feature](https://github.com/michaelkamprath/bespokeasm/wiki/Instruction-Set-Configuration-File#instruction-macros). Similarly, these preprocessor macros can be used to define constants in code, but the [constant label feature](#constant-label) is a better way to do that. The primary use case for preprocessor macros is to define symbols that can be used in [compilation control](#compilation-control).
+
+#### Language Version Symbols
+BespokeASM provides built-in preprocessor symbols that expose information about the language defined in the ISA configuration file. These symbols are automatically available for use in [compilation control](#compilation-control) directives and the symbol-based format of the [`#require` directive](#require-language-version).
+
+The following built-in symbols are available:
+
+| Symbol | Description | Example Value |
+|:--|:--|:--|
+| `__LANGUAGE_NAME__` | The language name from the ISA configuration | `sap1-lang` |
+| `__LANGUAGE_VERSION__` | The complete semantic version string | `1.2.3` |
+| `__LANGUAGE_VERSION_MAJOR__` | The major version number | `1` |
+| `__LANGUAGE_VERSION_MINOR__` | The minor version number | `2` |
+| `__LANGUAGE_VERSION_PATCH__` | The patch version number | `3` |
+
+These symbols can be used in expressions within `#if`, `#elif`, and `#require` directives to create conditional compilation based on language version. When used in comparisons, language name comparisons are typically done as string comparisons, while version number comparisons are done as numeric comparisons.
+
+**Examples:**
+```asm
+#if __LANGUAGE_NAME__ == sap1-lang
+    ; SAP-1 specific code
+#endif
+
+#if __LANGUAGE_VERSION_MAJOR__ >= 2
+    ; Use newer features available in v2+
+#elif __LANGUAGE_VERSION_MAJOR__ == 1
+    #if __LANGUAGE_VERSION_MINOR__ >= 5
+        ; Use features available in v1.5+
+    #else
+        ; Fallback for v1.0-1.4
+    #endif
+#else
+    ; Fallback for older versions
+#endif
+
+#require __LANGUAGE_VERSION_MAJOR__ >= 1
+#require __LANGUAGE_VERSION_MAJOR__ < 3
+```
+
+**Important Note:** Mixed expressions that combine language version symbols with complex operators (`&&`, `||`, parentheses for grouping) are not supported. For example:
+```asm
+; ❌ NOT SUPPORTED - will generate an error
+#if __LANGUAGE_VERSION_MAJOR__ >= 1 && OTHER_SYMBOL == 2
+#if (SYMBOL == 4) && (__LANGUAGE_VERSION_MAJOR__ >= 0)
+
+; ✅ SUPPORTED - use separate blocks instead
+#if __LANGUAGE_VERSION_MAJOR__ >= 1
+#if OTHER_SYMBOL == 2
+    ; Both conditions are true
+#endif
+#endif
+```
 
 #### Compilation Control
 Control over which lines of assembly get compiled can be done with the C-like `#if`, `#elif`, `#else`, `#ifdef`, `#ifndef`, and `#endif` preprocessor directives. Individual lines of assembly are braced by compilation controls preprocessor directives, which control whether those lines of assembly will be compiled or not. Each can be used as follows:
@@ -398,9 +468,11 @@ Control over which lines of assembly get compiled can be done with the C-like `#
 * `#else` - Option. Creates a subordinate condition block that evaluates true only if all previous subordinate condition blocks in the overall compilation control block are false. Must follow a `#if`, `#elif`, `#else`, `#ifdef`, or `#ifndef`.
 * `#endif` - Terminates a compilation control block. Must come at the a compilation control block.
 
-A `<symbol-expression>` is an [expression](#numeric-expressions) that uses preprocessor macros, numeric values, and mathematical operators, but not code labels (address labels, constants, etc). Symbol expressions used in compilation control processor directives must resolve to numeric or strings values.
+A `<symbol-expression>` is an [expression](#numeric-expressions) that uses preprocessor macros, [language version symbols](#language-version-symbols), numeric values, and mathematical operators, but not code labels (address labels, constants, etc). Symbol expressions used in compilation control processor directives must resolve to numeric or string values.
 
-As an example, consider the following lines of code:
+**Important:** BespokeASM does not support complex boolean operators (`&&`, `||`) or parentheses for grouping within individual `#if` or `#elif` directives. Each directive can only contain a single comparison. To achieve complex conditional logic, use nested `#if` blocks as shown in the examples above.
+
+**Examples with user-defined symbols:**
 ```asm
 #define SYMBOL1 "test-string"
 #define SYMBOL2 57
@@ -415,11 +487,62 @@ As an example, consider the following lines of code:
 ```
 In this example, only the `mov a,2` line will get compiled.
 
+**Examples with language version symbols:**
+```asm
+#if __LANGUAGE_NAME__ == sap1-lang
+    ; Include SAP-1 specific optimizations
+    ldi zero
+    out
+#elif __LANGUAGE_NAME__ == z80-lang
+    ; Include Z80 specific code
+    ld a, 0
+    out (0), a
+#endif
+
+#if __LANGUAGE_VERSION_MAJOR__ >= 2
+    ; Use new instruction available in version 2.0+
+    push [stack_ptr]
+#else
+    ; Use legacy instruction for older versions
+    mov [stack_ptr], sp
+    push sp
+#endif
+```
+
 #### Bytecode Emission Control
 The `#mute` and `#unmute` preprocessor directives can be used to control whether the byte code derived from code is included in certain outputs, notably the binary image and pretty printing with theIntel Hex or MinHex formats. This is useful when you have code that defines symbols to be used else where but the byte code resulting from the definition of those symbols should not be part of the final byte code results.
 
 To suppress the emission of byte code from the subsequent code lines in a file, use the `#mute` preprocessor directive. To restore the emission of byte code from subsequent code lines, use the `#unmute` or `#emit` preprocessor directives. The mute and unmute actions stack within the scope of a code file. That is, if for example two `#mute` preprocessor directives have ben included in code, two subsequent `#unmute` or `#emit` preprocessor director are needed to restore byte code emission. The `#mute` directive has no impact on byte code resulting from code loaded subsequently from an `#include` directive. [Conditional compilation](#compilation-control) will control whether a `#mute` or `#unmute` preprocessor directive is applied.
 
+#### Compile-time Printing
+During compilation you can emit informational messages using the `#print` preprocessor directive. This is useful for surfacing configuration state, feature flags, or progress while assembling.
+
+Syntax:
+```asm
+#print "message"
+#print <min-verbosity> "message"
+```
+
+Behavior:
+- Prints the quoted string to standard output.
+- Respects [conditional compilation](#compilation-control): messages are emitted only when the current condition block is active.
+- Respects [bytecode emission control](#bytecode-emission-control): messages are suppressed while muted (`#mute`/`#unmute`).
+- If `<min-verbosity>` is provided, the message is printed only when the assembler's log verbosity is greater than or equal to that integer as set by the `-v` command line option. If omitted, the message is always eligible to print (subject to the two controls above).
+
+Examples:
+```asm
+#print "building utilities"
+#print 2 "detailed build step"
+
+#if FEATURE_ENABLED
+  #print "feature enabled"
+#endif
+
+#mute
+#print "this will not print"
+#unmute
+#print "mute lifted"
+```
 
 # Examples
 ## Ben Eater SAP-1

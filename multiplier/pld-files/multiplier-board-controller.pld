@@ -2,7 +2,7 @@ GAL16V8
 multiplier
 
 CLK  RI   RO     RST  NC    ADDRHIGH  ADDR0  ADDR1  ADDR2  GND
-NC   AIN  BIN  RHIGH  RLOW  NC        NC     NC     INH    VCC
+NC   AIN  BIN  RHIGH  RLOW  CLK1      CLK2   NC     INH    VCC
 
 ;
 ; Multiplier Board Controller Logic
@@ -29,10 +29,10 @@ NC   AIN  BIN  RHIGH  RLOW  NC        NC     NC     INH    VCC
 ;   INH      - Inhibit host system bus (active high)
 
 ; Input A register load - address 0x0, write operation
-AIN = /RI * RO * /ADDRHIGH * /ADDR0 * /ADDR1 * /ADDR2 * CLK
+AIN = /RI * RO * /ADDRHIGH * /ADDR0 * /ADDR1 * /ADDR2 * CLK2
 
 ; Input B register load - address 0x1, write operation
-BIN = /RI * RO * /ADDRHIGH * ADDR0 * /ADDR1 * /ADDR2 * CLK
+BIN = /RI * RO * /ADDRHIGH * ADDR0 * /ADDR1 * /ADDR2 * CLK2
 
 ; Result low byte output enable - address 0x2, read operation
 /RLOW = RI * /RO * /ADDRHIGH * /ADDR0 * ADDR1 * /ADDR2
@@ -42,6 +42,10 @@ BIN = /RI * RO * /ADDRHIGH * ADDR0 * /ADDR1 * /ADDR2 * CLK
 
 ; Inhibit host system when multiplier is driving the data bus
 INH = RI * /RO * /ADDRHIGH * /ADDR0 * ADDR1 * /ADDR2 + RI * /RO * /ADDRHIGH * ADDR0 * ADDR1 * /ADDR2
+
+; Clock delayer
+CLK1 = /CLK
+CLK2 = /CLK1
 
 DESCRIPTION
 

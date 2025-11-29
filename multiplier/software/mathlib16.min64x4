@@ -377,8 +377,8 @@ ml16_unsigned_multiply:
 ; Handles sign detection and conversion automatically
 ;
 ; Usage:
-;   Push first 16-bit value (big-endian: MSB first, then LSB) - multiplicand
-;   Push second 16-bit value (big-endian: MSB first, then LSB) - multiplier
+;   Push first 16-bit value (LSB first, then MSB for each value) - multiplicand
+;   Push second 16-bit value (LSB first, then MSB for each value) - multiplier
 ;   JPS multiply_i16
 ;   Result is 32-bit value left on stack in place of both input values
 ;   Caller must clean up stack as needed
