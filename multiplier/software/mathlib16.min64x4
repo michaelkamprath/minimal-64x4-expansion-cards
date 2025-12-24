@@ -357,7 +357,7 @@ ml16_unsigned_multiply:
     STZ _temp_val2+1          ; Store MSB
 
     ; Call core multiplication algorithm
-    JPS _multiplication8_core  ; Multiply values in zero-page
+    JPS _multiplication16_core  ; Multiply values in zero-page
 
     ; Copy 32-bit result back to stack
     LDZ _mul_result+3             ; A = result bits 31-24
