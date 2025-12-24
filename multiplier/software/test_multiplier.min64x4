@@ -12,12 +12,6 @@ _sw_result: .2byte 0
 _hw_result: .2byte 0
 _loop:      .4byte 0
 
-; hardware multiplier registers
-MULTIPLIER_A = $FED0
-MULTIPLIER_B = $FED1
-MULTIPLIER_RESULT_LSB = $FED2
-MULTIPLIER_RESULT_MSB = $FED3
-
 #emit
 .memzone USER_APPS
 
@@ -35,7 +29,7 @@ main:
     LDZ _loop+3
     JAS _PrintHex
     LDZ _loop+2
-    JAS _PrintHex    
+    JAS _PrintHex
     LDZ _loop+1
     JAS _PrintHex
     LDZ _loop+0

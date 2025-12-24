@@ -12,11 +12,13 @@ _mul_counter: .byte 0       ; Loop counter for multiplication
 _mul_sign_flag: .byte 0     ; Sign flag for signed multiplication
 
 #ifdef USE_ACCELERATOR
+#ifndef MULTIPLIER_A
 ; Hardware multiplier accelerator memory-mapped registers
 MULTIPLIER_A = $FED0            ; Input register for 8-bit multiplicand A
 MULTIPLIER_B = $FED1            ; Input register for 8-bit multiplicand B
 MULTIPLIER_RESULT_LSB = $FED2   ; Output register for LSB of 16-bit result
 MULTIPLIER_RESULT_MSB = $FED3   ; Output register for MSB of 16-bit result
+#endif
 
 ; Hardware accelerated version requires no additional variables
 #endif
