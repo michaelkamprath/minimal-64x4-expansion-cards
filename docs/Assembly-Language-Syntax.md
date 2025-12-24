@@ -88,7 +88,7 @@ constant_var = 10204
 constant_var EQU 10204
 ```
 
-Constants must be assigned explicit numeric literals (not expressions). Constant labels are case-sensitive.
+Constants may be assigned either numeric literals or any numeric expression resolvable at compile time (including other labels). Constant labels are case-sensitive.
 
 #### Register Labels
 A register label is defined in the [instruction set configuration file](./Instruction-Set-Configuration-File). It represents hardware registers in instruction operands. Address and constant labels cannot use a string declared as a register label.
@@ -97,9 +97,125 @@ A register label is defined in the [instruction set configuration file](./Instru
 Both address labels and constant labels can be defined to be applicable only in a given scope. A scope defines to what extent a label is visible and usable by other lines of code. The allowed scopes are:
 
 * **Global** - Visible everywhere. These labels are not prefixed with a `.` or `_`.
+* * **Named** - User-defined scopes with custom prefixes that can be shared across files. See [Named Label Scopes](#named-label-scopes).
 * **File** - Visible only in the same file. Use a leading `_` to indicate file scope.
 * **Local** - Visible only between two non-local labels in the same file, or between a non-local label and an `.org` directive, or between a non-local label and the end of file. Use a leading `.` to indicate local scope.
   * Local labels cannot be defined before the first non-local label or between a `.org` and a non-local label.
+
+
+**Scope Precedence:**
+When resolving symbols, BespokeASM follows this precedence order:
+1. Local scope (`.` prefix)
+2. Named scopes in reverse activation order (uses named scope's defined prefix)
+3. File scope (`_` prefix)
+4. Global scope (no prefix)
+
+#### Named Label Scopes
+Named label scopes allow you to create custom symbol namespaces with user-defined prefixes. This is useful for organizing symbols in libraries and larger projects, making them accessible across multiple files.
+
+##### Creating a Named Scope
+The syntax for creating a new named label scope is:
+```asm
+#create-scope "scope-name" prefix="prefix_"
+```
+Where:
+* `scope-name`: The name of the scope being created. This name may not contain white space. Using the same `scope-name` across multiple `#create-scope` statements in the same compilation is considered to be an error.
+* `prefix`: The string that symbols need to be prefixed with to be included in the namespace. The `prefix=...` parameter is optional. If not included, the prefix value defaults to the underscore character (`_`). Named scopes with `_` prefix take precedence over built-in file scope. Scope prefixes cannot start with `.` to avoid confusion with local scope.
+
+When this directive is encountered in compilation, the named scope is also activated as if the `#use-scope` directive was used.
+
+**Important:** Labels and constants can only be **created into** a named scope in the same file where that named scope was created. This restriction allows libraries to control their namespace. If a different file activates the named scope and defines a label with that scope's prefix, the label will fall back to the normal scope hierarchy (global, file, or local scope) instead of being added to the named scope. Labels already in the named scope can still be **referenced** from any file that activates that scope.
+
+##### Using a Named Scope
+In order to activate a named label scope to be used in the current compilation file, the following syntax is used:
+```asm
+#use-scope "scope-name"
+```
+When `#use-scope` is encountered in compilation, then labels in the identified named label space are resolved on subsequent code lines until the named label space is deactivated or the end of the file. Name label space activation is valid only in the current file and does not project into any files loaded using `#include`.
+
+**Forward References:** Named scopes can be activated with `#use-scope` **before** they are created with `#create-scope`. This is intentional and enables flexible library workflows where a main file can declare its dependencies at the top, then include library files that define those scopes later. The assembler will validate that all used scopes are eventually defined during compilation.
+
+##### Deactivating a Named Scope
+```asm
+#deactivate-scope "scope-name"
+```
+
+
+##### Examples
+
+**Basic Usage:**
+```asm
+; Define a graphics scope
+#create-scope "graphics" prefix="gfx_"
+#use-scope "graphics"
+
+gfx_screen_width: .2byte 320    ; Goes to graphics named scope
+global_config: .byte 100        ; Goes to global scope (no matching prefix)
+_file_local: .byte 0            ; Goes to file scope (no matching prefix)
+
+; Named scopes can be shared across files via #include
+```
+
+**File Restriction Example:**
+```asm
+; === library.asm ===
+#create-scope "mylib" prefix="lib_"
+
+lib_init: .byte 1               ; Creates label in mylib named scope
+lib_version: .byte 2            ; Creates label in mylib named scope
+
+; === main.asm ===
+#use-scope "mylib"              ; Activate the scope for resolution
+#include "library.asm"
+
+; Can reference library labels
+jmp lib_init                    ; Works! Resolves to label in mylib scope
+
+; But cannot create labels into the library's scope
+lib_custom: .byte 3             ; Does NOT go to mylib scope!
+                                ; Falls back to global scope instead
+```
+
+**Underscore Prefix for Exporting Internal Symbols:**
+```asm
+; === mathlib.asm ===
+; Use underscore prefix to "export" what would normally be file-local symbols
+#create-scope "mathlib" prefix="_"
+
+_multiply: .byte 100            ; Goes to mathlib named scope (not file scope!)
+_divide: .byte 200              ; Goes to mathlib named scope (not file scope!)
+_internal_flag: .byte 0         ; Also goes to mathlib named scope
+
+; === main.asm ===
+#use-scope "mathlib"            ; Activate mathlib scope
+#include "mathlib.asm"
+
+; Can now reference these "exported" symbols
+call _multiply                  ; Works! Resolves from mathlib named scope
+call _divide                    ; Works! Resolves from mathlib named scope
+
+; Note: Named scope with _ prefix takes precedence over built-in file scope
+```
+
+**Forward Reference Pattern:**
+```asm
+; === main.asm ===
+; Declare dependencies before they're defined
+#use-scope "graphics"
+#use-scope "audio"
+
+gfx_buffer: .2byte 640          ; Tries to use graphics scope (not created yet)
+                                ; Falls back to global since scope not created here
+
+#include "graphics_lib.asm"     ; This file creates the "graphics" scope
+#include "audio_lib.asm"        ; This file creates the "audio" scope
+
+; Now can reference labels from those scopes
+jmp gfx_init                    ; Resolves from graphics named scope
+call snd_play                   ; Resolves from audio named scope
+```
+
+
 
 ## Memory Zones
 A named memory zone is a contiguous address range in the ISA's address space, identified by an alphanumeric string. Additional conditions:
@@ -139,7 +255,7 @@ BespokeASM supports several addressing mode notations for instruction operands, 
 | Register | `register_label` | The value in a specified register. The register is indicated by a [register label](#register-labels). | Adjacent to register label.</br>_e.g.:_ `a++` | Hardware registers that are generally accessible. |
 | Indexed Register | `register_label + offset_operand ` | Indicates a value that is the combination of the register value and the offset operand value. The combination is nominally a sum (`+` operator). | - | Ability to combine a register value with any configured offset operand source. |
 | Indirect Register | `[register_label + offset]`| The specified register contains a memory address where the value is. An offset can be provided which should be added to the value in the register get the memory address where the desired value is. The register is indicated by a [register label](#register-labels), and the offset is provided as a numeric expression and follows the register label with a `+` or `-` sign in between it and and the register label. | Adjacent to square brackets.</br>_e.g.:_ `[sc+5]++` | Hardware registers that can set the memory address used to access memory devices. In order to support offsets, there should be the ability to produce a memory address by adding a value to the register value without necessarily changing the register value. |
-| Indirect Indexed Register | `[register_label + offset_operand]` | Similar to **Indirect Register**, except that the offset can be set by any other addressing mode operand. When the configure offset operant is a numeric type, this behaves the same as **Indirect Register** except that the offset can only be `+` to the register, and there are no bounds checking on the value. The true value of this addressing mode is when the offset operand is configured to be **Register**, **Indirect Register** or **Indirect** value. | Adjacent to square brackets.</br>_e.g.:_ `[sc+i]++` | Similar hardware needs as **Indirect Register**, with the general ability to set the offset value from any configured offset operand source. |
+| Indirect Indexed Register | `[register_label + offset_operand]` | Similar to **Indirect Register**, except that the offset can be set by any other addressing mode operand. When the configure offset operand is a numeric type, this behaves the same as **Indirect Register** except that the offset can only be `+` to the register, and there are no bounds checking on the value. The true value of this addressing mode is when the offset operand is configured to be **Register**, **Indirect Register** or **Indirect** value. | Adjacent to square brackets.</br>_e.g.:_ `[sc+i]++` | Similar hardware needs as **Indirect Register**, with the general ability to set the offset value from any configured offset operand source. |
 | Relative Address | `numeric_expression` or `{numeric_expression}` | Generates a relative address offset which is the difference between the expression value of this operand and the address value of current instruction, where this the current instruction's address value can be either be the program counter value before the instruction begins, or the program counter value after all machine code for the instruction has been loaded. Useful for relative jumps or data moves. Notation can be configured. |- | Should be able to do offsets against the program counter value. |
 
 #### Decorators
