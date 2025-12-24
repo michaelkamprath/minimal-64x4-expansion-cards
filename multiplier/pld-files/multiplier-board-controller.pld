@@ -43,10 +43,6 @@ BIN = /RI * RO * /ADDRHIGH * ADDR0 * /ADDR1 * /ADDR2 * CLK
 ; Inhibit host system when multiplier is driving the data bus
 INH = RI * /RO * /ADDRHIGH * /ADDR0 * ADDR1 * /ADDR2 + RI * /RO * /ADDRHIGH * ADDR0 * ADDR1 * /ADDR2
 
-; Clock delayer
-CLK1 = /CLK
-CLK2 = /CLK1
-
 DESCRIPTION
 
 GAL16V8 controller for hardware multiplier expansion board.
