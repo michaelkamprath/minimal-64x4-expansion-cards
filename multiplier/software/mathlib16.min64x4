@@ -274,11 +274,7 @@ _multiplication16_core:
     FNE .mul_skip_add             ; If bit 0 is not 1, skip addition
 
     ; Add 32-bit multiplicand to 32-bit result with proper carry propagation
-    AVV _mul_multiplicand,_mul_result     ; Add low 16 bits
-    FCC .no_carry                         ; If no carry, skip increment
-    INW _mul_result+2                     ; Propagate carry to high word
-.no_carry:
-    AVV _mul_multiplicand+2,_mul_result+2 ; Add high 16 bits
+    AQQ _mul_multiplicand,_mul_result     ; Add 32-bit value with carry propagation
 
 .mul_skip_add:
     ; Shift 32-bit multiplicand left (multiply by 2)
