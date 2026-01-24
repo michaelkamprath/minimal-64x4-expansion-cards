@@ -12,6 +12,51 @@ Operands are latched from the system data bus using 74AHCT374 registers to isola
 
 Worst-case propagation delay is dominated by carry propagation through the adder array and is approximately 160 ns, corresponding to roughly two CPU cycles on an 8 MHz Minimal 64x4. From the CPU’s perspective, multiplication is reduced to a small number of memory writes and reads, enabling a substantial performance improvement over the software-only shifted-add implementation.
 
+
+```text
+                     ┌─────────────────────────┐
+                     │        CPU / BUS        │
+                     │  Address • Data • Ctrl  │
+                     └───────────┬─────────────┘
+                                 │
+                        Memory-Mapped I/O
+                                 │
+        ┌────────────────────────▼────────────────────────┐
+        │            Hardware Multiplier Board            │
+        │                                                 │
+        │  ┌───────────────┐      ┌────────────────────┐  │
+        │  │ Input Latch A │◄─────┤                    │  │
+        │  │  (8-bit)      │      │                    │  │
+        │  └───────────────┘      │                    │  │
+        │                         │                    │  │
+        │  ┌───────────────┐      │  Combinational     │  │
+        │  │ Input Latch B │◄─────┤  Multiplier Core   │  │
+        │  │  (8-bit)      │      │  (AND Plane +      │  │
+        │  └───────────────┘      │   Adder Array)     │  │
+        │                         │                    │  │
+        │                         │                    │  │
+        │                         └─────────┬──────────┘  │
+        │                                   │             │
+        │                          16-bit Result          │
+        │                                   │             │
+        │                    ┌──────────────▼────────────┐│
+        │                    │  Output Bus Transceivers  ││
+        │                    │       (16-bit)            ││
+        │                    └──────────────┬────────────┘│
+        │                                   │             │
+        │  ┌──────────────────────────┐     │             │
+        │  │ Address Decode & Control │◄────┘             │
+        │  │ (Comparators + PLD)      │                   │
+        │  └──────────────────────────┘                   │
+        └─────────────────────────────────────────────────┘
+```
+The overall structure of the hardware multiplier is shown in the block diagram above. The board interfaces with the CPU exclusively through memory-mapped I/O on the shared system bus. Operand values are written by the CPU into two 8-bit input latches (Operand A and Operand B), which isolate the multiplier core from bus activity and continuously present stable inputs to the combinational logic.
+
+At the center of the design is a purely combinational multiplier core composed of an AND-gate partial-product plane followed by an adder array that collapses those partial products into a 16-bit result. Because the core has no internal state, clocking, or control signals, the result is produced automatically as signals propagate through the logic once the operands are latched.
+
+The 16-bit result is connected to the system data bus through output bus transceivers that are enabled only during valid read cycles. Address decoding and timing control logic ensure the board responds only within its assigned address range and never drives the bus outside of those cycles. From the CPU’s perspective, the hardware multiplier appears as a small set of deterministic, memory-mapped registers, with computation latency bounded solely by combinational propagation delay.
+
+
 # Compiling the Software
 All software found in the [software](./software/) directory is compiled with [BespokeASM](https://github.com/michaelkamprath/bespokeasm), which supports the Minimal 64x4. [Carsten Herting](https://github.com/slu4coder), the creator of the Minimal 64x4, also provides an assembler for it, but that assembler is quite minimal (by design). One key shortcoming is the inability to import library code into the current compilation. BespokeASM enables importing libraries and includes several other features that this project’s software depends on.
 
