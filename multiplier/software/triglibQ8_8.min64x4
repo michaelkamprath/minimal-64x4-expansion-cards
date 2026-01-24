@@ -1,0 +1,124 @@
+#require __LANGUAGE_NAME__ == slu4-min64x4-asm
+#require __LANGUAGE_VERSION__ >= 1.1.0
+#create-scope "triglibQ8_8" prefix="trig8_"
+
+.memzone ZERO_PAGE_LIBS
+#mute
+_angle:      .byte 0     ; scratch storage for the angle (0-255)
+trig8_result_sin_q8:  .2byte 0    ; Q8.8 result buffer (LSB, MSB)
+trig8_result_cos_q8:  .2byte 0    ; Q8.8 cosine result buffer (LSB, MSB)
+#emit
+
+.memzone USER_APPS
+.align
+
+; Angle constants/helpers for the 0-255 full-turn domain
+trig8_turn            = 256
+trig8_quarter         = trig8_turn / 4      ; 90 degrees
+trig8_half            = trig8_turn / 2      ; 180 degrees
+trig8_three_quarter   = (trig8_turn * 3) / 4
+
+; Compile-time note: convert degrees to the 0-255 angle domain with
+;   (deg * trig8_turn) / 360
+; (BespokeASM does not support function-style macros here.)
+
+; Q8.8 sine lookup
+; Input:  angle in A (0-255 maps to 0..2π)
+; Output: Q8.8 sine in trig8_result_sin_q8 (LSB/MSB), LSB also returned in A
+trig8_sin:
+    STZ _angle                 ; store input angle
+
+    LAB trig8_sin_lsb_table    ; fetch low byte
+    STZ trig8_result_sin_q8
+
+    LDZ _angle                 ; reload angle for MSB
+    LAB trig8_sin_msb_table    ; fetch high byte
+    STZ trig8_result_sin_q8+1
+
+    LDZ trig8_result_sin_q8    ; return LSB in A for convenience
+    RTS
+
+; Q8.8 combined sine and cosine lookup
+; Input:  angle in A (0-255 maps to 0..2π)
+; Output: sine   -> trig8_result_sin_q8 (LSB/MSB)
+;         cosine -> trig8_result_cos_q8 (LSB/MSB)
+;         sine LSB returned in A
+trig8_sin_cos:
+    STZ _angle                 ; store input angle
+
+    ; sine lookup
+    LAB trig8_sin_lsb_table
+    STZ trig8_result_sin_q8
+
+    LDZ _angle
+    LAB trig8_sin_msb_table
+    STZ trig8_result_sin_q8+1
+
+    ; cosine via phase-shift
+    AIZ trig8_quarter,_angle        ; results are also in A
+
+    LAB trig8_sin_lsb_table
+    STZ trig8_result_cos_q8
+
+    LDZ _angle
+    LAB trig8_sin_msb_table
+    STZ trig8_result_cos_q8+1
+
+    LDZ trig8_result_sin_q8        ; return sine LSB
+    RTS
+
+; Q8.8 cosine lookup (cos θ = sin(θ + 64) with 256-step circle)
+; Input:  angle in A (0-255 maps to 0..2π)
+; Output: Q8.8 cosine in trig8_result_cos_q8 (LSB/MSB), LSB also returned in A
+trig8_cos:
+    STZ _angle                 ; store input angle
+
+    AIZ trig8_quarter,_angle   ; angle + 64, stored and still in A
+
+    LAB trig8_sin_lsb_table
+    STZ trig8_result_cos_q8
+
+    LDZ _angle                 ; fetch high byte
+    LAB trig8_sin_msb_table
+    STZ trig8_result_cos_q8+1
+
+    LDZ trig8_result_cos_q8        ; return LSB in A for convenience
+    RTS
+
+.align 256
+trig8_sin_lsb_table:
+.byte $00, $06, $0D, $13, $19, $1F, $26, $2C, $32, $38, $3E, $44, $4A, $50, $56, $5C
+.byte $62, $68, $6D, $73, $79, $7E, $84, $89, $8E, $93, $98, $9D, $A2, $A7, $AC, $B1
+.byte $B5, $B9, $BE, $C2, $C6, $CA, $CE, $D1, $D5, $D8, $DC, $DF, $E2, $E5, $E7, $EA
+.byte $ED, $EF, $F1, $F3, $F5, $F7, $F8, $FA, $FB, $FC, $FD, $FE, $FF, $FF, $00, $00
+.byte $00, $00, $00, $FF, $FF, $FE, $FD, $FC, $FB, $FA, $F8, $F7, $F5, $F3, $F1, $EF
+.byte $ED, $EA, $E7, $E5, $E2, $DF, $DC, $D8, $D5, $D1, $CE, $CA, $C6, $C2, $BE, $B9
+.byte $B5, $B1, $AC, $A7, $A2, $9D, $98, $93, $8E, $89, $84, $7E, $79, $73, $6D, $68
+.byte $62, $5C, $56, $50, $4A, $44, $3E, $38, $32, $2C, $26, $1F, $19, $13, $0D, $06
+.byte $00, $FA, $F3, $ED, $E7, $E1, $DA, $D4, $CE, $C8, $C2, $BC, $B6, $B0, $AA, $A4
+.byte $9E, $98, $93, $8D, $87, $82, $7C, $77, $72, $6D, $68, $63, $5E, $59, $54, $4F
+.byte $4B, $47, $42, $3E, $3A, $36, $32, $2F, $2B, $28, $24, $21, $1E, $1B, $19, $16
+.byte $13, $11, $0F, $0D, $0B, $09, $08, $06, $05, $04, $03, $02, $01, $01, $00, $00
+.byte $00, $00, $00, $01, $01, $02, $03, $04, $05, $06, $08, $09, $0B, $0D, $0F, $11
+.byte $13, $16, $19, $1B, $1E, $21, $24, $28, $2B, $2F, $32, $36, $3A, $3E, $42, $47
+.byte $4B, $4F, $54, $59, $5E, $63, $68, $6D, $72, $77, $7C, $82, $87, $8D, $93, $98
+.byte $9E, $A4, $AA, $B0, $B6, $BC, $C2, $C8, $CE, $D4, $DA, $E1, $E7, $ED, $F3, $FA
+
+.align 256
+trig8_sin_msb_table:
+.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $01, $01
+.byte $01, $01, $01, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+.byte $00, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF

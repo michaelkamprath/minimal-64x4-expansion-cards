@@ -1,0 +1,458 @@
+---
+globs: *.min64x4
+alwaysApply: true
+---
+
+Files with the *.min64x4 extension are assembly language files for the Minimal 64x4 computer, an 8-bit processor with 16-bit addressing (64K address space).
+
+**Documentation References:**
+- Complete instruction set: "Minimal 64x4 Instruction Set - Original.csv" in .cursor/rules/
+- BespokeASM syntax and features: "Assembly-Language-Syntax.md" in .cursor/rules/
+- BespokeASM is a configurable assembler - the Minimal 64x4 instruction set is loaded via YAML configuration file
+
+## Architecture Overview:
+- 8-bit data path with 16-bit addressing
+- Little endian byte order
+- Stack operations supported.The stack pointer decrements when values are pushed onto the stack. Multi-byte values are pushed on the stack LSB first and MSB last.
+- 256 instructions (0x00-0xFF opcodes)
+- Accumulator-based architecture (A register)
+- Zero-page addressing for fast operations
+- Support for byte, word (16-bit), and long (32-bit) operations
+- Flags: N (negative), C (carry), Z (zero)
+
+## Key Instruction Categories:
+- **Data Movement**: LDI, LDZ, LDB, STZ, STB, PHS, PLS, MIZ, MIB, etc.
+- **Arithmetic**: ADI, ADZ, ADB, SUI, SUZ, SUB, INC, DEC, etc.
+- **Logic**: ANI, ANZ, ORI, ORZ, XRI, XRZ, NOT, NEG, etc.
+- **Bit Operations**: LL0-LL7 (left shift), RL0-RL7 (rotate left), LR0-LR7 (right shift)
+- **Branching**: BCC, BCS, BEQ, BNE, BPL, BMI, BGT, BLE, plus fast branches (FCC, FCS, etc.)
+- **Jumps**: JPA (absolute), JPR (relative), JAR (A-indexed), JPS (subroutine), JAS (same as JPS but does not alter A register)
+- **Compare**: CPI, CPZ, CPB, CIZ, CIB, etc.
+- **I/O**: OUT (UART output), INT (UART input), INK (PS/2 input), WIN (wait for input)
+- **Memory**: Clear operations (CLZ, CLB, CLV, CLW), FLASH operations (RDB, WDB, etc.)
+
+## Assembly Syntax Features:
+- Uses BespokeASM assembler with version requirements (#require directive)
+- Memory zones: .memzone ZERO_PAGE_LIBS, .memzone USER_APPS
+- Alignment: .align directive
+- Origin: .org directive
+- Binary literals: b01100000
+- Hexadecimal literals: $FEC0, 0xFF
+- Labels and constants supported
+- Comments with ; (semicolon)
+
+## Code Style Guidelines:
+- **Every code file must start with the version requirement**: `#require "slu4-min64x4-asm >= 1.1.0"`
+- No trailing whitespace on any lines
+- Keep code clean and properly formatted
+- Use consistent indentation for readability
+- Same-line comments within a subroutine should align their semicolons (;) at the same column for readability
+- For related groups of constants or variables, align semicolons for improved readability
+- **Use named constants instead of magic numbers** for better readability and maintainability
+
+### Constants and Magic Numbers:
+**Always prefer named constants over magic numbers:**
+
+**BAD - Using magic numbers:**
+```assembly
+STB $0080           ; What is $0080? Not immediately clear
+LDI 50              ; What does 50 represent?
+CPI $20             ; What is $20?
+```
+
+**GOOD - Using named constants:**
+```assembly
+; Define constants at the top of the file
+GRAPHICS_X_LSB = $0080      ; X coordinate LSB for graphics functions
+MAX_ITERATIONS = 50         ; Maximum iterations for algorithm
+SPACE_CHAR = $20           ; ASCII space character
+
+; Use constants in code
+STB GRAPHICS_X_LSB          ; Clear intent: storing graphics X coordinate
+LDI MAX_ITERATIONS          ; Self-documenting: maximum iterations
+CPI SPACE_CHAR             ; Obvious: comparing with space character
+```
+## Mathematical Expressions
+- BespokeASM supports mathematical expressions in constant definitions and operands.
+- Use expressions to make constants self-updating: `ESCAPE_RADIUS = 4 * SCALE_FACTOR`
+- For powers of 2, use left shift instead of power operator: `SCALE_FACTOR = 1 << SCALE_BITS` (not `2 ** SCALE_BITS`)
+- Supported operators: `+`, `-`, `*`, `/`, `%`, `&`, `|`, `^`, `>>`, `<<`
+- Power operator `**` is NOT supported - use bit shifts for powers of 2
+
+## Mnemonic Convention Rules:
+Each mnemonic consists of exactly 3 letters with systematic naming:
+
+**Data Transfer Instructions:**
+- **M__**: Move (source ≠ A, destination ≠ A)
+- **L__**: Load (source ≠ A, destination = A)
+- **S__**: Store (source = A, destination ≠ A)
+
+**Control Flow:**
+- **J__**: Jump instructions
+- **B__**: Conditional branch instructions
+- **F__**: Fast 8-bit branching
+
+**Single-Argument Functions (2-letter prefix):**
+- **CL**: Clear, **NO**: NOT, **NE**: Negate
+- **IN**: Increment, **DE**: Decrement
+- **LL**: Logical left shift, **LR**: Logical right shift
+- **RL**: Rotate left, **RR**: Rotate right
+- **AN**: AND, **OR**: OR, **XR**: XOR
+- **AD**: Add, **SU**: Subtract, **CP**: Compare
+- **AC**: Add with carry, **SC**: Subtract with carry
+
+**Addressing Mode Suffixes:**
+- **I**: Immediate value
+- **Z**: Zero-page byte, **V**: Zero-page word, **Q**: Zero-page long
+- **B**: Absolute byte, **W**: Absolute word, **L**: Absolute long
+- **T**: Zero-page pointer, **R**: Absolute pointer
+- **A**: A-indexed, **P**: Page addressing
+
+**Memory-Destination Instructions:**
+Use dot notation (e.g., AD.Z vs ADZ) to distinguish between storing result in memory vs. accumulator.
+
+**Direct Opcode Mapping:**
+Each mnemonic maps to exactly one opcode. Arguments appear in memory order, enabling easy self-modifying code.
+
+**Subroutine Call Convention:**
+When a subroutine is called through JPS (Jump to Subroutine), the return address is pushed onto the stack first. Therefore, any parameters that were pushed onto the stack prior to the JPS call start at SP+3 (SP+1 and SP+2 contain the return address).
+
+**Critical Stack Management Rules:**
+- NEVER use PLS to "clean up" parameters from the stack within a subroutine - this pulls the return address and will crash the program when RTS executes
+- Subroutines should only PLS items they have explicitly pushed with PHS
+- Parameter cleanup is typically the caller's responsibility, not the subroutine's
+- The return address at SP+1 and SP+2 must remain intact for RTS to work properly
+- Only modify the stack pointer or pull stack items if you understand exactly what you're doing
+
+**Memory Management Best Practices:**
+- Use BespokeASM memory zones defined for the Minimal 64x4 (.memzone ZERO_PAGE_LIBS, .memzone USER_APPS) instead of hardcoded addresses
+- Declare labeled variables in appropriate memory zones rather than using raw addresses like 0, 1, 2, etc.
+- This prevents address conflicts and makes code relocatable and maintainable
+- For multi-byte values, use +1, +2, etc. offsets from the base label (e.g., _temp_val1+1 for MSB)
+- **Define named constants for API addresses and special values** instead of using magic numbers
+- Group related constants together and document their purpose clearly
+
+**Instruction Efficiency:**
+- Take advantage of native 16-bit and 32-bit operations (AVV, ABW, SVV, etc.) instead of manual byte-by-byte arithmetic
+- These instructions handle carry propagation automatically and are more efficient
+- Check the instruction set for specialized operations before implementing manual algorithms
+- **CRITICAL**: Always prefer word/long operations over manual byte operations:
+  - Use AVV/SVV for 16-bit arithmetic instead of ADB+ACB sequences
+  - Use INW/DEW for 16-bit increment/decrement instead of manual carry handling
+  - Use LLW/CLW/etc. for 16-bit operations instead of byte-by-byte implementations
+- **Zero-page optimization**: Always use zero-page variants when variables are in zero-page:
+  - LDZ/STZ instead of LDB/STB (40% faster: 3 vs 5 cycles)
+  - LLV/CLV/INV/DEV instead of LLW/CLW/INW/DEW for zero-page words
+  - DEZ/INZ instead of DEB/INB for zero-page bytes
+- **Multi-byte shifts and rotates**:
+  - Use CLC + RRZ sequence for 16-bit logical right shift on zero-page
+  - Chain rotate operations with carry for multi-byte shifts
+  - The instruction set has asymmetries (more left than right operations)
+- **Algorithm efficiency**: Choose algorithms that leverage hardware strengths:
+  - Shift-and-add for multiplication instead of summation loops
+  - Use 32-bit result storage for 16-bit multiplication to handle overflow
+  - Fixed iteration counts often better than variable loops
+- The Minimal 64x4 has extensive multi-byte support - leverage it!
+
+**Flag Behavior Critical Rules:**
+- **LDZ does NOT set flags** - always follow with CPI/CIZ if you need to test the value
+- Use CIZ (Compare Immediate with Zero-page) instead of LDZ+CPI for efficiency
+- AC.Z adds accumulator + carry to zero-page location (need LDI 0 first for carry propagation)
+
+## Minimal 64x4 Operating System API
+The BespokeASM configuration file for the Minimal 64x4 contains the following API functions and data. They may be refered to as their name (API Function or API Data) rather than the address.
+### API Functions
+
+The following list shows the available API functions and data.
+
+| Address | API Function | Description |
+|---------|--------------|-------------|
+| 0xf000 | _Start | Start vector of the OS in RAM |
+| 0xf003 | _Prompt | Hands back control to the input prompt |
+| 0xf006 | _MemMove | Moves memory area (may be overlapping) |
+| 0xf009 | _Random | Returns a pseudo-random byte (see _RandomState) |
+| 0xf00c | _ScanPS2 | Scans the PS/2 register for new input |
+| 0xf00f | _ResetPS2 | Resets the state of PS/2 SHIFT, ALTGR, CTRL |
+| 0xf012 | _ReadInput | Reads any input (PS/2 or serial) |
+| 0xf015 | _WaitInput | Waits for any input (PS/2 or serial) |
+| 0xf018 | _ReadLine | Reads a command line into _ReadBuffer |
+| 0xf01b | _SkipSpace | Skips whitespaces (<= 39) in command line |
+| 0xf01e | _ReadHex | Parses command line input for a HEX value |
+| 0xf021 | _SerialWait | Waits for a UART transmission to complete |
+| 0xf024 | _SerialPrint | Transmits a zero-terminated string via UART |
+| 0xf027 | _FindFile | Searches for file <name> given by _ReadPtr |
+| 0xf02a | _LoadFile | Loads a file <name> given by _ReadPtr |
+| 0xf02d | _SaveFile | Saves data to file <name> defined at _ReadPtr |
+| 0xf030 | _ClearVRAM | Clears the video RAM including blanking areas |
+| 0xf033 | _Clear | Clears the visible video RAM (viewport) |
+| 0xf036 | _ClearRow | Clears the current row from cursor pos onwards - See Graphics API section |
+| 0xf039 | _ScrollUp | Scrolls up the viewport by 8 pixels |
+| 0xf03c | _ScrollDn | Scrolls down the viewport by 8 pixels |
+| 0xf03f | _Char | Outputs a char at the cursor pos (non-advancing). Value is in A register. |
+| 0xf042 | _PrintChar | Prints a char at the cursor pos (advancing). Value is in A register. |
+| 0xf045 | _Print | Prints a zero-terminated immediate string |
+| 0xf048 | _PrintPtr | Prints a zero-terminated string at an address. Buffer pointer passed on stack. |
+| 0xf04b | _PrintHex | Prints a HEX number (advancing). Value is in A register. |
+| 0xf04e | _SetPixel | Sets a pixel at position (x, y) - see Graphics API section |
+| 0xf051 | _Line | Draws a line using Bresenham's algorithm - see Graphics API section |
+| 0xf054 | _Rect | Draws a rectangle at (x, y) of size (w, h) - see Graphics API section |
+| 0xf057 | _ClearPixel | Clears a pixel at position (x, y) - see Graphics API section |
+
+### API Data
+The following operating system data is available in the zero page. Note that the memoryzones ZERO_PAGE_LIBS and ZERO_PAGE_APPS do not overlap with these zero page addresses.
+
+| Address | API Data | Data Size | Description |
+|---------|----------|-----------|-------------|
+| 0x0080 | Graphics X | 2 bytes | X coordinate for graphics functions (little-endian) |
+| 0x0082 | Graphics Y | 1 byte | Y coordinate for graphics functions |
+| 0x00c0 | _XPos | 1 byte | Horizontal cursor position (see _Print) |
+| 0x00c1 | _YPos | 1 byte | Vertical cursor position (see _Print) |
+| 0x00c2 | _RandomState | 4 bytes | _Random state seed |
+| 0x00c6 | _ReadNum | 3 bytes | Number parsed by _ReadHex |
+| 0x00c9 | _ReadPtr | 2 bytes | Command line parsing pointer |
+| 0x00cb | | 2 bytes | unused |
+| 0x00cd | _ReadBuffer | 2 bytes | Address of command line input buffer |
+
+### Predefined Menmory Zones
+The following memory zones are defined by the BespokeASM configuration file for the Minimal 64x4. Their name may be used by BespokeASM memory zone directives.
+
+| Name | Start Address | End Address | Description |
+|------|---------------|-------------|-------------|
+| ZERO_PAGE_APPS | 0x0000 | 0x003F | Zero page memory zone for application functions |
+| ZERO_PAGE_LIBS | 0x0040 | 0x007F | Zero page memory zone for non-OS library functions |
+| USER_APPS | 0x8000 | 0xEFFF | Memory zone for user code (application and non-OS library) |
+
+### Graphics API
+The Minimal 64x4 has a 400 horizontal by 240 vertical pixel display.
+
+**Graphics Function Calling Conventions:**
+Graphics functions use dedicated zero-page memory locations for parameters instead of stack-based parameter passing:
+
+| Address | Parameter | Data Size | Description |
+|---------|-----------|-----------|-------------|
+| 0x0080 | X coordinate | 2 bytes | Horizontal pixel position (0-399, little-endian) |
+| 0x0082 | Y coordinate | 1 byte | Vertical pixel position (0-239) |
+
+**_SetPixel Usage:**
+```assembly
+; Define constants for readability (recommended)
+GRAPHICS_X_LSB = $0080      ; X coordinate LSB
+GRAPHICS_X_MSB = $0081      ; X coordinate MSB
+GRAPHICS_Y = $0082          ; Y coordinate
+
+; Set pixel at coordinates (pixel_x, pixel_y)
+LDZ pixel_x         ; A = X coordinate LSB
+STB GRAPHICS_X_LSB  ; Store X LSB at graphics API address
+LDZ pixel_x+1       ; A = X coordinate MSB
+STB GRAPHICS_X_MSB  ; Store X MSB at graphics API address
+LDZ pixel_y         ; A = Y coordinate (1 byte)
+STB GRAPHICS_Y      ; Store Y at graphics API address
+JPS _SetPixel       ; Call function
+```
+
+**_ClearPixel Usage:**
+```assembly
+; Clear pixel at coordinates (pixel_x, pixel_y)
+LDZ pixel_x         ; A = X coordinate LSB
+STB GRAPHICS_X_LSB  ; Store X LSB at graphics API address
+LDZ pixel_x+1       ; A = X coordinate MSB
+STB GRAPHICS_X_MSB  ; Store X MSB at graphics API address
+LDZ pixel_y         ; A = Y coordinate (1 byte)
+STB GRAPHICS_Y      ; Store Y at graphics API address
+JPS _ClearPixel     ; Call function
+```
+
+**Important Notes:**
+- These zero-page parameter locations may be modified by other OS API calls
+- Always set coordinates immediately before calling graphics functions
+- Do not rely on coordinates persisting between graphics calls
+- Y coordinate is limited to 1 byte (0-239) since display height is 240 pixels
+
+## Testing Code Compilation with BespokeASM
+
+### Prerequisites and Environment Setup
+
+**Installing BespokeASM:**
+BespokeASM is available from the [official GitHub repository](https://github.com/michaelkamprath/bespokeasm). It requires Python 3.11 or later.
+
+**Recommended Setup Process:**
+1. **Create a Python Virtual Environment:**
+   ```bash
+   python3 -m venv .venv/bespokeasm
+   source .venv/bespokeasm/bin/activate  # On Windows: .venv\bespokeasm\Scripts\activate
+   ```
+
+2. **Install BespokeASM from GitHub:**
+   ```bash
+   pip install git+https://github.com/michaelkamprath/bespokeasm.git
+   ```
+
+3. **Verify Installation:**
+   ```bash
+   bespokeasm --version
+   ```
+
+### Configuration File Location
+
+BespokeASM requires a configuration file that defines the Minimal 64x4 instruction set. The current Minimal 64x4 instruction set configuration file can be found in the BespokeASM repository at:
+
+**Official Configuration File:** [https://github.com/michaelkamprath/bespokeasm/blob/main/examples/slu4-minimal-64x4/slu4-minimal-64x4.yaml](https://github.com/michaelkamprath/bespokeasm/blob/main/examples/slu4-minimal-64x4/slu4-minimal-64x4.yaml)
+
+**Using the Latest Configuration File:**
+Since the `-c` option requires a local file path (not a web URL), you can download the latest configuration file directly from GitHub:
+
+```bash
+# Download the latest configuration file to a temporary location
+curl -o /tmp/slu4-minimal-64x4.yaml https://raw.githubusercontent.com/michaelkamprath/bespokeasm/main/examples/slu4-minimal-64x4/slu4-minimal-64x4.yaml
+
+# Use the downloaded configuration file for compilation
+bespokeasm -n -p -c /tmp/slu4-minimal-64x4.yaml your_program.min64x4
+```
+
+**Note:** The configuration file contains the complete instruction set definition, memory zones, and API function mappings for the Minimal 64x4.
+
+### Basic Compilation Commands
+
+**Standard Compilation:**
+```bash
+bespokeasm -c path/to/slu4-minimal-64x4.yaml your_program.min64x4
+```
+
+**Compilation with Pretty Printing:**
+```bash
+bespokeasm -n -p -c path/to/slu4-minimal-64x4.yaml your_program.min64x4
+```
+
+**Command Options:**
+- `-c CONFIG_FILE`: Specify the instruction set configuration file (required)
+- `-n`: No output binary file generation (useful for syntax checking)
+- `-p`: Pretty print the assembled code with addresses and byte codes
+- `-t intel_hex`: print the compiled code in Intel hex format. The Minimal 64x4 hardware requires the program to be sent to it using Intel hex format.
+- `-o OUTPUT_FILE`: Specify output binary file name (default: program_name.bin)
+
+### Common Compilation Errors and Solutions
+
+**1. HIGH/LOW Operator Errors:**
+```
+ERROR: Instruction "ldi" has no valid operands configured.
+```
+**Problem:** Using unsupported `HIGH` and `LOW` operators
+**Solution:** Use BespokeASM's `BYTE1(..)` and `LSB(..)` functions instead:
+
+```assembly
+; BAD - Unsupported operators
+LDI HIGH CONSTANT
+LDI LOW CONSTANT
+
+; GOOD - BespokeASM syntax
+LDI BYTE1(CONSTANT)     ; High byte
+LDI LSB(CONSTANT)       ; Low byte
+```
+
+**2. Variable Scope Errors:**
+```
+ERROR: Label _temp_val1 resolves to NONE
+```
+**Problem:** Accessing file-scoped variables (leading underscore) from another file
+**Solution:** Variables with leading underscores are file-scoped. Either:
+- Use global variables (no leading underscore) if sharing between files
+- Create local variables with proper scope
+- Use library functions instead of accessing internal variables
+
+**3. Missing Configuration File:**
+```
+ERROR: Configuration file not found
+```
+**Solution:** Ensure the path to the slu4-minimal-64x4.yaml file is correct and accessible.
+
+### Testing and Validation Workflow
+
+**1. Syntax Check Only:**
+```bash
+bespokeasm -n -c config.yaml program.min64x4
+```
+Use `-n` flag to check syntax without generating binary output.
+
+**2. Full Compilation with Details:**
+```bash
+bespokeasm -n -p -c config.yaml program.min64x4
+```
+Use `-p` flag to see detailed assembly listing with addresses and generated byte codes.
+
+**3. Generate Binary for Hardware:**
+```bash
+bespokeasm -c config.yaml program.min64x4 -o program.bin
+```
+Generates binary file, but this is not useful for the Minimal 64x4 hardware as it requires the program to be sent to it using Intel hex format.
+
+### Best Practices for Testing
+
+**1. Incremental Development:**
+- Start with simple test programs to verify basic functionality
+- Add complexity gradually
+- Test compilation after each significant change
+
+**2. Use Pretty Printing:**
+- Always use `-p` flag during development to review generated code
+- Verify memory layout and instruction addresses
+- Check that constants evaluate to expected values
+
+**3. Validate Memory Zones:**
+- Ensure variables are placed in correct memory zones
+- Check for address conflicts between different code sections
+- Verify zero-page optimization is working (variables at addresses 0x00-0x7F)
+
+**4. Common Test Patterns:**
+```assembly
+#require "slu4-min64x4-asm >= 1.1.0"
+.memzone ZERO_PAGE_APPS
+#mute
+
+; Test constants evaluation
+TEST_CONSTANT = 1 << 8      ; Should evaluate to 256
+HIGH_BYTE = BYTE1(0x1234)   ; Should evaluate to 0x12
+LOW_BYTE = LSB(0x1234)      ; Should evaluate to 0x34
+
+; Test basic functionality
+_test_var: .2byte 0
+
+#emit
+.memzone USER_APPS
+
+test_program:
+    spinit                  ; Initialize stack
+    LDI LOW_BYTE           ; Test constant usage
+    STZ _test_var          ; Test variable access
+    JPS _Prompt            ; Return to OS
+```
+
+### Troubleshooting Tips
+
+**Check Version Requirements:**
+- Ensure your assembly files start with the correct version requirement
+- Use `#require "slu4-min64x4-asm >= 1.1.0"` at the top of each file
+
+**Verify Memory Zone Usage:**
+- Variables should be in `.memzone ZERO_PAGE_APPS` or `.memzone ZERO_PAGE_LIBS`
+- Code should be in `.memzone USER_APPS`
+
+**Validate Include Paths:**
+- Ensure included files (like `mathlib16.min64x4`) are in the correct directory or use the `-I` flag to specify the containing directory path when compiling.
+- Check that library files compile independently if needed
+
+**Example Complete Test Session:**
+```bash
+# Navigate to your project directory
+cd /path/to/your/project
+
+# Activate BespokeASM environment
+source .venv/bespokeasm/bin/activate
+
+# Test compilation with detailed output
+bespokeasm -n -p -c ~/path/to/slu4-minimal-64x4.yaml your_program.min64x4
+
+# If successful, generate binary
+bespokeasm -c ~/path/to/slu4-minimal-64x4.yaml your_program.min64x4 -o your_program.bin
+```
+
+This workflow ensures your Minimal 64x4 assembly code compiles correctly and is ready for hardware deployment.

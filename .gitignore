@@ -17,7 +17,7 @@ _autosave-*
 *-save.pro
 *-save.kicad_pcb
 fp-info-cache
-#auto_saved_files#
+\#auto_saved_files\#
 *.kicad_sch.lck
 
 # Netlist files (exported from Eeschema)
@@ -63,3 +63,8 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+# VS Code
+.vscode
+
+# Python virtual environments
+.venv/

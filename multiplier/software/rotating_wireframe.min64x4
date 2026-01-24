@@ -1,0 +1,212 @@
+#require __LANGUAGE_NAME__ == slu4-min64x4-asm
+#require __LANGUAGE_VERSION__ >= 1.1.0
+#use-scope "mathlib16"
+#use-scope "triglibQ8_8"
+
+; Define USE_ACCELERATOR at compile time to leverage the hardware multiplier card:
+; bespokeasm compile -D USE_ACCELERATOR ...
+
+; Rotating wireframe demo showing multiplier acceleration with Q8.8 math
+.memzone ZERO_PAGE_APPS
+#mute
+_angle:         .byte 0         ; current angle (0-255 = full turn)
+_center_x:      .2byte 0
+_center_y:      .byte 0
+_vertex_0_x:    .2byte 0        ; top-left
+_vertex_0_y:    .2byte 0
+_vertex_1_x:    .2byte 0        ; top-right
+_vertex_1_y:    .2byte 0
+_vertex_2_x:    .2byte 0        ; bottom-right
+_vertex_2_y:    .2byte 0
+_vertex_3_x:    .2byte 0        ; bottom-left
+_vertex_3_y:    .2byte 0
+
+_x0_sin:        .2byte 0
+_x0_cos:        .2byte 0
+_y0_sin:        .2byte 0
+_y0_cos:        .2byte 0
+
+#emit
+
+_RECTANGLE_WIDTH = 120
+_RECTANGLE_HEIGHT = 60
+
+_CENTER_X = 200
+_CENTER_Y = 120
+
+
+GRAPHICS_X1 = 0x0080
+GRAPHICS_Y1 = 0x0082
+GRAPHICS_X2 = 0x0083
+GRAPHICS_Y2 = 0x0085
+
+
+.memzone USER_APPS
+.org 0 "USER_APPS"
+
+
+init:
+    spinit                  ; init the stack pointer
+    JPS _Clear              ; Clear the screen
+    MIZ 0,_angle            ; start rotations at angle 0
+    ; set up center value
+    MIV _CENTER_X,_center_x
+    MIZ _CENTER_Y,_center_y
+start:
+    JPS _calc_vertices
+    JPS _ClearVRAM
+    JPS _draw_wireframe
+    INZ _angle
+
+    ; slow things down
+    LDI $FF
+.loop:
+    DEC
+    FNE .loop
+
+    JPA start
+
+
+program_done:
+    JPS _WaitInput          ; Wait for user input before returning to prompt
+    JPS _Prompt             ; Return to OS prompt
+
+
+_draw_wireframe:
+    MVV _vertex_0_x,GRAPHICS_X1
+    MZZ _vertex_0_y,GRAPHICS_Y1
+    MVV _vertex_1_x,GRAPHICS_X2
+    MZZ _vertex_1_y,GRAPHICS_Y2
+    JPS _Line
+
+    MVV _vertex_1_x,GRAPHICS_X1
+    MZZ _vertex_1_y,GRAPHICS_Y1
+    MVV _vertex_2_x,GRAPHICS_X2
+    MZZ _vertex_2_y,GRAPHICS_Y2
+    JPS _Line
+
+    MVV _vertex_2_x,GRAPHICS_X1
+    MZZ _vertex_2_y,GRAPHICS_Y1
+    MVV _vertex_3_x,GRAPHICS_X2
+    MZZ _vertex_3_y,GRAPHICS_Y2
+    JPS _Line
+
+    MVV _vertex_3_x,GRAPHICS_X1
+    MZZ _vertex_3_y,GRAPHICS_Y1
+    MVV _vertex_0_x,GRAPHICS_X2
+    MZZ _vertex_0_y,GRAPHICS_Y2
+    JPS _Line
+    RTS
+
+_calc_vertices:
+    ; get trig values
+    LDZ _angle
+    JAS trig8_sin_cos
+
+    ; calculate all the subparts
+    PHS2I (_RECTANGLE_WIDTH/2)
+    PHSV trig8_result_sin_q8
+    JPS ml16_signed_multiply
+    PLS
+    PLS
+    STZ _x0_sin+1
+    PLS
+    STZ _x0_sin+0
+    PLS
+    CPI $80
+    FCC .skip_round_x0_sin
+    INZ _x0_sin+0
+    FCC .skip_round_x0_sin
+    INZ _x0_sin+1
+.skip_round_x0_sin:
+
+    PHS2I (_RECTANGLE_WIDTH/2)
+    PHSV trig8_result_cos_q8
+    JPS ml16_signed_multiply
+    PLS
+    PLS
+    STZ _x0_cos+1
+    PLS
+    STZ _x0_cos+0
+    PLS
+    CPI $80
+    FCC .skip_round_x0_cos
+    INZ _x0_cos+0
+    FCC .skip_round_x0_cos
+    INZ _x0_cos+1
+.skip_round_x0_cos:
+
+    PHS2I (_RECTANGLE_HEIGHT/2)
+    PHSV trig8_result_sin_q8
+    JPS ml16_signed_multiply
+    PLS
+    PLS
+    STZ _y0_sin+1
+    PLS
+    STZ _y0_sin+0
+    PLS
+    CPI $80
+    FCC .skip_round_y0_sin
+    INZ _y0_sin+0
+    FCC .skip_round_y0_sin
+    INZ _y0_sin+1
+.skip_round_y0_sin:
+
+    PHS2I (_RECTANGLE_HEIGHT/2)
+    PHSV trig8_result_cos_q8
+    JPS ml16_signed_multiply
+    PLS
+    PLS
+    STZ _y0_cos+1
+    PLS
+    STZ _y0_cos+0
+    PLS
+    CPI $80
+    FCC .skip_round_y0_cos
+    INZ _y0_cos+0
+    FCC .skip_round_y0_cos
+    INZ _y0_cos+1
+.skip_round_y0_cos:
+
+    ; now construct the vertics
+    ; x1 = x0*cos(_angle) - y0*sin(_angle)
+    ; y1 = x0*sin(_angle) + y0*cos(_angle)
+
+    ; vertex 0 : X = - _x_value, Y = - _y_value
+    MVV _y0_sin,_vertex_0_x
+    SVV _x0_cos,_vertex_0_x
+    MIV 0,_vertex_0_y
+    SVV _x0_sin,_vertex_0_y
+    SVV _y0_cos,_vertex_0_y
+    AVV _center_x,_vertex_0_x
+    AZZ _center_y,_vertex_0_y
+
+    ; vertex 1 : X = _x_value, Y = - _y_value
+    MVV _x0_cos,_vertex_1_x
+    AVV _y0_sin,_vertex_1_x
+    MVV _x0_sin,_vertex_1_y
+    SVV _y0_cos,_vertex_1_y
+    AVV _center_x,_vertex_1_x
+    AZZ _center_y,_vertex_1_y
+
+    ; vertex 2 : X = _x_value, Y = _y_value
+    MVV _x0_cos,_vertex_2_x
+    SVV _y0_sin,_vertex_2_x
+    MVV _x0_sin,_vertex_2_y
+    AVV _y0_cos,_vertex_2_y
+    AVV _center_x,_vertex_2_x
+    AZZ _center_y,_vertex_2_y
+
+    ; vertext 3 : X = - _x_value, Y = _y_value
+    MIV 0,_vertex_3_x
+    SVV _x0_cos,_vertex_3_x
+    SVV _y0_sin,_vertex_3_x
+    MVV _y0_cos,_vertex_3_y
+    SVV _x0_sin,_vertex_3_y
+    AVV _center_x,_vertex_3_x
+    AZZ _center_y,_vertex_3_y
+
+    RTS
+
+#include "triglibQ8_8.min64x4"
+#include "mathlib16.min64x4"

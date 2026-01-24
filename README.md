@@ -9,5 +9,6 @@ The [back plane provided in this repository](./expansion-backplane/) allows for 
 ## Cards
 
 * [**Speech Synthesizer**](./speech-synthesizer/) - This board provides support for interfacing with a TMS5220C speech synthesizer. 
+* [**Multiplier Card**](./multiplier/) - This board provides a hardware implimentation of 8-bit integer multiplications, significantly improving the speed of multiplications over software-implementations.
 
 

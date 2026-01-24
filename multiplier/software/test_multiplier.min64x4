@@ -1,0 +1,106 @@
+; used to test hardware multiplier. Compares software and hardware multiplication
+; results for randomly generated numbers.
+#require __LANGUAGE_NAME__ == slu4-min64x4-asm
+#require __LANGUAGE_VERSION__ >= 1.1.0
+
+.memzone ZERO_PAGE_APPS
+#mute
+; variables for hardware multiplier
+_value_a:   .byte  0
+_value_b:   .byte  0
+_sw_result: .2byte 0
+_hw_result: .2byte 0
+_loop:      .4byte 0
+
+#emit
+.memzone USER_APPS
+
+main:
+    spinit
+    CLQ _loop
+    JPS _Clear
+    MIZ 0,_YPos
+    MIZ 0,_XPos
+    JPS _Print "Hardware multiplier test\n"
+    JPS _Print "Looping on random values until mismatch\n"
+
+.loop:
+    ; diplay loop counter
+    LDZ _loop+3
+    JAS _PrintHex
+    LDZ _loop+2
+    JAS _PrintHex
+    LDZ _loop+1
+    JAS _PrintHex
+    LDZ _loop+0
+    JAS _PrintHex
+    MIZ 0,_XPos
+
+    JPS _Random
+    STZ _value_a    ; LSB
+    JPS _Random
+    STZ _value_b    ; LSB
+
+    ; first get SW result
+    LDZ _value_a+0
+    PHS
+    LDZ _value_b+0
+    PHS
+    JPS multiply_u8
+    PLS
+    STZ _sw_result+1
+    PLS
+    STZ _sw_result+0
+
+    ; then get HW result
+    MZB _value_a+0,MULTIPLIER_A
+    NOP
+    MZB _value_b+0,MULTIPLIER_B
+    NOP
+    MBZ MULTIPLIER_RESULT_LSB,_hw_result+0
+    MBZ MULTIPLIER_RESULT_MSB,_hw_result+1
+
+    ; compare results
+    CZZ _sw_result+1,_hw_result+1
+    BNE .mismatch
+    CZZ _sw_result+0,_hw_result+0
+    BNE .mismatch
+
+    ; increment loop counter
+    INQ _loop
+    JPA .loop
+
+.mismatch:
+    JPS _Print "Mismatch Found:\n"
+    JPS _Print "A = "
+    LDZ _value_a
+    JAS _PrintHex
+    JPS _Print ", B = "
+    LDZ _value_b
+    JAS _PrintHex
+    JPS _Print "\nSW = "
+    LDZ _sw_result+1
+    JAS _PrintHex
+    LDZ _sw_result+0
+    JAS _PrintHex
+    JPS _Print "\nHW = "
+    LDZ _hw_result+1
+    JAS _PrintHex
+    LDZ _hw_result+0
+    JAS _PrintHex
+    JPS _Print "\n"
+
+    JPS _Print "Done. Loop count: "
+    LDZ _loop+3
+    JAS _PrintHex
+    LDZ _loop+2
+    JAS _PrintHex
+    LDZ _loop+1
+    JAS _PrintHex
+    LDZ _loop+0
+    JAS _PrintHex
+    JPS _Print "\n"
+    JPS _WaitInput
+    JPS _Prompt
+
+#include "mathlib16.min64x4"
