@@ -1,0 +1,213 @@
+#require "slu4-min64x4-asm >= 1.1.0"
+
+DATA_START = $9000
+DATA_LENGTH = $5000
+PAIR_COUNT = DATA_LENGTH-1
+OUTER_COUNT = $0020
+#ifdef STATUS_BARS
+STATUS_WIDTH = 48
+FILL_CHUNK = DATA_LENGTH / STATUS_WIDTH
+WORK_TOTAL = PAIR_COUNT * OUTER_COUNT
+WORK_CHUNK = WORK_TOTAL / STATUS_WIDTH
+#endif
+
+MULTIPLIER_A = $FED0
+MULTIPLIER_B = $FED1
+MULTIPLIER_RESULT_LSB = $FED2
+MULTIPLIER_RESULT_MSB = $FED3
+
+.memzone ZERO_PAGE_APPS
+#mute
+_data_ptr: .2byte 0
+_fill_counter: .2byte 0
+_pair_counter: .2byte 0
+_outer_counter: .2byte 0
+_mul_result: .2byte 0
+_mul_multiplicand: .2byte 0
+_temp_val2: .byte 0
+_mul_counter: .byte 0
+#ifdef STATUS_BARS
+_progress_counter: .2byte 0
+_progress_reload: .2byte 0
+_progress_stars: .byte 0
+#endif
+#emit
+
+.memzone USER_APPS
+main:
+    SPINIT
+    JPS _Clear
+    MIZ 0,_XPos
+    MIZ 0,_YPos
+
+    ; Fill the test block with random values.
+    JPS _Print "Filling random data\n\n"
+    MIV DATA_START,_data_ptr
+    MIV DATA_LENGTH,_fill_counter
+#ifdef STATUS_BARS
+    MIV FILL_CHUNK,_progress_reload
+    MIV FILL_CHUNK,_progress_counter
+    MIZ STATUS_WIDTH,_progress_stars
+#endif
+.fill_loop:
+    JPS _Random
+    STT _data_ptr
+    INV _data_ptr
+    DEV _fill_counter
+#ifdef STATUS_BARS
+    JPS progress_tick
+#endif
+    ; DEV only sets based on MSB, so we will do a full check
+    CIZ 0,_fill_counter+1
+    BNE .fill_loop
+    CIZ 0,_fill_counter+0
+    BNE .fill_loop
+
+    JPS _Print "\n\n"
+    JPS _Print "Starting software Multiplication\n\n"
+    JPS run_software_workload
+    JPS _Print "\n\n"
+    JPS _Print "Finished with software multiplication.\n"
+    jps _Print "Press any key >"
+    jps _WaitInput
+    JPS _Print "\nStarting hardware multiplication\n\n"
+    JPS run_hardware_workload
+    JPS _Print "\n\n"
+    JPS _Print "Finished with hardware multiplication\n"
+    JPS _Prompt
+
+; run_software_workload
+;
+; Repeats 8-bit software multiplication across the random buffer.
+run_software_workload:
+    MIV OUTER_COUNT,_outer_counter
+#ifdef STATUS_BARS
+    MIV WORK_CHUNK,_progress_reload
+    MIV WORK_CHUNK,_progress_counter
+    MIZ STATUS_WIDTH,_progress_stars
+#endif
+.software_outer:
+    MIV DATA_START,_data_ptr
+    MIV PAIR_COUNT,_pair_counter
+.software_inner:
+    LDT _data_ptr
+    STZ _mul_multiplicand
+    MIZ 0,_mul_multiplicand+1
+    INV _data_ptr
+    LDT _data_ptr
+    STZ _temp_val2
+    JPS _multiplication8_core_sw
+    DEV _pair_counter
+#ifdef STATUS_BARS
+    JPS progress_tick
+#endif
+    CIZ 0,_pair_counter+1
+    BNE .software_inner
+    CIZ 0,_pair_counter+0
+    BNE .software_inner
+    DEV _outer_counter
+    CIZ 0,_outer_counter+1
+    BNE .software_outer
+    CIZ 0,_outer_counter+0
+    BNE .software_outer
+    RTS
+
+; run_hardware_workload
+;
+; Repeats 8-bit hardware multiplication across the random buffer.
+run_hardware_workload:
+    MIV OUTER_COUNT,_outer_counter
+#ifdef STATUS_BARS
+    MIV WORK_CHUNK,_progress_reload
+    MIV WORK_CHUNK,_progress_counter
+    MIZ STATUS_WIDTH,_progress_stars
+#endif
+.hardware_outer:
+    MIV DATA_START,_data_ptr
+    MIV PAIR_COUNT,_pair_counter
+.hardware_inner:
+    LDT _data_ptr
+    STZ _mul_multiplicand
+    MIZ 0,_mul_multiplicand+1
+    INV _data_ptr
+    LDT _data_ptr
+    STZ _temp_val2
+    JPS _multiplication8_core_hw
+    DEV _pair_counter
+#ifdef STATUS_BARS
+    JPS progress_tick
+#endif
+    CIZ 0,_pair_counter+1
+    BNE .hardware_inner
+    CIZ 0,_pair_counter+0
+    BNE .hardware_inner
+    DEV _outer_counter
+    CIZ 0,_outer_counter+1
+    BNE .hardware_outer
+    CIZ 0,_outer_counter+0
+    BNE .hardware_outer
+    RTS
+
+; _multiplication8_core_hw
+;
+; Hardware-based multiply core (copied from mathlib16.min64x4).
+; Expects multiplicand in _mul_multiplicand (low byte) and multiplier in _temp_val2.
+; Returns 16-bit result in _mul_result.
+_multiplication8_core_hw:
+    MZB _mul_multiplicand,MULTIPLIER_A
+    MZB _temp_val2,MULTIPLIER_B
+
+    MBZ MULTIPLIER_RESULT_LSB,_mul_result+0
+    MBZ MULTIPLIER_RESULT_MSB,_mul_result+1
+
+    RTS
+
+; _multiplication8_core_sw
+;
+; Software-based multiply core (copied from mathlib16.min64x4).
+; Expects multiplicand in _mul_multiplicand (low word) and multiplier in _temp_val2.
+; Returns 16-bit result in _mul_result.
+.align
+_multiplication8_core_sw:
+    CLV _mul_result
+
+    MIZ 8,_mul_counter
+.mul_loop:
+    LDZ _temp_val2
+    ANI 1
+    CPI 1
+    FNE .mul_skip_add
+
+    AVV _mul_multiplicand,_mul_result
+
+.mul_skip_add:
+    LLV _mul_multiplicand
+
+    CLC
+    RRZ _temp_val2
+
+    DEZ _mul_counter
+    FNE .mul_loop
+
+    RTS
+
+#ifdef STATUS_BARS
+; progress_tick
+;
+; Decrements the progress counter and prints '*' when it reaches zero.
+progress_tick:
+    LDZ _progress_stars
+    CPI 0
+    BEQ .done
+    DEV _progress_counter
+    CIZ 0,_progress_counter+1
+    BNE .done
+    CIZ 0,_progress_counter+0
+    BNE .done
+    MVV _progress_reload,_progress_counter
+    LDI '*'
+    JAS _PrintChar
+    DEZ _progress_stars
+.done:
+    RTS
+#endif

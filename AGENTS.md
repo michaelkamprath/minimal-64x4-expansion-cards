@@ -36,9 +36,6 @@ curl -o /tmp/slu4-minimal-64x4.yaml https://raw.githubusercontent.com/michaelkam
 Then to use that instruction set configuration to compile a `*.min64x4` assembly code file:
 
 ```bash
-# Activate virtual environment
-source .venv/bespokeasm/bin/activate
-
 # Compile assembly file to Intel HEX format
 bespokeasm compile -c /tmp/slu4-minimal-64x4.yaml -n -p -t intel_hex file.min64x4
 
@@ -54,16 +51,16 @@ bespokeasm compile -c /tmp/slu4-minimal-64x4.yaml -n -p -t intel_hex file.min64x
 ### Graphics API:
 
 Graphics functions on the Minimal 64x4 use dedicated zero-page memory locations for parameters, **not the stack**.
-- **`Graphics X1` (0x0080):** 16-bit X1 coordinate (little-endian).
-- **`Graphics Y1` (0x0082):** 8-bit Y1 coordinate.
-- **`Graphics X2` (0x0083):** 16-bit X2 coordinate (little-endian).
-- **`Graphics Y2` (0x0085):** 8-bit Y2 coordinate.
+- **`GRAPHICS_X1` (0x0080):** 16-bit X1 coordinate (little-endian).
+- **`GRAPHICS_Y1` (0x0082):** 8-bit Y1 coordinate.
+- **`GRAPHICS_X2` (0x0083):** 16-bit X2 coordinate (little-endian).
+- **`GRAPHICS_Y2` (0x0085):** 8-bit Y2 coordinate.
 
 Always set these locations immediately before calling a graphics function. The graphics functions supported int eh Minimal 64x4 operating system are:
-- `_SetPixel` : Sets a pixel at position (X1, Y1)
-- `_ClearPixel` : Clears a pixel at position (X1, Y1)
-- `_Line` : Draws a line using Bresenham’s algorithm from position (X1, Y1) to position (X2, Y2)
-- `_Rect` : Draws a rectangle at (X1, Y1) of size (X2, Y2)
+- `_SetPixel` : Sets a pixel at position (GRAPHICS_X1, GRAPHICS_Y1)
+- `_ClearPixel` : Clears a pixel at position (GRAPHICS_X1, GRAPHICS_Y1)
+- `_Line` : Draws a line using Bresenham’s algorithm from position (GRAPHICS_X1, GRAPHICS_Y1) to position (GRAPHICS_X2, GRAPHICS_Y2)
+- `_Rect` : Draws a rectangle at (GRAPHICS_X1, GRAPHICS_Y1) of size (GRAPHICS_X2, GRAPHICS_Y2)
 - `_Clear` : Clears the visible video RAM (viewport)
 
 

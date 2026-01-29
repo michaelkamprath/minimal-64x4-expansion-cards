@@ -38,11 +38,6 @@ _CENTER_Y = 120
 _DELAY_COUNTER = $0800
 _QUIT_CHAR = 27                 ; ESC will be used to quit program
 
-GRAPHICS_X1 = 0x0080
-GRAPHICS_Y1 = 0x0082
-GRAPHICS_X2 = 0x0083
-GRAPHICS_Y2 = 0x0085
-
 
 .memzone USER_APPS
 .org 0 "USER_APPS"
@@ -92,22 +87,19 @@ _draw_wireframe:
     MZZ _vertex_1_y,GRAPHICS_Y2
     JPS _Line
 
-    MVV _vertex_1_x,GRAPHICS_X1
-    MZZ _vertex_1_y,GRAPHICS_Y1
-    MVV _vertex_2_x,GRAPHICS_X2
-    MZZ _vertex_2_y,GRAPHICS_Y2
+    MVV _vertex_2_x,GRAPHICS_X1
+    MZZ _vertex_2_y,GRAPHICS_Y1
     JPS _Line
 
+    ; X1 and Y1 get clobbered in the _Line function, so need to resend them
     MVV _vertex_2_x,GRAPHICS_X1
     MZZ _vertex_2_y,GRAPHICS_Y1
     MVV _vertex_3_x,GRAPHICS_X2
     MZZ _vertex_3_y,GRAPHICS_Y2
     JPS _Line
 
-    MVV _vertex_3_x,GRAPHICS_X1
-    MZZ _vertex_3_y,GRAPHICS_Y1
-    MVV _vertex_0_x,GRAPHICS_X2
-    MZZ _vertex_0_y,GRAPHICS_Y2
+    MVV _vertex_0_x,GRAPHICS_X1
+    MZZ _vertex_0_y,GRAPHICS_Y1
     JPS _Line
     RTS
 
