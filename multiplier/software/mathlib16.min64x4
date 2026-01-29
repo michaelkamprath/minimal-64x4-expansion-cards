@@ -153,8 +153,10 @@ _multiplication8_core:
 ; This is an internal subroutine - not intended for direct external use
 ;
 _multiplication16_core:
-    ; Clear result accumulator
-    CLQ _mul_result           ; Clear 32-bit result
+
+    ; Clear result accumulator --> Don't need to clear the accumaluter, just write
+    ; A0xB0 in the low word and A1xB1 in the high word, then add the cross product
+    ; terms on top of that. Thanks Rene van der Zee!
 
     ; Extract the 16-bit values from the inputs
     ; Multiplicand A = _mul_multiplicand (low 16 bits): A_high, A_low
@@ -164,9 +166,17 @@ _multiplication16_core:
     MZB _mul_multiplicand+0,MULTIPLIER_A
     MZB _temp_val2+0,MULTIPLIER_B
 
-    ; Read 16-bit result from hardware
+    ; Read 16-bit result from hardware into low work of final result
     MBZ MULTIPLIER_RESULT_LSB,_mul_result+0
     MBZ MULTIPLIER_RESULT_MSB,_mul_result+1
+
+    ; Perform A_high × B_high (contributes to result bits 16-31)
+    MZB _mul_multiplicand+1,MULTIPLIER_A
+    MZB _temp_val2+1,MULTIPLIER_B
+
+    ; Read 16-bit result from hardware in high word of final result
+    MBZ MULTIPLIER_RESULT_LSB,_mul_result+2
+    MBZ MULTIPLIER_RESULT_MSB,_mul_result+3
 
     ; Perform A_high × B_low (contributes to result bits 8-23)
     MZB _mul_multiplicand+1,MULTIPLIER_A
