@@ -1,8 +1,4 @@
 #require "slu4-min64x4-asm >= 1.1.0"
-#ifndef USE_ACCELERATOR
-#print yellow "Compiling without USE_ACCELERATOR (software 16-bit core)"
-#endif
-
 ; 64-bit Karatsuba vs schoolbook correctness tests.
 ; Compile with -D USE_ACCELERATOR to enable the hardware 16-bit core.
 
