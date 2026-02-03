@@ -1,8 +1,6 @@
 #require "slu4-min64x4-asm >= 1.1.0"
-#use-scope "mathlib32"
-
 #ifndef USE_ACCELERATOR
-#error "USE_ACCELERATOR is required to be defined. Please add '-D USE_ACCELERATOR' to compile command."
+#print yellow "Compiling without USE_ACCELERATOR (software 16-bit core)"
 #endif
 
 ; 64-bit Karatsuba vs schoolbook correctness tests.

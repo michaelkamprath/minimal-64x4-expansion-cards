@@ -88,8 +88,6 @@
 ; ### Demostration of Karatsuba Algorithm ###
 ;
 #require "slu4-min64x4-asm >= 1.1.0"
-#use-scope "mathlib32"
-
 ; Keep data out of $8000-$9FFF (reserved for application code).
 DATA_START  = $A000
 DATA_LENGTH = $4000
@@ -366,4 +364,3 @@ progress_tick:
 .done:
     RTS
 #endif
-
