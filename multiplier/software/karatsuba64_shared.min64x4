@@ -1,0 +1,183 @@
+; Shared 64-bit multiply entry points (schoolbook + Karatsuba)
+; Used by karatsuba64.min64x4 and karatsuba64_test.min64x4
+
+#include "mathlib64.min64x4"
+#use-scope "mathlib64"
+#use-scope "mathlib64_internal"
+
+.memzone ZERO_PAGE_APPS
+#mute
+sb64_a0: .4byte 0
+sb64_b0: .4byte 0
+#emit
+
+.memzone USER_APPS
+.align
+
+; Adds 64-bit _mul64_p into _mul64_result at byte offset 4
+sb64_add64_offset4:
+    LDZ _mul64_p+0
+    AD.Z _mul64_result+4
+    LDZ _mul64_p+1
+    AC.Z _mul64_result+5
+    LDZ _mul64_p+2
+    AC.Z _mul64_result+6
+    LDZ _mul64_p+3
+    AC.Z _mul64_result+7
+    LDZ _mul64_p+4
+    AC.Z _mul64_result+8
+    LDZ _mul64_p+5
+    AC.Z _mul64_result+9
+    LDZ _mul64_p+6
+    AC.Z _mul64_result+10
+    LDZ _mul64_p+7
+    AC.Z _mul64_result+11
+    LDI 0
+    AC.Z _mul64_result+12
+    LDI 0
+    AC.Z _mul64_result+13
+    LDI 0
+    AC.Z _mul64_result+14
+    LDI 0
+    AC.Z _mul64_result+15
+    RTS
+
+; Adds 64-bit _mul64_p into _mul64_result at byte offset 8
+sb64_add64_offset8:
+    LDZ _mul64_p+0
+    AD.Z _mul64_result+8
+    LDZ _mul64_p+1
+    AC.Z _mul64_result+9
+    LDZ _mul64_p+2
+    AC.Z _mul64_result+10
+    LDZ _mul64_p+3
+    AC.Z _mul64_result+11
+    LDZ _mul64_p+4
+    AC.Z _mul64_result+12
+    LDZ _mul64_p+5
+    AC.Z _mul64_result+13
+    LDZ _mul64_p+6
+    AC.Z _mul64_result+14
+    LDZ _mul64_p+7
+    AC.Z _mul64_result+15
+    RTS
+
+; sb64_multiplication64_schoolbook_core
+; 64-bit multiply using 4x 32-bit products.
+.align
+sb64_multiplication64_schoolbook_core:
+    CLQ _mul64_result
+    CLQ _mul64_result+4
+    CLQ _mul64_result+8
+    CLQ _mul64_result+12
+
+    ; Z0 = A0 * B0
+    JPS _multiplication32_core
+    MQQ _mul64_p,_mul64_result+0
+    MQQ _mul64_p+4,_mul64_result+4
+
+    ; Save A0/B0 while we compute mixed products
+    MQQ _mul64_op1+0,sb64_a0
+    MQQ _mul64_op2+0,sb64_b0
+
+    ; Z1 = A0 * B1
+    MQQ sb64_a0,_mul64_op1+0
+    MQQ _mul64_op2+4,_mul64_op2+0
+    JPS _multiplication32_core
+    JPS sb64_add64_offset4
+
+    ; Z2 = A1 * B0
+    MQQ _mul64_op1+4,_mul64_op1+0
+    MQQ sb64_b0,_mul64_op2+0
+    JPS _multiplication32_core
+    JPS sb64_add64_offset4
+
+    ; Z3 = A1 * B1
+    MQQ _mul64_op1+4,_mul64_op1+0
+    MQQ _mul64_op2+4,_mul64_op2+0
+    JPS _multiplication32_core
+    JPS sb64_add64_offset8
+
+    RTS
+
+; sb64_unsigned_multiply
+; Multiplies two unsigned 64-bit integers (schoolbook). Result is 128-bit.
+; Stack: SP+3..10=multiplier, SP+11..18=multiplicand (MSB at lower address)
+; Result overwrites both inputs on the stack.
+sb64_unsigned_multiply:
+    ; Copy multiplicand from stack to _mul64_op1
+    LDS 18
+    STZ _mul64_op1+0
+    LDS 17
+    STZ _mul64_op1+1
+    LDS 16
+    STZ _mul64_op1+2
+    LDS 15
+    STZ _mul64_op1+3
+    LDS 14
+    STZ _mul64_op1+4
+    LDS 13
+    STZ _mul64_op1+5
+    LDS 12
+    STZ _mul64_op1+6
+    LDS 11
+    STZ _mul64_op1+7
+
+    ; Copy multiplier from stack to _mul64_op2
+    LDS 10
+    STZ _mul64_op2+0
+    LDS 9
+    STZ _mul64_op2+1
+    LDS 8
+    STZ _mul64_op2+2
+    LDS 7
+    STZ _mul64_op2+3
+    LDS 6
+    STZ _mul64_op2+4
+    LDS 5
+    STZ _mul64_op2+5
+    LDS 4
+    STZ _mul64_op2+6
+    LDS 3
+    STZ _mul64_op2+7
+
+    JPS sb64_multiplication64_schoolbook_core
+
+    ; Copy 128-bit result back to stack
+    LDZ _mul64_result+15
+    STS 3
+    LDZ _mul64_result+14
+    STS 4
+    LDZ _mul64_result+13
+    STS 5
+    LDZ _mul64_result+12
+    STS 6
+    LDZ _mul64_result+11
+    STS 7
+    LDZ _mul64_result+10
+    STS 8
+    LDZ _mul64_result+9
+    STS 9
+    LDZ _mul64_result+8
+    STS 10
+    LDZ _mul64_result+7
+    STS 11
+    LDZ _mul64_result+6
+    STS 12
+    LDZ _mul64_result+5
+    STS 13
+    LDZ _mul64_result+4
+    STS 14
+    LDZ _mul64_result+3
+    STS 15
+    LDZ _mul64_result+2
+    STS 16
+    LDZ _mul64_result+1
+    STS 17
+    LDZ _mul64_result+0
+    STS 18
+
+    RTS
+
+ka64_unsigned_multiply:
+    JPA ml64_unsigned_multiply
