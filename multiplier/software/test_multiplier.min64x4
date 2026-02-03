@@ -3,6 +3,10 @@
 #require __LANGUAGE_NAME__ == slu4-min64x4-asm
 #require __LANGUAGE_VERSION__ >= 1.1.0
 
+#ifdef USE_ACCELERATOR
+#error "The USE_ACCELERATOR symbol should not be defined for this program"
+#endif
+
 .memzone ZERO_PAGE_APPS
 #mute
 ; variables for hardware multiplier
