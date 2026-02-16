@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "minimal-64x4")(type "KiCad")(uri "${KIPRJMOD}/../../../kicad-libraries/minimal-64x4.kicad_sym")(options "")(descr ""))
+)

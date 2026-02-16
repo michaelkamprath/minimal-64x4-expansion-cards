@@ -1,0 +1,37 @@
+GAL22V10
+clkcounter
+
+CLK  A0     A1     A2   RST  MMAP  RI   RO   NC   NC   NC   GND
+NC   CLEAR  LATCH  OE5  OE4  OE3   OE2  OE1  OE0  INH  NC   VCC
+
+
+;
+; Set the output enables (active low) for each byte when read
+;
+
+/OE0 = /MMAP * /A2 * /A1 * /A0 * /RO
+/OE1 = /MMAP * /A2 * /A1 * A0 * /RO
+/OE2 = /MMAP * /A2 * A1 * /A0 * /RO
+/OE3 = /MMAP * /A2 * A1 * A0 * /RO
+/OE4 = /MMAP * A2 * /A1 * /A0 * /RO
+/OE5 = /MMAP * A2 * /A1 * A0 * /RO
+
+;
+; Activate the latch at address $6
+;
+
+LATCH.R = /MMAP * A2 * A1 * /A0 * /RI
+
+
+;
+; Reset the counter at address $7
+;
+
+/CLEAR.R = /MMAP * A2 * A1 * A0 * /RI + /RST
+
+
+;
+; Activate teh INH line when ever there is a read in our memory range.
+;
+
+INH = /MMAP * /RO
