@@ -35,3 +35,7 @@ LATCH.R = /MMAP * A2 * A1 * /A0 * /RI
 ;
 
 INH = /MMAP * /RO
+
+DESCRIPTION
+
+Glue logic for the Minimal 64x4 Timer card.
