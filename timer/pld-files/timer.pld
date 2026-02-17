@@ -1,7 +1,7 @@
 GAL22V10
 clkcounter
 
-CLK  A0     A1     A2   RST  MMAP  RI   RO   NC   NC   NC   GND
+CLK  A2     A1     A0   RST  MMAP  RI   RO   NC   NC   NC   GND
 NC   CLEAR  LATCH  OE5  OE4  OE3   OE2  OE1  OE0  INH  NC   VCC
 
 
