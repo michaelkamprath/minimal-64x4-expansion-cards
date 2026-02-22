@@ -1,6 +1,6 @@
 #require __LANGUAGE_NAME__ == slu4-min64x4-asm
 #require __LANGUAGE_VERSION__ >= 1.1.0
-#use-scope "mathlib16"
+#use-scope "mathlib"
 #use-scope "triglibQ8_8"
 
 ; Define USE_ACCELERATOR at compile time to leverage the hardware multiplier card:
@@ -112,7 +112,7 @@ _calc_vertices:
     ; calculate all the subparts
     PHS2I (_RECTANGLE_WIDTH/2)
     PHSV trig8_result_sin_q8
-    JPS ml16_signed_multiply
+    JPS ml_multiply_i16
     PLS
     PLS
     STZ _x0_sin+1
@@ -128,7 +128,7 @@ _calc_vertices:
 
     PHS2I (_RECTANGLE_WIDTH/2)
     PHSV trig8_result_cos_q8
-    JPS ml16_signed_multiply
+    JPS ml_multiply_i16
     PLS
     PLS
     STZ _x0_cos+1
@@ -144,7 +144,7 @@ _calc_vertices:
 
     PHS2I (_RECTANGLE_HEIGHT/2)
     PHSV trig8_result_sin_q8
-    JPS ml16_signed_multiply
+    JPS ml_multiply_i16
     PLS
     PLS
     STZ _y0_sin+1
@@ -160,7 +160,7 @@ _calc_vertices:
 
     PHS2I (_RECTANGLE_HEIGHT/2)
     PHSV trig8_result_cos_q8
-    JPS ml16_signed_multiply
+    JPS ml_multiply_i16
     PLS
     PLS
     STZ _y0_cos+1
@@ -215,4 +215,4 @@ _calc_vertices:
     RTS
 
 #include "triglibQ8_8.min64x4"
-#include "mathlib16.min64x4"
+#include "mathlib.min64x4"

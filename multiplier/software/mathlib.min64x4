@@ -28,6 +28,13 @@
 ;
 #ifdef MATHLIB64
 #define MATHLIB32 1
+#print cyan "Compiling MathLib with 64-bit support"
+#else
+#ifdef MATHLIB32
+#print cyan "Compiling MathLib with 32-bit support"
+#else
+#print cyan "Compiling MathLib with 16-bit support"
+#endif
 #endif
 
 .memzone ZERO_PAGE_LIBS
