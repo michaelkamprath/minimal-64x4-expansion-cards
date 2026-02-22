@@ -1,0 +1,852 @@
+#require "slu4-min64x4-asm >= 1.1.0"
+#use-scope "mathlib"
+
+#ifdef MATHLIB32
+#define MATHLIB_TEST_32 1
+#endif
+#ifdef MATHLIB64
+#define MATHLIB_TEST_32 1
+#endif
+
+; Math library correctness tests for:
+;   ml_multiply_u16, ml_multiply_i16
+;   ml_multiply_u32, ml_multiply_i32
+;   ml_multiply_u64, ml_multiply_i64
+;
+; Intended compile examples:
+;   bespokeasm compile -c /tmp/slu4-minimal-64x4.yaml -n -p -t intel_hex multiplier/software/mathlib_test.min64x4
+;   bespokeasm compile -c /tmp/slu4-minimal-64x4.yaml -n -p -t intel_hex -D MATHLIB32 multiplier/software/mathlib_test.min64x4
+;   bespokeasm compile -c /tmp/slu4-minimal-64x4.yaml -n -p -t intel_hex -D MATHLIB64 multiplier/software/mathlib_test.min64x4
+;   bespokeasm compile -c /tmp/slu4-minimal-64x4.yaml -n -p -t intel_hex -D USE_ACCELERATOR multiplier/software/mathlib_test.min64x4
+;   bespokeasm compile -c /tmp/slu4-minimal-64x4.yaml -n -p -t intel_hex -D MATHLIB32 -D USE_ACCELERATOR multiplier/software/mathlib_test.min64x4
+;   bespokeasm compile -c /tmp/slu4-minimal-64x4.yaml -n -p -t intel_hex -D MATHLIB64 -D USE_ACCELERATOR multiplier/software/mathlib_test.min64x4
+
+U16_RECORD_SIZE = 8
+U32_RECORD_SIZE = 16
+U64_RECORD_SIZE = 32
+
+.memzone ZERO_PAGE_APPS
+#mute
+_test_index:   .byte 0
+_compare_fail: .byte 0
+_count:        .byte 0
+_tmp_count:    .byte 0
+_suite_count:  .byte 0
+_suite_stride: .byte 0
+
+_a_base:       .2byte 0
+_b_base:       .2byte 0
+_expect_base:  .2byte 0
+
+_suite_ptr:    .2byte 0
+_expect_ptr:   .2byte 0
+_actual_ptr:   .2byte 0
+#emit
+
+.memzone USER_APPS
+main:
+    SPINIT
+    JPS _Clear
+    MIZ 0,_XPos
+    MIZ 0,_YPos
+    JPS _Print "mathlib API tests\n"
+
+    JPS run_u16_suite
+    JPS run_i16_suite
+#ifdef MATHLIB_TEST_32
+    JPS run_u32_suite
+    JPS run_i32_suite
+#endif
+#ifdef MATHLIB64
+    JPS run_u64_suite
+    JPS run_i64_suite
+#endif
+
+    JPS _Print "All mathlib tests passed\n"
+    JPS _WaitInput
+    JPS _Prompt
+    JPA stop_forever
+
+; Compare expected bytes against actual_buf over _count bytes (LSB -> MSB)
+compare_actual:
+    CLZ _compare_fail
+    MIV actual_buf,_actual_ptr
+
+    LDZ _count
+    STZ _tmp_count
+.loop:
+    LDT _expect_ptr
+    CPR _actual_ptr
+    BNE .mismatch
+    INV _expect_ptr
+    INV _actual_ptr
+    DEZ _tmp_count
+    BNE .loop
+    RTS
+
+.mismatch:
+    INZ _compare_fail
+    RTS
+
+; Advance _suite_ptr by _suite_stride bytes.
+advance_suite_ptr:
+    LDZ _suite_stride
+    STZ _tmp_count
+.loop:
+    INV _suite_ptr
+    DEZ _tmp_count
+    BNE .loop
+    RTS
+
+; Load _a_base, _b_base, _expect_base from current 16-bit record at _suite_ptr.
+load_case_16:
+    MVV _suite_ptr,_a_base
+    MVV _suite_ptr,_b_base
+    INV _b_base
+    INV _b_base
+    MVV _b_base,_expect_base
+    INV _expect_base
+    INV _expect_base
+    RTS
+
+; Load _a_base, _b_base, _expect_base from current 32-bit record at _suite_ptr.
+load_case_32:
+    MVV _suite_ptr,_a_base
+    MVV _suite_ptr,_b_base
+    INV _b_base
+    INV _b_base
+    INV _b_base
+    INV _b_base
+    MVV _b_base,_expect_base
+    INV _expect_base
+    INV _expect_base
+    INV _expect_base
+    INV _expect_base
+    RTS
+
+; Load _a_base, _b_base, _expect_base from current 64-bit record at _suite_ptr.
+load_case_64:
+    MVV _suite_ptr,_a_base
+    MVV _suite_ptr,_b_base
+    INV _b_base
+    INV _b_base
+    INV _b_base
+    INV _b_base
+    INV _b_base
+    INV _b_base
+    INV _b_base
+    INV _b_base
+    MVV _b_base,_expect_base
+    INV _expect_base
+    INV _expect_base
+    INV _expect_base
+    INV _expect_base
+    INV _expect_base
+    INV _expect_base
+    INV _expect_base
+    INV _expect_base
+    RTS
+
+run_u16_test:
+    MVV _a_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    MVV _b_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    JPS ml_multiply_u16
+
+    PLS
+    STB actual_buf+3
+    PLS
+    STB actual_buf+2
+    PLS
+    STB actual_buf+1
+    PLS
+    STB actual_buf+0
+
+    MVV _expect_base,_expect_ptr
+    MIZ 4,_count
+    JPS compare_actual
+    RTS
+
+run_i16_test:
+    MVV _a_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    MVV _b_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    JPS ml_multiply_i16
+
+    PLS
+    STB actual_buf+3
+    PLS
+    STB actual_buf+2
+    PLS
+    STB actual_buf+1
+    PLS
+    STB actual_buf+0
+
+    MVV _expect_base,_expect_ptr
+    MIZ 4,_count
+    JPS compare_actual
+    RTS
+
+#ifdef MATHLIB_TEST_32
+run_u32_test:
+    MVV _a_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    MVV _b_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    JPS ml_multiply_u32
+
+    PLS
+    STB actual_buf+7
+    PLS
+    STB actual_buf+6
+    PLS
+    STB actual_buf+5
+    PLS
+    STB actual_buf+4
+    PLS
+    STB actual_buf+3
+    PLS
+    STB actual_buf+2
+    PLS
+    STB actual_buf+1
+    PLS
+    STB actual_buf+0
+
+    MVV _expect_base,_expect_ptr
+    MIZ 8,_count
+    JPS compare_actual
+    RTS
+
+run_i32_test:
+    MVV _a_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    MVV _b_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    JPS ml_multiply_i32
+
+    PLS
+    STB actual_buf+7
+    PLS
+    STB actual_buf+6
+    PLS
+    STB actual_buf+5
+    PLS
+    STB actual_buf+4
+    PLS
+    STB actual_buf+3
+    PLS
+    STB actual_buf+2
+    PLS
+    STB actual_buf+1
+    PLS
+    STB actual_buf+0
+
+    MVV _expect_base,_expect_ptr
+    MIZ 8,_count
+    JPS compare_actual
+    RTS
+#endif
+
+#ifdef MATHLIB64
+run_u64_test:
+    MVV _a_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    MVV _b_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    JPS ml_multiply_u64
+
+    PLS
+    STB actual_buf+15
+    PLS
+    STB actual_buf+14
+    PLS
+    STB actual_buf+13
+    PLS
+    STB actual_buf+12
+    PLS
+    STB actual_buf+11
+    PLS
+    STB actual_buf+10
+    PLS
+    STB actual_buf+9
+    PLS
+    STB actual_buf+8
+    PLS
+    STB actual_buf+7
+    PLS
+    STB actual_buf+6
+    PLS
+    STB actual_buf+5
+    PLS
+    STB actual_buf+4
+    PLS
+    STB actual_buf+3
+    PLS
+    STB actual_buf+2
+    PLS
+    STB actual_buf+1
+    PLS
+    STB actual_buf+0
+
+    MVV _expect_base,_expect_ptr
+    MIZ 16,_count
+    JPS compare_actual
+    RTS
+
+run_i64_test:
+    MVV _a_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    MVV _b_base,_actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+    INV _actual_ptr
+    LDT _actual_ptr
+    PHS
+
+    JPS ml_multiply_i64
+
+    PLS
+    STB actual_buf+15
+    PLS
+    STB actual_buf+14
+    PLS
+    STB actual_buf+13
+    PLS
+    STB actual_buf+12
+    PLS
+    STB actual_buf+11
+    PLS
+    STB actual_buf+10
+    PLS
+    STB actual_buf+9
+    PLS
+    STB actual_buf+8
+    PLS
+    STB actual_buf+7
+    PLS
+    STB actual_buf+6
+    PLS
+    STB actual_buf+5
+    PLS
+    STB actual_buf+4
+    PLS
+    STB actual_buf+3
+    PLS
+    STB actual_buf+2
+    PLS
+    STB actual_buf+1
+    PLS
+    STB actual_buf+0
+
+    MVV _expect_base,_expect_ptr
+    MIZ 16,_count
+    JPS compare_actual
+    RTS
+#endif
+
+run_u16_suite:
+    JPS _Print "Running unsigned 16-bit tests...\n"
+    CLZ _test_index
+    MIV u16_tests,_suite_ptr
+    MIZ (u16_tests_end - u16_tests) / U16_RECORD_SIZE,_suite_count
+    MIZ U16_RECORD_SIZE,_suite_stride
+.loop:
+    JPS load_case_16
+    JPS run_u16_test
+    CIZ 0,_compare_fail
+    BNE fail_u16
+    INZ _test_index
+    DEZ _suite_count
+    BEQ .done
+    JPS advance_suite_ptr
+    JPA .loop
+.done:
+    RTS
+
+run_i16_suite:
+    JPS _Print "Running signed 16-bit tests...\n"
+    CLZ _test_index
+    MIV i16_tests,_suite_ptr
+    MIZ (i16_tests_end - i16_tests) / U16_RECORD_SIZE,_suite_count
+    MIZ U16_RECORD_SIZE,_suite_stride
+.loop:
+    JPS load_case_16
+    JPS run_i16_test
+    CIZ 0,_compare_fail
+    BNE fail_i16
+    INZ _test_index
+    DEZ _suite_count
+    BEQ .done
+    JPS advance_suite_ptr
+    JPA .loop
+.done:
+    RTS
+
+#ifdef MATHLIB_TEST_32
+run_u32_suite:
+    JPS _Print "Running unsigned 32-bit tests...\n"
+    CLZ _test_index
+    MIV u32_tests,_suite_ptr
+    MIZ (u32_tests_end - u32_tests) / U32_RECORD_SIZE,_suite_count
+    MIZ U32_RECORD_SIZE,_suite_stride
+.loop:
+    JPS load_case_32
+    JPS run_u32_test
+    CIZ 0,_compare_fail
+    BNE fail_u32
+    INZ _test_index
+    DEZ _suite_count
+    BEQ .done
+    JPS advance_suite_ptr
+    JPA .loop
+.done:
+    RTS
+
+run_i32_suite:
+    JPS _Print "Running signed 32-bit tests...\n"
+    CLZ _test_index
+    MIV i32_tests,_suite_ptr
+    MIZ (i32_tests_end - i32_tests) / U32_RECORD_SIZE,_suite_count
+    MIZ U32_RECORD_SIZE,_suite_stride
+.loop:
+    JPS load_case_32
+    JPS run_i32_test
+    CIZ 0,_compare_fail
+    BNE fail_i32
+    INZ _test_index
+    DEZ _suite_count
+    BEQ .done
+    JPS advance_suite_ptr
+    JPA .loop
+.done:
+    RTS
+#endif
+
+#ifdef MATHLIB64
+run_u64_suite:
+    JPS _Print "Running unsigned 64-bit tests...\n"
+    CLZ _test_index
+    MIV u64_tests,_suite_ptr
+    MIZ (u64_tests_end - u64_tests) / U64_RECORD_SIZE,_suite_count
+    MIZ U64_RECORD_SIZE,_suite_stride
+.loop:
+    JPS load_case_64
+    JPS run_u64_test
+    CIZ 0,_compare_fail
+    BNE fail_u64
+    INZ _test_index
+    DEZ _suite_count
+    BEQ .done
+    JPS advance_suite_ptr
+    JPA .loop
+.done:
+    RTS
+
+run_i64_suite:
+    JPS _Print "Running signed 64-bit tests...\n"
+    CLZ _test_index
+    MIV i64_tests,_suite_ptr
+    MIZ (i64_tests_end - i64_tests) / U64_RECORD_SIZE,_suite_count
+    MIZ U64_RECORD_SIZE,_suite_stride
+.loop:
+    JPS load_case_64
+    JPS run_i64_test
+    CIZ 0,_compare_fail
+    BNE fail_i64
+    INZ _test_index
+    DEZ _suite_count
+    BEQ .done
+    JPS advance_suite_ptr
+    JPA .loop
+.done:
+    RTS
+#endif
+
+fail_u16:
+    JPS _Print "u16 fail test "
+    LDZ _test_index
+    JAS _PrintHex
+    JPS _Print "\n"
+    JPS _WaitInput
+    JPS _Prompt
+    JPA stop_forever
+
+fail_i16:
+    JPS _Print "i16 fail test "
+    LDZ _test_index
+    JAS _PrintHex
+    JPS _Print "\n"
+    JPS _WaitInput
+    JPS _Prompt
+    JPA stop_forever
+
+#ifdef MATHLIB_TEST_32
+fail_u32:
+    JPS _Print "u32 fail test "
+    LDZ _test_index
+    JAS _PrintHex
+    JPS _Print "\n"
+    JPS _WaitInput
+    JPS _Prompt
+    JPA stop_forever
+
+fail_i32:
+    JPS _Print "i32 fail test "
+    LDZ _test_index
+    JAS _PrintHex
+    JPS _Print "\n"
+    JPS _WaitInput
+    JPS _Prompt
+    JPA stop_forever
+#endif
+
+#ifdef MATHLIB64
+fail_u64:
+    JPS _Print "u64 fail test "
+    LDZ _test_index
+    JAS _PrintHex
+    JPS _Print "\n"
+    JPS _WaitInput
+    JPS _Prompt
+    JPA stop_forever
+
+fail_i64:
+    JPS _Print "i64 fail test "
+    LDZ _test_index
+    JAS _PrintHex
+    JPS _Print "\n"
+    JPS _WaitInput
+    JPS _Prompt
+    JPA stop_forever
+#endif
+
+stop_forever:
+    JPA stop_forever
+
+#include "mathlib.min64x4"
+
+actual_buf:
+    .16byte 0
+
+; ---------- u16 tests ----------
+u16_tests:
+    .2byte 0x0000 ; A
+    .2byte 0x1234 ; B
+    .4byte 0x00000000 ; Expected
+
+    .2byte 0x0001
+    .2byte 0xFFFF
+    .4byte 0x0000FFFF
+
+    .2byte 0xFFFF
+    .2byte 0xFFFF
+    .4byte 0xFFFE0001
+
+    .2byte 0x8000
+    .2byte 0x8000
+    .4byte 0x40000000
+
+    .2byte 0x1234
+    .2byte 0x5678
+    .4byte 0x06260060
+
+    .2byte 0x00FF
+    .2byte 0x0101
+    .4byte 0x0000FFFF
+u16_tests_end:
+
+; ---------- i16 tests ----------
+i16_tests:
+    .2byte 0x7FFF
+    .2byte 0x0002
+    .4byte 0x0000FFFE
+
+    .2byte 0x8000
+    .2byte 0x0001
+    .4byte 0xFFFF8000
+
+    .2byte 0x8000
+    .2byte 0xFFFF
+    .4byte 0x00008000
+
+    .2byte 0x8000
+    .2byte 0x8000
+    .4byte 0x40000000
+
+    .2byte 0xFFFF
+    .2byte 0x0002
+    .4byte 0xFFFFFFFE
+
+    .2byte 0xEDCC
+    .2byte 0x0003
+    .4byte 0xFFFFC964
+i16_tests_end:
+
+#ifdef MATHLIB_TEST_32
+; ---------- u32 tests ----------
+u32_tests:
+    .4byte 0x00000000
+    .4byte 0x12345678
+    .8byte 0x0000000000000000
+
+    .4byte 0x00010000
+    .4byte 0x00010000
+    .8byte 0x0000000100000000
+
+    .4byte 0xFFFFFFFF
+    .4byte 0xFFFFFFFF
+    .8byte 0xFFFFFFFE00000001
+
+    .4byte 0x80000000
+    .4byte 0x80000000
+    .8byte 0x4000000000000000
+
+    .4byte 0x0001FFFF
+    .4byte 0xFFFF0001
+    .8byte 0x0001FFFD0002FFFF
+
+    .4byte 0x12345678
+    .4byte 0x9ABCDEF0
+    .8byte 0x0B00EA4E242D2080
+u32_tests_end:
+
+; ---------- i32 tests ----------
+i32_tests:
+    .4byte 0x7FFFFFFF
+    .4byte 0x00000002
+    .8byte 0x00000000FFFFFFFE
+
+    .4byte 0x80000000
+    .4byte 0x00000001
+    .8byte 0xFFFFFFFF80000000
+
+    .4byte 0x80000000
+    .4byte 0xFFFFFFFF
+    .8byte 0x0000000080000000
+
+    .4byte 0xFFFFFFFF
+    .4byte 0xFFFFFFFF
+    .8byte 0x0000000000000001
+
+    .4byte 0xFFFFFFFF
+    .4byte 0x00000002
+    .8byte 0xFFFFFFFFFFFFFFFE
+
+    .4byte 0xEDCBA988
+    .4byte 0x00010002
+    .8byte 0xFFFFEDCB851F5310
+i32_tests_end:
+#endif
+
+#ifdef MATHLIB64
+; ---------- u64 tests ----------
+u64_tests:
+    .8byte 0x0000000000000000
+    .8byte 0x123456789ABCDEF0
+    .16byte 0x00000000000000000000000000000000
+
+    .8byte 0x0000000000000001
+    .8byte 0xFFFFFFFFFFFFFFFF
+    .16byte 0x0000000000000000FFFFFFFFFFFFFFFF
+
+    .8byte 0xFFFFFFFFFFFFFFFF
+    .8byte 0xFFFFFFFFFFFFFFFF
+    .16byte 0xFFFFFFFFFFFFFFFE0000000000000001
+
+    .8byte 0x8000000000000000
+    .8byte 0x8000000000000000
+    .16byte 0x40000000000000000000000000000000
+
+    .8byte 0x0000000100000000
+    .8byte 0x0000000100000000
+    .16byte 0x00000000000000010000000000000000
+
+    .8byte 0x123456789ABCDEF0
+    .8byte 0x0FEDCBA987654321
+    .16byte 0x0121FA00AD77D7422236D88FE5618CF0
+
+    .8byte 0x1122334455667788
+    .8byte 0x99AABBCCDDEEFF00
+    .16byte 0x0a48ddeb93f93d70479983e499807800
+u64_tests_end:
+
+; ---------- i64 tests ----------
+i64_tests:
+    .8byte 0x7FFFFFFFFFFFFFFF
+    .8byte 0x0000000000000002
+    .16byte 0x0000000000000000FFFFFFFFFFFFFFFE
+
+    .8byte 0x8000000000000000
+    .8byte 0x0000000000000001
+    .16byte 0xFFFFFFFFFFFFFFFF8000000000000000
+
+    .8byte 0x8000000000000000
+    .8byte 0xFFFFFFFFFFFFFFFF
+    .16byte 0x00000000000000008000000000000000
+
+    .8byte 0xFFFFFFFFFFFFFFFF
+    .8byte 0xFFFFFFFFFFFFFFFF
+    .16byte 0x00000000000000000000000000000001
+
+    .8byte 0xFFFFFFFFFFFFFFFF
+    .8byte 0x0000000000000002
+    .16byte 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE
+
+    .8byte 0xEDCBA98765432110
+    .8byte 0x0000000000000011
+    .16byte 0xFFFFFFFFFFFFFFFECA8641FDB9753210
+i64_tests_end:
+#endif

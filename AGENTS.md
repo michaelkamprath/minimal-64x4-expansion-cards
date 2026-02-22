@@ -7,16 +7,6 @@ This repo hosts expansion cards for the Minimal 64x4 Home Computer and Minimal 6
 - Software sits with its board and uses `.min64x4`; avoid committing tool lockfiles (`*.lck`) or OS metadata.
 - Documentation for the assembly language for both computer types can be found in the `docs/` folder.
 
-## Coding Style & Naming Conventions
-- Details on the syntax of assembly language using BespokeASM can be found in this repository file: docs/Assembly-Language-Syntax.md
-- The complete instruction set for the Minimal 64x4 computer is documented in this repository file: docs/slu4-minimal-64x4.md
-- Assembly:
-  - start files with `#require "slu4-min64x4-asm >= 1.1.0"`
-  - uppercase opcodes, colon-suffixed labels, snake_case symbols, semicolon comments;
-  - prefer one instruction per line.
-  - Use named constants for MMIO (e.g., `$FED0` multiplier registers) and `.memzone` for layout.
-  - Fast branches (`FPA`/`FCC`/`FEQ`/`FCS`) require same-page targets—use `.align` before hot routines or split routines to keep fast-branch targets within the same 256-byte page.
-- KiCad: keep project names aligned to directories, store custom symbols/footprints in `kicad-libraries/`, and version fabrication outputs in `gerbers_*` folders. Keep DRC/ERC settings with the project; avoid committing KiCad lockfiles.
 
 ### Assembly Compilation
 Use BespokeASM with the Minimal 64x4 configuration. First, you need to obtain the Minimal 64x4 instruction set configuration for BespokeASM.
@@ -44,6 +34,25 @@ bespokeasm compile -c /tmp/slu4-minimal-64x4.yaml -n -p -t intel_hex file.min64x
 # -D: Define a preprocessor symbol, used in #if, #ifdef, etc; Add `-D USE_ACCELERATOR` when targeting the multiplier card.
 # -W: Force code warnings to be treated as errors
 ```
+
+## Coding Style & Naming Conventions
+- Details on the syntax of assembly language using BespokeASM can be found in this repository file: docs/Assembly-Language-Syntax.md
+- The complete instruction set for the Minimal 64x4 computer is documented in this repository file: docs/slu4-minimal-64x4.md
+  - Documentation for the Minmal 64x4 instruction set can be rebuilt from the instruction set configuration file with this command (assumes you've already downloaded the instruction set configuration as described in **Assembly Compilation**):
+    ```
+    bespokeasm docs -c  /tmp/slu4-minimal-64x4.yaml -o docs/slu4-minimal-64x4.md
+    ```
+    At this point the markdown file `docs/slu4-minimal-64x4.md` will contain a readable description of the instruction set for the Minimal 64x4.
+- Assembly:
+  - start files with `#require "slu4-min64x4-asm >= 1.1.0"`
+  - uppercase opcodes, colon-suffixed labels, snake_case symbols, semicolon comments;
+  - prefer one instruction per line.
+  - Use named constants for MMIO (e.g., `$FED0` multiplier registers) and `.memzone` for layout.
+  - Fast branches (`FPA`/`FCC`/`FEQ`/`FCS`) require same-page targets—use `.align` before hot routines or split routines to keep fast-branch targets within the same 256-byte page.
+- KiCad: keep project names aligned to directories, store custom symbols/footprints in `kicad-libraries/`, and version fabrication outputs in `gerbers_*` folders. Keep DRC/ERC settings with the project; avoid committing KiCad lockfiles.
+
+## Minimal 64x4 Assembly Language Tips
+- When adding or changing `.memzone` allocations in shared include files, verify zero-page fit for every includer, not just the primary target program.
 
 ### Graphics API:
 

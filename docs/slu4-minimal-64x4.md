@@ -86,24 +86,24 @@ slu4 Minimal 64x4 Home Computer
 | `_ScrollUp` | 0xF039 | subroutine |  | Scrolls up the viewport by 8 pixels |
 | `_ScrollDn` | 0xF03C | subroutine |  | Scrolls down the viewport by 8 pixels |
 | `_Char` | 0xF03F | subroutine |  | Outputs a char at the cursor position (non-advancing). |
-| `_PrintChar` | 0xF042 | subroutine |  | Prints a char at the cursor position (advancing) |
+| `_PrintChar` | 0xF042 | subroutine |  | Prints a char at the cursor position (advancing) passed in regsister `A` |
 | `_Print` | 0xF045 | subroutine |  | Prints a zero-terminated immediate (inline) string |
-| `_PrintPtr` | 0xF048 | subroutine |  | Prints a zero-terminated string at an address |
-| `_PrintHex` | 0xF04B | subroutine |  | Prints a HEX number (advancing) |
-| `_SetPixel` | 0xF04E | subroutine |  | Sets a pixel at position (x, y) |
+| `_PrintPtr` | 0xF048 | subroutine |  | Prints a zero-terminated string at an address passed on the stack |
+| `_PrintHex` | 0xF04B | subroutine |  | Prints a HEX number (advancing) passed in regsister `A` |
+| `_SetPixel` | 0xF04E | subroutine |  | Sets a pixel at position (x: `GRAPHICS_X1`, y: `GRAPHICS_Y`) |
 | `_Line` | 0xF051 | subroutine |  | Draws a line using Bresenham's algorithm |
-| `_Rect` | 0xF054 | subroutine |  | Draws a rectangle at (x, y) of size (w, h) |
-| `_ClearPixel` | 0xF057 | subroutine |  | Clears a pixel at position (x, y) |
+| `_Rect` | 0xF054 | subroutine |  | Draws a rectangle at (x: `GRAPHICS_X1`, y: `GRAPHICS_Y`) of size (w: `GRAPHICS_X2`, h: `GRAPHICS_Y2`) |
+| `_ClearPixel` | 0xF057 | subroutine |  | Clears a pixel at position (x: `GRAPHICS_X1`, y: `GRAPHICS_Y`) |
 | `_XPos` | 0x00C0 | variable | 1 | Horizontal cursor position (see `_Print`). |
 | `_YPos` | 0x00C1 | variable | 1 | Vertical cursor position (see _Print). |
 | `_RandomState` | 0x00C2 | variable | 4 | _Random state seed. |
 | `_ReadNum` | 0x00C6 | variable | 3 | Number parsed by _ReadHex. |
 | `_ReadPtr` | 0x00C9 | variable | 2 | Command line parsing pointer. |
 | `_ReadBuffer` | 0x00CD | variable | 2 | Address of command line input buffer. |
-| `GRAPHICS_X1` | 0x0080 | variable | 2 | Address used to pass 2-byte X1 location to system graphics functiona, such as `_Line` or `_SetPixel` |
-| `GRAPHICS_Y1` | 0x0082 | variable | 1 | Address used to pass 1-byte Y1 location to system graphics functiona, such as `_Line` or `_SetPixel` |
-| `GRAPHICS_X2` | 0x0083 | variable | 2 | Address used to pass 2-byte X2 location to system graphics functiona, such as `_Line` |
-| `GRAPHICS_Y2` | 0x0085 | variable | 1 | Address used to pass 1-byte Y2 location to system graphics functiona, such as `_Line` |
+| `GRAPHICS_X1` | 0x0080 | variable | 2 | Address used to pass 2-byte X1 location to system graphics functions, such as `_Line` or `_SetPixel` |
+| `GRAPHICS_Y1` | 0x0082 | variable | 1 | Address used to pass 1-byte Y1 location to system graphics functions, such as `_Line` or `_SetPixel` |
+| `GRAPHICS_X2` | 0x0083 | variable | 2 | Address used to pass 2-byte X2 location to system graphics functions, such as `_Line` |
+| `GRAPHICS_Y2` | 0x0085 | variable | 1 | Address used to pass 1-byte Y2 location to system graphics functions, such as `_Line` |
 
 ## Operand Sets
 

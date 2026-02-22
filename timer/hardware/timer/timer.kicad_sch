@@ -3491,7 +3491,7 @@
 		)
 		(uuid d56e3024-a3b8-4073-95f8-60e35f57b120)
 	)
-	(text "$FEx0 - Read latched byte 0 (LSB)\n$FEx1 - Read latched byte 1\n$FEx2 - Read latched byte 2\n$FEx3 - Read latched byte 3\n$FEx4 - Read latched byte 4\n$FEx5 - Read latched byte 5\n$FEx6 - Latch current counter value\n$FEx7 - Reset counter to 0\n\n'x' is set with JP1-JP4, which defaults to x=$D"
+	(text "$FEx0 - Read latched byte 0 (LSB)\n$FEx1 - Read latched byte 1\n$FEx2 - Read latched byte 2\n$FEx3 - Read latched byte 3\n$FEx4 - Read latched byte 4\n$FEx5 - Read latched byte 5\n$FEx6 - Latch current counter value\n$FEx7 - Reset counter to 0\n\n'x' is set with JP2-JP5, which defaults to x=$0"
 		(exclude_from_sim no)
 		(at 90.424 239.776 0)
 		(effects

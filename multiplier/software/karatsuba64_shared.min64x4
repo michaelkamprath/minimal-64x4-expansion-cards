@@ -1,183 +1,344 @@
 ; Shared 64-bit multiply entry points (schoolbook + Karatsuba)
 ; Used by karatsuba64.min64x4 and karatsuba64_test.min64x4
+;
+; DESIGN CONTRACT (benchmark fairness):
+;   1) This file intentionally exposes two different 64-bit multiply paths:
+;        - sb64_unsigned_multiply: schoolbook pipeline (sb64 -> sb32 -> sb16)
+;        - ka64_unsigned_multiply: Karatsuba pipeline from unified mathlib
+;   2) The schoolbook pipeline must remain internally self-contained and
+;      communicate through zero-page state (ZERO_PAGE_APPS) between layers.
+;      Do not replace the sb64/sb32/sb16 internal handoff with stack-based
+;      calls between layers.
+;   3) Do not call mathlib's 32-bit or 16-bit public APIs from the schoolbook
+;      path. That would route part of "schoolbook" through Karatsuba internals
+;      and invalidate the comparison.
+;   4) The only public mathlib entry used for the Karatsuba side is:
+;        ka64_unsigned_multiply -> ml_multiply_u64
+;   5) Keep USE_ACCELERATOR behavior mirrored in the schoolbook base case:
+;        - USE_ACCELERATOR: sb16 uses hardware 8x8
+;        - otherwise: sb16 uses software shift/add
+;      This keeps base-case cost assumptions aligned for both paths.
+;
+; If you change one path's architecture, update the other path to keep the
+; comparison apples-to-apples.
 
-#include "mathlib64.min64x4"
-#use-scope "mathlib64"
-#use-scope "mathlib64_internal"
+; Ensure 64-bit public API is available from unified mathlib.
+#ifdef MATHLIB64
+#else
+#define MATHLIB64 1
+#endif
+
+#include "mathlib.min64x4"
+#use-scope "mathlib"
 
 .memzone ZERO_PAGE_APPS
 #mute
-sb64_a0: .4byte 0
-sb64_b0: .4byte 0
+sb64_result:       .16byte 0
+sb64_p:            .8byte 0
+sb32_op1:          .4byte 0
+sb32_op2:          .4byte 0
+sb16_op2:          .2byte 0
+sb16_result:       .4byte 0
+sb16_multiplicand: .4byte 0
 #emit
 
 .memzone USER_APPS
 .align
 
-; Adds 64-bit _mul64_p into _mul64_result at byte offset 4
-sb64_add64_offset4:
-    LDZ _mul64_p+0
-    AD.Z _mul64_result+4
-    LDZ _mul64_p+1
-    AC.Z _mul64_result+5
-    LDZ _mul64_p+2
-    AC.Z _mul64_result+6
-    LDZ _mul64_p+3
-    AC.Z _mul64_result+7
-    LDZ _mul64_p+4
-    AC.Z _mul64_result+8
-    LDZ _mul64_p+5
-    AC.Z _mul64_result+9
-    LDZ _mul64_p+6
-    AC.Z _mul64_result+10
-    LDZ _mul64_p+7
-    AC.Z _mul64_result+11
+#ifdef USE_ACCELERATOR
+; sb16_multiplication_core
+; 16-bit schoolbook multiply using hardware 8x8 accelerator.
+; Inputs: sb16_multiplicand+0..1, sb16_op2+0..1
+; Output: sb16_result (32-bit)
+sb16_multiplication_core:
+    ; A_low * B_low -> result[0..1]
+    MZB sb16_multiplicand+0,MULTIPLIER_A
+    MZB sb16_op2+0,MULTIPLIER_B
+    MBZ MULTIPLIER_RESULT_LSB,sb16_result+0
+    MBZ MULTIPLIER_RESULT_MSB,sb16_result+1
+
+    ; A_high * B_high -> result[2..3]
+    MZB sb16_multiplicand+1,MULTIPLIER_A
+    MZB sb16_op2+1,MULTIPLIER_B
+    MBZ MULTIPLIER_RESULT_LSB,sb16_result+2
+    MBZ MULTIPLIER_RESULT_MSB,sb16_result+3
+
+    ; A_high * B_low -> add at byte offset 1
+    MZB sb16_multiplicand+1,MULTIPLIER_A
+    MZB sb16_op2+0,MULTIPLIER_B
+    LDB MULTIPLIER_RESULT_LSB
+    AD.Z sb16_result+1
+    LDB MULTIPLIER_RESULT_MSB
+    AC.Z sb16_result+2
     LDI 0
-    AC.Z _mul64_result+12
+    AC.Z sb16_result+3
+
+    ; A_low * B_high -> add at byte offset 1
+    MZB sb16_multiplicand+0,MULTIPLIER_A
+    MZB sb16_op2+1,MULTIPLIER_B
+    LDB MULTIPLIER_RESULT_LSB
+    AD.Z sb16_result+1
+    LDB MULTIPLIER_RESULT_MSB
+    AC.Z sb16_result+2
     LDI 0
-    AC.Z _mul64_result+13
-    LDI 0
-    AC.Z _mul64_result+14
-    LDI 0
-    AC.Z _mul64_result+15
+    AC.Z sb16_result+3
     RTS
 
-; Adds 64-bit _mul64_p into _mul64_result at byte offset 8
-sb64_add64_offset8:
-    LDZ _mul64_p+0
-    AD.Z _mul64_result+8
-    LDZ _mul64_p+1
-    AC.Z _mul64_result+9
-    LDZ _mul64_p+2
-    AC.Z _mul64_result+10
-    LDZ _mul64_p+3
-    AC.Z _mul64_result+11
-    LDZ _mul64_p+4
-    AC.Z _mul64_result+12
-    LDZ _mul64_p+5
-    AC.Z _mul64_result+13
-    LDZ _mul64_p+6
-    AC.Z _mul64_result+14
-    LDZ _mul64_p+7
-    AC.Z _mul64_result+15
-    RTS
-
-; sb64_multiplication64_schoolbook_core
-; 64-bit multiply using 4x 32-bit products.
+#else
+; sb16_multiplication_core
+; 16-bit schoolbook multiply using software shift/add.
+; Inputs: sb16_multiplicand+0..1, sb16_op2+0..1
+; Output: sb16_result (32-bit)
 .align
-sb64_multiplication64_schoolbook_core:
-    CLQ _mul64_result
-    CLQ _mul64_result+4
-    CLQ _mul64_result+8
-    CLQ _mul64_result+12
+sb16_multiplication_core:
+    CLQ sb16_result
+
+.loop:
+    CIZ 0,sb16_op2+0
+    BNE .check_lsb
+    CIZ 0,sb16_op2+1
+    BEQ .done
+
+.check_lsb:
+    LDZ sb16_op2+0
+    ANI 1
+    CPI 1
+    BNE .skip_add
+    AQQ sb16_multiplicand,sb16_result
+
+.skip_add:
+    LLQ sb16_multiplicand
+    CLC
+    RRZ sb16_op2+1
+    RRZ sb16_op2+0
+    FPA .loop
+
+.done:
+    RTS
+#endif
+
+; sb32_multiplication32_schoolbook_core
+; 32-bit multiply using 4x 16-bit products.
+; Inputs: sb32_op1, sb32_op2
+; Output: sb64_p (64-bit)
+sb32_multiplication32_schoolbook_core:
+    CLQ sb64_p+0
+    CLQ sb64_p+4
 
     ; Z0 = A0 * B0
-    JPS _multiplication32_core
-    MQQ _mul64_p,_mul64_result+0
-    MQQ _mul64_p+4,_mul64_result+4
-
-    ; Save A0/B0 while we compute mixed products
-    MQQ _mul64_op1+0,sb64_a0
-    MQQ _mul64_op2+0,sb64_b0
+    CLQ sb16_multiplicand
+    MVV sb32_op1+0,sb16_multiplicand
+    MVV sb32_op2+0,sb16_op2
+    JPS sb16_multiplication_core
+    MQQ sb16_result,sb64_p+0
 
     ; Z1 = A0 * B1
-    MQQ sb64_a0,_mul64_op1+0
-    MQQ _mul64_op2+4,_mul64_op2+0
-    JPS _multiplication32_core
-    JPS sb64_add64_offset4
+    CLQ sb16_multiplicand
+    MVV sb32_op1+0,sb16_multiplicand
+    MVV sb32_op2+2,sb16_op2
+    JPS sb16_multiplication_core
+    AQQ sb16_result,sb64_p+2
+    LDI 0
+    AC.Z sb64_p+6
+    LDI 0
+    AC.Z sb64_p+7
 
     ; Z2 = A1 * B0
-    MQQ _mul64_op1+4,_mul64_op1+0
-    MQQ sb64_b0,_mul64_op2+0
-    JPS _multiplication32_core
-    JPS sb64_add64_offset4
+    CLQ sb16_multiplicand
+    MVV sb32_op1+2,sb16_multiplicand
+    MVV sb32_op2+0,sb16_op2
+    JPS sb16_multiplication_core
+    AQQ sb16_result,sb64_p+2
+    LDI 0
+    AC.Z sb64_p+6
+    LDI 0
+    AC.Z sb64_p+7
 
     ; Z3 = A1 * B1
-    MQQ _mul64_op1+4,_mul64_op1+0
-    MQQ _mul64_op2+4,_mul64_op2+0
-    JPS _multiplication32_core
-    JPS sb64_add64_offset8
+    CLQ sb16_multiplicand
+    MVV sb32_op1+2,sb16_multiplicand
+    MVV sb32_op2+2,sb16_op2
+    JPS sb16_multiplication_core
+    AQQ sb16_result,sb64_p+4
+    RTS
 
+; Adds 64-bit sb64_p into sb64_result at byte offset 4.
+sb64_add64_offset4:
+    LDZ sb64_p+0
+    AD.Z sb64_result+4
+    LDZ sb64_p+1
+    AC.Z sb64_result+5
+    LDZ sb64_p+2
+    AC.Z sb64_result+6
+    LDZ sb64_p+3
+    AC.Z sb64_result+7
+    LDZ sb64_p+4
+    AC.Z sb64_result+8
+    LDZ sb64_p+5
+    AC.Z sb64_result+9
+    LDZ sb64_p+6
+    AC.Z sb64_result+10
+    LDZ sb64_p+7
+    AC.Z sb64_result+11
+    LDI 0
+    AC.Z sb64_result+12
+    LDI 0
+    AC.Z sb64_result+13
+    LDI 0
+    AC.Z sb64_result+14
+    LDI 0
+    AC.Z sb64_result+15
+    RTS
+
+; Adds 64-bit sb64_p into sb64_result at byte offset 8.
+sb64_add64_offset8:
+    LDZ sb64_p+0
+    AD.Z sb64_result+8
+    LDZ sb64_p+1
+    AC.Z sb64_result+9
+    LDZ sb64_p+2
+    AC.Z sb64_result+10
+    LDZ sb64_p+3
+    AC.Z sb64_result+11
+    LDZ sb64_p+4
+    AC.Z sb64_result+12
+    LDZ sb64_p+5
+    AC.Z sb64_result+13
+    LDZ sb64_p+6
+    AC.Z sb64_result+14
+    LDZ sb64_p+7
+    AC.Z sb64_result+15
     RTS
 
 ; sb64_unsigned_multiply
 ; Multiplies two unsigned 64-bit integers (schoolbook). Result is 128-bit.
 ; Stack: SP+3..10=multiplier, SP+11..18=multiplicand (MSB at lower address)
 ; Result overwrites both inputs on the stack.
+; Internal design note:
+;   This path must remain sb64 -> sb32 -> sb16 with zero-page handoff only.
 sb64_unsigned_multiply:
-    ; Copy multiplicand from stack to _mul64_op1
+    CLQ sb64_result+0
+    CLQ sb64_result+4
+    CLQ sb64_result+8
+    CLQ sb64_result+12
+
+    ; Z0 = A0 * B0
     LDS 18
-    STZ _mul64_op1+0
+    STZ sb32_op1+0
     LDS 17
-    STZ _mul64_op1+1
+    STZ sb32_op1+1
     LDS 16
-    STZ _mul64_op1+2
+    STZ sb32_op1+2
     LDS 15
-    STZ _mul64_op1+3
-    LDS 14
-    STZ _mul64_op1+4
-    LDS 13
-    STZ _mul64_op1+5
-    LDS 12
-    STZ _mul64_op1+6
-    LDS 11
-    STZ _mul64_op1+7
-
-    ; Copy multiplier from stack to _mul64_op2
+    STZ sb32_op1+3
     LDS 10
-    STZ _mul64_op2+0
+    STZ sb32_op2+0
     LDS 9
-    STZ _mul64_op2+1
+    STZ sb32_op2+1
     LDS 8
-    STZ _mul64_op2+2
+    STZ sb32_op2+2
     LDS 7
-    STZ _mul64_op2+3
-    LDS 6
-    STZ _mul64_op2+4
-    LDS 5
-    STZ _mul64_op2+5
-    LDS 4
-    STZ _mul64_op2+6
-    LDS 3
-    STZ _mul64_op2+7
+    STZ sb32_op2+3
+    JPS sb32_multiplication32_schoolbook_core
+    MQQ sb64_p+0,sb64_result+0
+    MQQ sb64_p+4,sb64_result+4
 
-    JPS sb64_multiplication64_schoolbook_core
+    ; Z1 = A0 * B1
+    LDS 18
+    STZ sb32_op1+0
+    LDS 17
+    STZ sb32_op1+1
+    LDS 16
+    STZ sb32_op1+2
+    LDS 15
+    STZ sb32_op1+3
+    LDS 6
+    STZ sb32_op2+0
+    LDS 5
+    STZ sb32_op2+1
+    LDS 4
+    STZ sb32_op2+2
+    LDS 3
+    STZ sb32_op2+3
+    JPS sb32_multiplication32_schoolbook_core
+    JPS sb64_add64_offset4
+
+    ; Z2 = A1 * B0
+    LDS 14
+    STZ sb32_op1+0
+    LDS 13
+    STZ sb32_op1+1
+    LDS 12
+    STZ sb32_op1+2
+    LDS 11
+    STZ sb32_op1+3
+    LDS 10
+    STZ sb32_op2+0
+    LDS 9
+    STZ sb32_op2+1
+    LDS 8
+    STZ sb32_op2+2
+    LDS 7
+    STZ sb32_op2+3
+    JPS sb32_multiplication32_schoolbook_core
+    JPS sb64_add64_offset4
+
+    ; Z3 = A1 * B1
+    LDS 14
+    STZ sb32_op1+0
+    LDS 13
+    STZ sb32_op1+1
+    LDS 12
+    STZ sb32_op1+2
+    LDS 11
+    STZ sb32_op1+3
+    LDS 6
+    STZ sb32_op2+0
+    LDS 5
+    STZ sb32_op2+1
+    LDS 4
+    STZ sb32_op2+2
+    LDS 3
+    STZ sb32_op2+3
+    JPS sb32_multiplication32_schoolbook_core
+    JPS sb64_add64_offset8
 
     ; Copy 128-bit result back to stack
-    LDZ _mul64_result+15
+    LDZ sb64_result+15
     STS 3
-    LDZ _mul64_result+14
+    LDZ sb64_result+14
     STS 4
-    LDZ _mul64_result+13
+    LDZ sb64_result+13
     STS 5
-    LDZ _mul64_result+12
+    LDZ sb64_result+12
     STS 6
-    LDZ _mul64_result+11
+    LDZ sb64_result+11
     STS 7
-    LDZ _mul64_result+10
+    LDZ sb64_result+10
     STS 8
-    LDZ _mul64_result+9
+    LDZ sb64_result+9
     STS 9
-    LDZ _mul64_result+8
+    LDZ sb64_result+8
     STS 10
-    LDZ _mul64_result+7
+    LDZ sb64_result+7
     STS 11
-    LDZ _mul64_result+6
+    LDZ sb64_result+6
     STS 12
-    LDZ _mul64_result+5
+    LDZ sb64_result+5
     STS 13
-    LDZ _mul64_result+4
+    LDZ sb64_result+4
     STS 14
-    LDZ _mul64_result+3
+    LDZ sb64_result+3
     STS 15
-    LDZ _mul64_result+2
+    LDZ sb64_result+2
     STS 16
-    LDZ _mul64_result+1
+    LDZ sb64_result+1
     STS 17
-    LDZ _mul64_result+0
+    LDZ sb64_result+0
     STS 18
-
     RTS
 
+; Karatsuba implementation entry point from unified mathlib.
+; Keep this as the only schoolbook-vs-karatsuba crossover point.
 ka64_unsigned_multiply:
-    JPA ml64_unsigned_multiply
+    JPA ml_multiply_u64
