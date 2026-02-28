@@ -189,6 +189,7 @@
       "track_widths": [
         0.0,
         0.2,
+        0.25,
         0.3,
         0.6
       ],
@@ -503,7 +504,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "gerbers_v1.0",
+      "plot": "gerbers_v1.1",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "",

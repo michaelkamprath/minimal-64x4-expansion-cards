@@ -1333,6 +1333,130 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Device:R"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "R"
+				(at 2.032 0 90)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "R"
+				(at 0 0 90)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at -1.778 0 90)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Resistor"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "R res resistor"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "R_*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "R_0_1"
+				(rectangle
+					(start -1.016 -2.54)
+					(end 1.016 2.54)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "R_1_1"
+				(pin passive line
+					(at 0 3.81 270)
+					(length 1.27)
+					(name "~"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 0 -3.81 90)
+					(length 1.27)
+					(name "~"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Device:R_Network05_US"
 			(pin_names
 				(offset 0)
@@ -3811,10 +3935,6 @@
 	(no_connect
 		(at 91.44 87.63)
 		(uuid "207a847f-e13a-4784-a88c-f8b955ff3220")
-	)
-	(no_connect
-		(at 265.43 147.32)
-		(uuid "30bc3f30-4d55-47cf-8e50-35580ac2ce1c")
 	)
 	(no_connect
 		(at 240.03 172.72)
@@ -9012,7 +9132,7 @@
 			)
 		)
 	)
-	(global_label "CLK"
+	(global_label "ICLK"
 		(shape input)
 		(at 250.19 63.5 90)
 		(fields_autoplaced yes)
@@ -9024,7 +9144,7 @@
 		)
 		(uuid "2ec76bb7-cb28-484a-91b6-23f7d882e8d2")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 250.19 56.9467 90)
+			(at 250.19 56.3419 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -9074,28 +9194,6 @@
 					(size 1.27 1.27)
 				)
 				(justify right)
-				(hide yes)
-			)
-		)
-	)
-	(global_label "CLK"
-		(shape input)
-		(at 156.21 63.5 90)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "430f001e-5732-4d6c-968e-bc2d9af6e05b")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 156.21 56.9467 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
 				(hide yes)
 			)
 		)
@@ -9188,6 +9286,28 @@
 			)
 		)
 	)
+	(global_label "ICLK"
+		(shape input)
+		(at 273.05 147.32 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "56e4e1f1-38ae-44ec-b3f1-87d444ae3edb")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 280.2081 147.32 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
 	(global_label "~{OE1}"
 		(shape input)
 		(at 284.48 63.5 90)
@@ -9254,7 +9374,7 @@
 			)
 		)
 	)
-	(global_label "CLK"
+	(global_label "ICLK"
 		(shape input)
 		(at 203.2 63.5 90)
 		(fields_autoplaced yes)
@@ -9266,7 +9386,7 @@
 		)
 		(uuid "6a6d395e-da52-450d-9605-c46d8faa4481")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 203.2 56.9467 90)
+			(at 203.2 56.3419 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -9320,7 +9440,29 @@
 			)
 		)
 	)
-	(global_label "CLK"
+	(global_label "ICLK"
+		(shape input)
+		(at 156.21 63.5 90)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "72770a86-1104-4dd8-af6b-6a1c10e9fe50")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 156.21 56.3419 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+	)
+	(global_label "ICLK"
 		(shape input)
 		(at 344.17 63.5 90)
 		(fields_autoplaced yes)
@@ -9332,7 +9474,7 @@
 		)
 		(uuid "7a8161c1-85e0-400c-bb65-ee32904b9149")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 344.17 56.9467 90)
+			(at 344.17 56.3419 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -9518,7 +9660,7 @@
 			)
 		)
 	)
-	(global_label "CLK"
+	(global_label "ICLK"
 		(shape input)
 		(at 109.22 63.5 90)
 		(fields_autoplaced yes)
@@ -9530,7 +9672,7 @@
 		)
 		(uuid "a9ba7702-d7b9-4a41-a6a3-d1d1b0950095")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 109.22 56.9467 90)
+			(at 109.22 56.3419 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -9650,7 +9792,7 @@
 			)
 		)
 	)
-	(global_label "CLK"
+	(global_label "ICLK"
 		(shape input)
 		(at 297.18 63.5 90)
 		(fields_autoplaced yes)
@@ -9662,7 +9804,7 @@
 		)
 		(uuid "ca7cf54e-adf8-4307-a9ba-ee1d3c8991e8")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 297.18 56.9467 90)
+			(at 297.18 56.3419 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13178,6 +13320,73 @@
 			(project ""
 				(path "/13a8e646-91ee-46a0-a7f9-7ff532e96a25"
 					(reference "#PWR01")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 269.24 147.32 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "cf35c1ef-0644-46c7-bdd2-de75e14480bd")
+		(property "Reference" "R1"
+			(at 269.24 145.288 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "22Ω"
+			(at 269.24 147.32 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal"
+			(at 269.24 149.098 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 269.24 147.32 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 269.24 147.32 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "ffa6ed0a-318e-46f2-b90e-a41d034877fa")
+		)
+		(pin "1"
+			(uuid "e0253599-c675-4a6f-a3e2-cb9246682a44")
+		)
+		(instances
+			(project ""
+				(path "/13a8e646-91ee-46a0-a7f9-7ff532e96a25"
+					(reference "R1")
 					(unit 1)
 				)
 			)
