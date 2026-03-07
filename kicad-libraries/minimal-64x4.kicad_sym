@@ -136,6 +136,369 @@
 		)
 		(embedded_fonts no)
 	)
+	(symbol "74HC4040"
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(property "Reference" "U"
+			(at 18.034 2.794 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "74HC4040"
+			(at 0 0.254 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/sn74hc4040.pdf"
+			(at -2.286 2.286 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "ki_fp_filters" "Package_DIP:*DIP*16* Package_DIP:*CDIP*16* Package_SO:*SOIC*16* Package_SO:*SSOP*16* Package_SO:*TSSOP*16* Package_SO:*SO-16*"
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(symbol "74HC4040_0_0"
+			(pin power_in line
+				(at -19.05 0 0)
+				(length 2.54)
+				(name "VCC"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "16"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at -13.97 -8.89 90)
+				(length 2.54)
+				(name "Q_{A}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "9"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at -11.43 -8.89 90)
+				(length 2.54)
+				(name "Q_{B}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "7"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at -8.89 -8.89 90)
+				(length 2.54)
+				(name "Q_{C}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "6"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at -6.35 -8.89 90)
+				(length 2.54)
+				(name "Q_{D}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "5"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at -3.81 -8.89 90)
+				(length 2.54)
+				(name "Q_{E}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "3"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at -1.27 -8.89 90)
+				(length 2.54)
+				(name "Q_{F}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at 1.27 -8.89 90)
+				(length 2.54)
+				(name "Q_{G}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "4"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at 3.81 -8.89 90)
+				(length 2.54)
+				(name "Q_{H}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "13"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at 8.89 -8.89 90)
+				(length 2.54)
+				(name "Q_{J}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "14"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at 11.43 -8.89 90)
+				(length 2.54)
+				(name "Q_{K}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "15"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at 13.97 -8.89 90)
+				(length 2.54)
+				(name "Q_{L}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin power_in line
+				(at 19.05 0 180)
+				(length 2.54)
+				(name "GND"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "8"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(symbol "74HC4040_1_0"
+			(pin input edge_clock_high
+				(at -1.27 11.43 270)
+				(length 5.08)
+				(name "CLK"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "10"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin input line
+				(at 1.27 11.43 270)
+				(length 5.08)
+				(name "CLR"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "11"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at 6.35 -8.89 90)
+				(length 2.54)
+				(name "Q_{I}"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "12"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(symbol "74HC4040_1_1"
+			(rectangle
+				(start -16.51 -6.35)
+				(end 16.51 6.35)
+				(stroke
+					(width 0)
+					(type solid)
+				)
+				(fill
+					(type background)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
 	(symbol "ATF16V8C"
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -565,7 +928,7 @@
 		(in_bom yes)
 		(on_board yes)
 		(property "Reference" "U"
-			(at 11.43 -17.78 0)
+			(at 1.778 17.78 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -573,7 +936,7 @@
 			)
 		)
 		(property "Value" "ATF22V10C"
-			(at 0 0 90)
+			(at -0.508 0 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -581,7 +944,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at -15.24 13.97 0)
+			(at -12.7 13.97 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -590,7 +953,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at -15.24 13.97 0)
+			(at -12.7 13.97 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -599,7 +962,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 0 0 0)
+			(at 2.54 0 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -609,7 +972,7 @@
 		)
 		(symbol "ATF22V10C_0_0"
 			(pin input line
-				(at -15.24 13.97 0)
+				(at -12.7 13.97 0)
 				(length 2.54)
 				(name "CLK/IN0"
 					(effects
@@ -627,7 +990,7 @@
 				)
 			)
 			(pin input line
-				(at -15.24 11.43 0)
+				(at -12.7 11.43 0)
 				(length 2.54)
 				(name "IN1"
 					(effects
@@ -645,7 +1008,7 @@
 				)
 			)
 			(pin input line
-				(at -15.24 8.89 0)
+				(at -12.7 8.89 0)
 				(length 2.54)
 				(name "IN2"
 					(effects
@@ -663,7 +1026,7 @@
 				)
 			)
 			(pin input line
-				(at -15.24 6.35 0)
+				(at -12.7 6.35 0)
 				(length 2.54)
 				(name "PD/IN3"
 					(effects
@@ -681,7 +1044,7 @@
 				)
 			)
 			(pin input line
-				(at -15.24 3.81 0)
+				(at -12.7 3.81 0)
 				(length 2.54)
 				(name "IN4"
 					(effects
@@ -699,7 +1062,7 @@
 				)
 			)
 			(pin input line
-				(at -15.24 1.27 0)
+				(at -12.7 1.27 0)
 				(length 2.54)
 				(name "IN5"
 					(effects
@@ -717,7 +1080,7 @@
 				)
 			)
 			(pin input line
-				(at -15.24 -1.27 0)
+				(at -12.7 -1.27 0)
 				(length 2.54)
 				(name "IN6"
 					(effects
@@ -735,7 +1098,7 @@
 				)
 			)
 			(pin input line
-				(at -15.24 -3.81 0)
+				(at -12.7 -3.81 0)
 				(length 2.54)
 				(name "IN7"
 					(effects
@@ -753,7 +1116,7 @@
 				)
 			)
 			(pin input line
-				(at -15.24 -6.35 0)
+				(at -12.7 -6.35 0)
 				(length 2.54)
 				(name "IN8"
 					(effects
@@ -771,7 +1134,7 @@
 				)
 			)
 			(pin input line
-				(at -15.24 -8.89 0)
+				(at -12.7 -8.89 0)
 				(length 2.54)
 				(name "IN9"
 					(effects
@@ -789,7 +1152,7 @@
 				)
 			)
 			(pin input line
-				(at -15.24 -11.43 0)
+				(at -12.7 -11.43 0)
 				(length 2.54)
 				(name "IN10"
 					(effects
@@ -807,7 +1170,7 @@
 				)
 			)
 			(pin input line
-				(at -15.24 -13.97 0)
+				(at -12.7 -13.97 0)
 				(length 2.54)
 				(name "IN11"
 					(effects
@@ -861,7 +1224,7 @@
 				)
 			)
 			(pin bidirectional line
-				(at 14.605 11.43 180)
+				(at 12.7 11.43 180)
 				(length 2.54)
 				(name "I/O9"
 					(effects
@@ -879,7 +1242,7 @@
 				)
 			)
 			(pin bidirectional line
-				(at 14.605 8.89 180)
+				(at 12.7 8.89 180)
 				(length 2.54)
 				(name "I/O8"
 					(effects
@@ -897,7 +1260,7 @@
 				)
 			)
 			(pin bidirectional line
-				(at 14.605 6.35 180)
+				(at 12.7 6.35 180)
 				(length 2.54)
 				(name "I/O7"
 					(effects
@@ -915,7 +1278,7 @@
 				)
 			)
 			(pin bidirectional line
-				(at 14.605 3.81 180)
+				(at 12.7 3.81 180)
 				(length 2.54)
 				(name "I/O6"
 					(effects
@@ -933,7 +1296,7 @@
 				)
 			)
 			(pin bidirectional line
-				(at 14.605 1.27 180)
+				(at 12.7 1.27 180)
 				(length 2.54)
 				(name "I/O5"
 					(effects
@@ -951,7 +1314,7 @@
 				)
 			)
 			(pin bidirectional line
-				(at 14.605 -1.27 180)
+				(at 12.7 -1.27 180)
 				(length 2.54)
 				(name "I/O4"
 					(effects
@@ -969,7 +1332,7 @@
 				)
 			)
 			(pin bidirectional line
-				(at 14.605 -3.81 180)
+				(at 12.7 -3.81 180)
 				(length 2.54)
 				(name "I/O3"
 					(effects
@@ -987,7 +1350,7 @@
 				)
 			)
 			(pin bidirectional line
-				(at 14.605 -6.35 180)
+				(at 12.7 -6.35 180)
 				(length 2.54)
 				(name "I/O2"
 					(effects
@@ -1005,7 +1368,7 @@
 				)
 			)
 			(pin bidirectional line
-				(at 14.605 -8.89 180)
+				(at 12.7 -8.89 180)
 				(length 2.54)
 				(name "I/O1"
 					(effects
@@ -1023,7 +1386,7 @@
 				)
 			)
 			(pin bidirectional line
-				(at 14.605 -11.43 180)
+				(at 12.7 -11.43 180)
 				(length 2.54)
 				(name "I/O0"
 					(effects
@@ -1043,8 +1406,8 @@
 		)
 		(symbol "ATF22V10C_0_1"
 			(rectangle
-				(start -12.7 16.51)
-				(end 12.065 -16.51)
+				(start -10.16 16.51)
+				(end 10.16 -16.51)
 				(stroke
 					(width 0.1524)
 					(type default)

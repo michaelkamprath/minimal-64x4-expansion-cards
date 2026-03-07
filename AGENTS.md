@@ -1,5 +1,5 @@
 # Repository Guidelines
-This repo hosts expansion cards for the Minimal 64x4 Home Computer and Minimal 64x4 Redux Home Computer (both are 8-bit TTL “CPU”). Use these notes to keep hardware, software, and docs consistent.
+This repo hosts expansion cards for the Minimal 64x4 Home Computer, an 8-bit TTL “CPU”. Use these notes to keep hardware, software, and docs consistent.
 
 ## Project Structure & Module Organization
 - Card directories: `expansion-backplane/`, `multiplier/`, `speech-synthesizer/`, each with `hardware/` KiCad projects (e.g., `expansion-backplane/hardware/expansion-backplane/expansion-backplane.kicad_pro`) plus board-specific `datasheets/`, `pld-files/`, `references/`, or `software/`.
@@ -7,20 +7,11 @@ This repo hosts expansion cards for the Minimal 64x4 Home Computer and Minimal 6
 - Software sits with its board and uses `.min64x4`; avoid committing tool lockfiles (`*.lck`) or OS metadata.
 - Documentation for the assembly language for both computer types can be found in the `docs/` folder.
 
-## Coding Style & Naming Conventions
-- Details on the syntax of assembly language using BespokeASM can be found in this repository file: docs/Assembly-Language-Syntax.md
-- The complete instruction set for the Minimal 64x4 computer is documented in this repository file: docs/slu4-minimal-64x4.md
-- Assembly:
-  - start files with `#require "slu4-min64x4-asm >= 1.1.0"`
-  - uppercase opcodes, colon-suffixed labels, snake_case symbols, semicolon comments;
-  - prefer one instruction per line.
-  - Use named constants for MMIO (e.g., `$FED0` multiplier registers) and `.memzone` for layout.
-  - Fast branches (`FPA`/`FCC`/`FEQ`/`FCS`) require same-page targets—use `.align` before hot routines or split routines to keep fast-branch targets within the same 256-byte page.
-- KiCad: keep project names aligned to directories, store custom symbols/footprints in `kicad-libraries/`, and version fabrication outputs in `gerbers_*` folders. Keep DRC/ERC settings with the project; avoid committing KiCad lockfiles.
 
 ### Assembly Compilation
 Use BespokeASM with the Minimal 64x4 configuration. First, you need to obtain the Minimal 64x4 instruction set configuration for BespokeASM.
 The current Minimal 64x4 instruction set configuration for BespokeASM can be downloaded from: https://github.com/michaelkamprath/bespokeasm/blob/main/examples/slu4-minimal-64x4/slu4-minimal-64x4.yaml
+<p>
 To download it to a local temporary file to be used when compiling with BespokeASM, the following shell command can be used:
 
 ```bash
@@ -45,6 +36,29 @@ bespokeasm compile -c /tmp/slu4-minimal-64x4.yaml -n -p -t intel_hex file.min64x
 # -W: Force code warnings to be treated as errors
 ```
 
+## Coding Style & Naming Conventions
+- Details on the BespokeASM assembler syntax can be found in this repository file: `docs/Assembly-Language-Syntax.md`
+- Minimal 64x4 assembly:
+  - The complete instruction set for the Minimal 64x4 computer is documented in this repository file: `docs/slu4-minimal-64x4.md`</br>
+    Documentation for the Minmal 64x4 instruction set can be rebuilt from the instruction set configuration file with this command (assumes you've already downloaded the instruction set configuration as described in **Assembly Compilation**):
+      ```
+      bespokeasm docs -c  /tmp/slu4-minimal-64x4.yaml -o docs/slu4-minimal-64x4.md
+      ```
+      At this point the markdown file `docs/slu4-minimal-64x4.md` will contain a readable description of the instruction set for the Minimal 64x4.
+  - Start `*.min64x4` files with:
+    ```
+    #require __LANGUAGE_NAME__ == slu4-min64x4-asm
+    #require __LANGUAGE_VERSION__ >= 1.1.0
+    ```
+  - uppercase opcodes, colon-suffixed labels, snake_case symbols, semicolon comments;
+  - prefer one instruction per line.
+  - Use named constants for MMIO (e.g., `$FED0` multiplier registers) and `.memzone` for layout.
+  - Fast branches (`FPA`/`FCC`/`FEQ`/`FCS`) require same-page targets—use `.align` before hot routines or split routines to keep fast-branch targets within the same 256-byte page.
+- KiCad: keep project names aligned to directories, store custom symbols/footprints in `kicad-libraries/`, and version fabrication outputs in `gerbers_*` folders. Keep DRC/ERC settings with the project; avoid committing KiCad lockfiles.
+
+## Minimal 64x4 Assembly Language Tips
+- When adding or changing `.memzone` allocations in shared include files, verify zero-page fit for every includer, not just the primary target program.
+
 ### Graphics API:
 
 Graphics functions on the Minimal 64x4 use dedicated zero-page memory locations for parameters, **not the stack**.
@@ -62,7 +76,7 @@ Always set these locations immediately before calling a graphics function. The g
 
 
 ## Testing Guidelines
-- Software: rerun `bespokeasm compile` on modified `.min64x4`; ensure includes/defines match hardware (e.g., `USE_ACCELERATOR`). Generate Intel HEX for device loading and keep sample inputs small for quick bench tests.
+- Software: rerun `bespokeasm compile` on modified `.min64x4` to ensure it compiles; ensure includes/defines match hardware (e.g., `USE_ACCELERATOR`). Generate Intel HEX for device loading and keep sample inputs small for quick bench tests.
 - Hardware: run ERC on schematics and DRC on PCBs before exporting; verify net ties, power flags, and stackup settings per board revision. Capture bench notes or scope shots for timing-sensitive changes.
 
 ## Commit & Pull Request Guidelines

@@ -15,10 +15,7 @@ _expect_ptr:        .2byte 0
 _actual_ptr:        .2byte 0
 _cmp_expected_ptr:  .2byte 0
 _cmp_actual_ptr:    .2byte 0
-_cmp_count:         .byte 0
 _print_ptr:         .2byte 0
-_print_count:       .byte 0
-_ptr_add_count:     .byte 0
 #emit
 
 .memzone ZERO_PAGE_LIBS
@@ -26,6 +23,12 @@ _ptr_add_count:     .byte 0
 #emit
 
 .memzone USER_APPS
+#mute
+_cmp_count:         .byte 0
+_print_count:       .byte 0
+_ptr_add_count:     .byte 0
+#emit
+
 main:
     SPINIT
     JPS _Clear
@@ -124,37 +127,37 @@ ka_mismatch:
 print_details:
     JPS _Print "\nA = "
     MVV _a_base,_print_ptr
-    MIZ 7,_ptr_add_count
+    MIB 7,_ptr_add_count
     JPS ptr_add
-    MIZ 8,_print_count
+    MIB 8,_print_count
     JPS print_bytes
     JPS _Print "\nB = "
     MVV _b_base,_print_ptr
-    MIZ 7,_ptr_add_count
+    MIB 7,_ptr_add_count
     JPS ptr_add
-    MIZ 8,_print_count
+    MIB 8,_print_count
     JPS print_bytes
     JPS _Print "\nExpected = "
     MVV _expect_base,_print_ptr
-    MIZ 15,_ptr_add_count
+    MIB 15,_ptr_add_count
     JPS ptr_add
-    MIZ 16,_print_count
+    MIB 16,_print_count
     JPS print_bytes
     JPS _Print "\nActual = "
     MIV actual_buf,_print_ptr
-    MIZ 15,_ptr_add_count
+    MIB 15,_ptr_add_count
     JPS ptr_add
-    MIZ 16,_print_count
+    MIB 16,_print_count
     JPS print_bytes
     JPS _Print "\n"
     RTS
 
 ptr_add:
-    CIZ 0,_ptr_add_count
+    CIB 0,_ptr_add_count
     BEQ .done
 .loop:
     INV _print_ptr
-    DEZ _ptr_add_count
+    DEB _ptr_add_count
     BNE .loop
 .done:
     RTS
@@ -164,7 +167,7 @@ print_bytes:
     LDT _print_ptr
     JAS _PrintHex
     DEV _print_ptr
-    DEZ _print_count
+    DEB _print_count
     BNE .loop
     RTS
 
@@ -239,12 +242,12 @@ run_sb:
     INV _actual_ptr
     INV _actual_ptr
     INV _actual_ptr
-    MIZ 16,_cmp_count
+    MIB 16,_cmp_count
 .pop_loop:
     PLS
     STT _actual_ptr
     DEV _actual_ptr
-    DEZ _cmp_count
+    DEB _cmp_count
     BNE .pop_loop
     RTS
 
@@ -319,12 +322,12 @@ run_ka:
     INV _actual_ptr
     INV _actual_ptr
     INV _actual_ptr
-    MIZ 16,_cmp_count
+    MIB 16,_cmp_count
 .pop_loop:
     PLS
     STT _actual_ptr
     DEV _actual_ptr
-    DEZ _cmp_count
+    DEB _cmp_count
     BNE .pop_loop
     RTS
 
@@ -362,14 +365,14 @@ compare_expected:
     INV _cmp_actual_ptr
     INV _cmp_actual_ptr
     INV _cmp_actual_ptr
-    MIZ 16,_cmp_count
+    MIB 16,_cmp_count
 .loop:
     LDT _cmp_expected_ptr
     CPR _cmp_actual_ptr
     BNE .mismatch
     DEV _cmp_expected_ptr
     DEV _cmp_actual_ptr
-    DEZ _cmp_count
+    DEB _cmp_count
     BNE .loop
     RTS
 .mismatch:

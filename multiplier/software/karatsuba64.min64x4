@@ -88,6 +88,18 @@
 ; ### Demostration of Karatsuba Algorithm ###
 ;
 #require "slu4-min64x4-asm >= 1.1.0"
+
+#ifdef USE_TIMER
+#print green "Building software using hardware timer."
+
+timer_LATCHED_VALUE_ADDR = $FEF0
+timer_LATCH_TIMER_ADDR = $FEF6
+timer_RESET_TIMER_ADDR = $FEF7
+#endif
+#ifdef STATUS_BARS
+#print green "Building software to display progress bars."
+#endif
+
 ; Keep data out of $8000-$9FFF (reserved for application code).
 DATA_START  = $A000
 DATA_LENGTH = $4000
@@ -150,17 +162,36 @@ main:
     JPS run_schoolbook_workload
     JPS _Print "\n\nEnd schoolbook multiplication\n\n"
 
-    JPS _Print "Press any key to continue >"
-    JPS _WaitInput
-
     JPS _Print "\n\nStart Karatsuba multiplication\n\n"
     JPS run_karatsuba_workload
     JPS _Print "\n\nEnd Karatsuba multiplication\n\n"
 
+#ifdef USE_TIMER
+    JPS _Print "Schoolbook timer count: "
+    LDB _schoolbook_timer+4 JAS _PrintHex
+    LDB _schoolbook_timer+3 JAS _PrintHex
+    LDB _schoolbook_timer+2 JAS _PrintHex
+    LDB _schoolbook_timer+1 JAS _PrintHex
+    LDB _schoolbook_timer+0 JAS _PrintHex
+
+    JPS _Print "\nKaratsuba timer count:  "
+    LDB _karatsuba_timer+4 JAS _PrintHex
+    LDB _karatsuba_timer+3 JAS _PrintHex
+    LDB _karatsuba_timer+2 JAS _PrintHex
+    LDB _karatsuba_timer+1 JAS _PrintHex
+    LDB _karatsuba_timer+0 JAS _PrintHex
+#endif
+
+    JPS _Print "\n\nPress any key to end >"
     JPS _WaitInput
+    JPS _Print "\n"
     JPS _Prompt
 
 run_schoolbook_workload:
+#ifdef USE_TIMER
+    STB timer_RESET_TIMER_ADDR          ; writing anything to timer reset address
+#endif
+
     MIV OUTER_COUNT,_outer_counter
 #ifdef STATUS_BARS
     MIV WORK_CHUNK,_progress_reload
@@ -249,9 +280,25 @@ run_schoolbook_workload:
     BNE .schoolbook_outer
     CIZ 0,_outer_counter+0
     BNE .schoolbook_outer
+
+#ifdef USE_TIMER
+    ; capture timer cout
+    STB timer_LATCH_TIMER_ADDR                              ; writing anything to latch address
+    MBB timer_LATCHED_VALUE_ADDR+0,_schoolbook_timer+0      ; Save byte 0 of timer
+    MBB timer_LATCHED_VALUE_ADDR+1,_schoolbook_timer+1      ; Save byte 1 of timer
+    MBB timer_LATCHED_VALUE_ADDR+2,_schoolbook_timer+2      ; Save byte 2 of timer
+    MBB timer_LATCHED_VALUE_ADDR+3,_schoolbook_timer+3      ; Save byte 3 of timer
+    MBB timer_LATCHED_VALUE_ADDR+4,_schoolbook_timer+4
+#endif
     RTS
+_schoolbook_timer:
+    .fill 6,0
 
 run_karatsuba_workload:
+#ifdef USE_TIMER
+    STB timer_RESET_TIMER_ADDR          ; writing anything to timer reset address
+#endif
+
     MIV OUTER_COUNT,_outer_counter
 #ifdef STATUS_BARS
     MIV WORK_CHUNK,_progress_reload
@@ -340,7 +387,20 @@ run_karatsuba_workload:
     BNE .karatsuba_outer
     CIZ 0,_outer_counter+0
     BNE .karatsuba_outer
+
+#ifdef USE_TIMER
+    ; capture timer cout
+    STB timer_LATCH_TIMER_ADDR                              ; writing anything to latch address
+    MBB timer_LATCHED_VALUE_ADDR+0,_karatsuba_timer+0       ; Save byte 0 of timer
+    MBB timer_LATCHED_VALUE_ADDR+1,_karatsuba_timer+1       ; Save byte 1 of timer
+    MBB timer_LATCHED_VALUE_ADDR+2,_karatsuba_timer+2       ; Save byte 2 of timer
+    MBB timer_LATCHED_VALUE_ADDR+3,_karatsuba_timer+3       ; Save byte 3 of timer
+    MBB timer_LATCHED_VALUE_ADDR+4,_karatsuba_timer+4
+#endif
     RTS
+_karatsuba_timer:
+    .fill 6,0
+
 
 #include "karatsuba64_shared.min64x4"
 

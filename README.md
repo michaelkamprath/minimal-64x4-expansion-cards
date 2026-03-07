@@ -10,5 +10,6 @@ The [back plane provided in this repository](./expansion-backplane/) allows for 
 
 * [**Speech Synthesizer**](./speech-synthesizer/) - This board provides support for interfacing with a TMS5220C speech synthesizer. 
 * [**Multiplier Card**](./multiplier/) - This board provides a hardware implimentation of 8-bit integer multiplications, significantly improving the speed of multiplications over software-implementations.
+* [**Timer**](./timer/) - Counts the cycles of the Minimal 64x4's system clock to enable precision timing of events.
 
 

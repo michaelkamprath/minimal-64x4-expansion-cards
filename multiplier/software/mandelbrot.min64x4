@@ -1,6 +1,6 @@
 #require __LANGUAGE_NAME__ == slu4-min64x4-asm
 #require __LANGUAGE_VERSION__ >= 1.1.0
-#use-scope "mathlib16"
+#use-scope "mathlib"
 
 .memzone ZERO_PAGE_APPS
 #mute
@@ -74,7 +74,7 @@ main_loop:
     LDI BYTE1(REAL_SCALE)       ; MSB of REAL_SCALE (multiplier)
     PHS
 
-    JPS ml16_signed_multiply    ; Result is 32-bit on stack
+    JPS ml_multiply_i16    ; Result is 32-bit on stack
 
     ; Get lower 16 bits of result (pixel * scale doesn't need 13-bit shift)
     PLS                     ; Remove bits 31-24 (MSB)
@@ -108,7 +108,7 @@ main_loop:
     LDI BYTE1(IMAG_SCALE)   ; MSB of IMAG_SCALE (multiplier)
     PHS
 
-    JPS ml16_signed_multiply        ; Result is 32-bit on stack
+    JPS ml_multiply_i16        ; Result is 32-bit on stack
 
     ; Get lower 16 bits of result (pixel * scale doesn't need 13-bit shift)
     PLS                     ; Remove bits 31-24 (MSB)
@@ -230,7 +230,7 @@ iteration_loop:
     LDZ _z_real+1           ; MSB of z_real (multiplier, duplicate for squaring)
     PHS
 
-    JPS ml16_signed_multiply        ; z_real^2 as 32-bit result on stack
+    JPS ml_multiply_i16     ; z_real^2 as 32-bit result on stack
 
     ; Shift right by SCALE_BITS (13) to normalize fixed-point multiplication
     LDI SCALE_BITS
@@ -257,7 +257,7 @@ iteration_loop:
     LDZ _z_imag+1           ; MSB of z_imag (multiplier, duplicate for squaring)
     PHS
 
-    JPS ml16_signed_multiply        ; z_imag^2 as 32-bit result on stack
+    JPS ml_multiply_i16     ; z_imag^2 as 32-bit result on stack
 
     ; Shift right by SCALE_BITS (13) to normalize fixed-point multiplication
     LDI SCALE_BITS
@@ -317,7 +317,7 @@ update_z:
     LDZ _z_imag+1           ; MSB of z_imag (multiplier)
     PHS
 
-    JPS ml16_signed_multiply        ; z_real * z_imag as 32-bit result
+    JPS ml_multiply_i16     ; z_real * z_imag as 32-bit result
 
     ; Shift right by SCALE_BITS-1 (8) to get 2*z_real*z_imag in one step
     LDI SCALE_BITS-1
@@ -440,4 +440,4 @@ right_shift_32:
 .all_done:
     RTS                     ; Return
 
-#include "mathlib16.min64x4"
+#include "mathlib.min64x4"
