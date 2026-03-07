@@ -162,21 +162,20 @@ main:
     JPS run_schoolbook_workload
     JPS _Print "\n\nEnd schoolbook multiplication\n\n"
 
-    JPS _Print "Press any key to continue >"
-    JPS _WaitInput
-
     JPS _Print "\n\nStart Karatsuba multiplication\n\n"
     JPS run_karatsuba_workload
     JPS _Print "\n\nEnd Karatsuba multiplication\n\n"
 
 #ifdef USE_TIMER
     JPS _Print "Schoolbook timer count: "
+    LDB _schoolbook_timer+4 JAS _PrintHex
     LDB _schoolbook_timer+3 JAS _PrintHex
     LDB _schoolbook_timer+2 JAS _PrintHex
     LDB _schoolbook_timer+1 JAS _PrintHex
     LDB _schoolbook_timer+0 JAS _PrintHex
 
-    JPS _Print "\nKaratsuba timer count: "
+    JPS _Print "\nKaratsuba timer count:  "
+    LDB _karatsuba_timer+4 JAS _PrintHex
     LDB _karatsuba_timer+3 JAS _PrintHex
     LDB _karatsuba_timer+2 JAS _PrintHex
     LDB _karatsuba_timer+1 JAS _PrintHex
@@ -185,6 +184,7 @@ main:
 
     JPS _Print "\n\nPress any key to end >"
     JPS _WaitInput
+    JPS _Print "\n"
     JPS _Prompt
 
 run_schoolbook_workload:
@@ -281,17 +281,18 @@ run_schoolbook_workload:
     CIZ 0,_outer_counter+0
     BNE .schoolbook_outer
 
-#ifdef USER_TIMER
+#ifdef USE_TIMER
     ; capture timer cout
     STB timer_LATCH_TIMER_ADDR                              ; writing anything to latch address
     MBB timer_LATCHED_VALUE_ADDR+0,_schoolbook_timer+0      ; Save byte 0 of timer
     MBB timer_LATCHED_VALUE_ADDR+1,_schoolbook_timer+1      ; Save byte 1 of timer
     MBB timer_LATCHED_VALUE_ADDR+2,_schoolbook_timer+2      ; Save byte 2 of timer
     MBB timer_LATCHED_VALUE_ADDR+3,_schoolbook_timer+3      ; Save byte 3 of timer
+    MBB timer_LATCHED_VALUE_ADDR+4,_schoolbook_timer+4
 #endif
     RTS
 _schoolbook_timer:
-    .4byte 0
+    .fill 6,0
 
 run_karatsuba_workload:
 #ifdef USE_TIMER
@@ -387,17 +388,18 @@ run_karatsuba_workload:
     CIZ 0,_outer_counter+0
     BNE .karatsuba_outer
 
-#ifdef USER_TIMER
+#ifdef USE_TIMER
     ; capture timer cout
     STB timer_LATCH_TIMER_ADDR                              ; writing anything to latch address
     MBB timer_LATCHED_VALUE_ADDR+0,_karatsuba_timer+0       ; Save byte 0 of timer
     MBB timer_LATCHED_VALUE_ADDR+1,_karatsuba_timer+1       ; Save byte 1 of timer
     MBB timer_LATCHED_VALUE_ADDR+2,_karatsuba_timer+2       ; Save byte 2 of timer
     MBB timer_LATCHED_VALUE_ADDR+3,_karatsuba_timer+3       ; Save byte 3 of timer
+    MBB timer_LATCHED_VALUE_ADDR+4,_karatsuba_timer+4
 #endif
     RTS
 _karatsuba_timer:
-    .4byte 0
+    .fill 6,0
 
 
 #include "karatsuba64_shared.min64x4"
