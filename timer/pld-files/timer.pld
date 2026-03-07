@@ -26,7 +26,7 @@ LATCH.R = /MMAP * A2 * A1 * /A0 * /RI * RO
 ; Reset the counter at address $7
 ;
 
-/CLEAR.R = /MMAP * A2 * A1 * A0 * /RI * RO  
+/CLEAR.R = /MMAP * A2 * A1 * A0 * /RI * RO  + /RST
 
 
 ;
