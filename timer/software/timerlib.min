@@ -1,0 +1,44 @@
+#----------------------------------
+# Timer Lib
+# 
+# Min library for interacting with
+# Minimal 64x4 timer card
+#---------------------------------
+
+def timerReset():
+  char timerCmd @ 0xfef7 = 0
+
+
+def timerLatch():
+  char timerCmd @ 0xfef6 = 0
+
+def timerValue():
+  char val0 @ 0xfef0
+  char val1 @ 0xfef1
+  char val2 @ 0xfef2
+  char val3 @ 0xfef3
+  char val4 @ 0xfef4
+  char val5 @ 0xfef5
+
+  print("0x")
+  printHex(val5)
+  printHex(val4)
+  printHex(val3)
+  printHex(val2)
+  printHex(val1)
+  printHex(val0)  
+
+
+def printNibble(int n):
+  if n < 10:
+    char c = n + 0x30
+    print(c)
+  else:
+    char c = n + 0x37
+    print(c)    # 0x37 = 'A' - 10
+
+def printHex(char c):
+  int hi = (c >> 4) and 0x0f
+  int lo = c and 0x0f
+  printNibble(hi)
+  printNibble(lo)
