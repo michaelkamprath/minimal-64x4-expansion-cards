@@ -1,0 +1,181 @@
+# SpeechLib for Extended Min
+#
+# Import this file from the caller's top-level source.
+# Avoid writing a quoted import example in comments here because
+# current Extended Min import scanning is text-based before tokenization.
+#
+# This is a Extended Min port of the assembly speech library for the
+# TMS5220 speech synthesizer board. It preserves the same public behavior,
+# but uses by-reference char buffers instead of raw start/end pointers.
+#
+# Extended Min can be found at:
+#     https://github.com/michaelkamprath/extended-min
+#
+# The assembly version contains cycle-counted delay loops. Those waits still matter
+# on real hardware, especially on the first cold-start interaction with the TMS5220,
+# so this port keeps small interpreted settle delays in addition to busy polling.
+#
+# Functions with the prefix "priv" are intended to be private to this library.
+#
+
+int kSpCmdReg := 0xfec0
+int kSpStatReg := 0xfec1
+int kSpBdReg := 0xfec2
+int kSpRstReg := 0xfec3
+
+char kCmdSpeak := 0x60
+char kCmdReset := 0xf0
+
+char kBdBusy := 0x01
+char kBdIntr := 0x02
+char kBdReady := 0x04
+
+char kStatTalk := 0x80
+char kStatBufLow := 0x40
+char kStatBufEmp := 0x20
+
+int kDlyByte := 0
+int kDlyCmd := 0
+int kDlySpk := 1
+int kDlyRst := 8
+
+int spBufCur = 0
+int spBufEnd = 0
+
+
+def prvWaitBusy():
+  char bdState @ kSpBdReg
+  while 1:
+    if (bdState and kBdBusy) == 0:
+      break
+
+
+def prvDelay(int ticks):
+  int delayCt = 0
+  while delayCt < ticks:
+    delayCt += 1
+
+
+def prvSendCmd(char cmdVal):
+  prvWaitBusy()
+  char cmdReg @ kSpCmdReg = cmdVal
+  prvDelay(kDlyCmd)
+
+def spGetStat():
+  prvWaitBusy()
+  char statReg @ kSpStatReg = 1
+  prvWaitBusy()
+  return statReg
+
+
+def prvSend8():
+  int sendCnt = 0
+  while sendCnt < 8:
+    if spBufCur == spBufEnd:
+      break
+    char sendByte @ spBufCur
+    prvWaitBusy()
+    char sendReg @ kSpCmdReg = sendByte
+    prvDelay(kDlyByte)
+    spBufCur += 1
+    sendCnt += 1
+
+
+def spInit():
+  spBufCur = 0
+  spBufEnd = 0
+
+  int rstCnt = 0
+  while rstCnt < 9:
+    prvSendCmd(0xff)
+    prvWaitBusy()
+    rstCnt += 1
+
+  prvSendCmd(kCmdReset)
+  prvWaitBusy()
+  prvDelay(kDlyRst)
+  spGetStat()
+
+
+def spSend(char outByte):
+  prvWaitBusy()
+  char outReg @ kSpCmdReg = outByte
+  prvDelay(kDlyByte)
+
+
+def spBegin():
+  while 1:
+    char beginStat = spGetStat()
+    if (beginStat and kStatTalk) == 0:
+      break
+
+  spBufCur = 0
+  spBufEnd = 0
+  spSend(kCmdSpeak)
+  prvDelay(kDlySpk)
+
+
+def spSync(char &buffer):
+  spStart(buffer)
+  while spBufCur != 0:
+    spUpdate()
+
+
+def spTalk():
+  if spBufCur != 0:
+    return 1
+  return 0
+
+
+def spStart(char &buffer):
+  if spBufCur != 0:
+    while 1:
+      char startStat = spGetStat()
+      if (startStat and kStatTalk) == 0:
+        break
+
+  int bufStart = &buffer
+  int bufStop = bufStart + len(buffer)
+  spBufCur = bufStart
+  spBufEnd = bufStop
+  prvSendCmd(kCmdSpeak)
+  prvDelay(kDlySpk)
+  prvSend8()
+  prvSend8()
+
+
+def spStartIdle(char &buffer):
+  int idleCan = 1
+
+  if spBufCur != 0:
+    idleCan = 0
+  else:
+    char idleStat = spGetStat()
+    if (idleStat and kStatTalk) != 0:
+      idleCan = 0
+
+  if idleCan == 1:
+    int idleStart = &buffer
+    int idleStop = idleStart + len(buffer)
+    spBufCur = idleStart
+    spBufEnd = idleStop
+    prvSendCmd(kCmdSpeak)
+    prvDelay(kDlySpk)
+    prvSend8()
+    prvSend8()
+
+
+def spUpdate():
+  if spBufCur == 0:
+    return 0
+
+  char updStat = spGetStat()
+  if (updStat and kStatTalk) == 0:
+    spBufCur = 0
+    spBufEnd = 0
+  elif (updStat and kStatBufEmp) == kStatBufEmp:
+    prvSend8()
+  elif (updStat and kStatBufLow) == kStatBufLow:
+    prvSend8()
+
+  return 0
