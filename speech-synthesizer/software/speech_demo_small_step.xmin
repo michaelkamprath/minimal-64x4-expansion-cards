@@ -180,6 +180,6 @@ char speechData[1355] = $(
 spInit()
 call sysClear
 char demoY @ kYPosAddr = 2
-print("Hasta la vista!\n")
+print("That's one small step for [a] man, one giant leap for mankind.\n")
 spSync(speechData)
 call sysPrompt
