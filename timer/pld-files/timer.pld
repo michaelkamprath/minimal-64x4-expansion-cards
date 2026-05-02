@@ -9,12 +9,12 @@ NC   CLEAR  LATCH  OE5  OE4  OE3   OE2  OE1  OE0  INH  ICLK  VCC
 ; Set the output enables (active low) for each byte when read
 ;
 
-/OE0 = /MMAP * /A2 * /A1 * /A0 * /RO * RI * /ICLK
-/OE1 = /MMAP * /A2 * /A1 * A0 * /RO * RI * /ICLK
-/OE2 = /MMAP * /A2 * A1 * /A0 * /RO * RI * /ICLK
-/OE3 = /MMAP * /A2 * A1 * A0 * /RO * RI * /ICLK
-/OE4 = /MMAP * A2 * /A1 * /A0 * /RO * RI * /ICLK
-/OE5 = /MMAP * A2 * /A1 * A0 * /RO * RI * /ICLK
+/OE0 = /MMAP * /A2 * /A1 * /A0 * /RO * RI 
+/OE1 = /MMAP * /A2 * /A1 * A0 * /RO * RI
+/OE2 = /MMAP * /A2 * A1 * /A0 * /RO * RI
+/OE3 = /MMAP * /A2 * A1 * A0 * /RO * RI 
+/OE4 = /MMAP * A2 * /A1 * /A0 * /RO * RI
+/OE5 = /MMAP * A2 * /A1 * A0 * /RO * RI
 
 ;
 ; Activate the latch at address $6
