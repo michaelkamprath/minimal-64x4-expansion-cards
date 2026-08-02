@@ -35,13 +35,7 @@ MULTIPLIER_RESULT_MSB = $FED3   ; Output register for MSB of 16-bit result
 
 drawloop:       JPS render
                 CIZ 0,startup FNE keyloop
-                  MIZ 14,_XPos MIZ 2,_YPos JPS _Print   "R A Y - C A S T I N G"
-                  MIZ 14,_XPos MIZ 5,_YPos JPS _Print   "3 D  M A Z E  D E M O"
-                  MIZ 14,_XPos MIZ 8,_YPos JPS _Print   "    by slu4 2026"
-#ifdef USE_ACCELERATOR
-                  MIZ 14,_XPos MIZ 11,_YPos JPS _Print  " harware accelerated"
-#endif
-                  MIZ 13,_XPos MIZ 24,_YPos JPS _Print  "Use WASD to move around."
+                  JPS printsplash
                   MIZ 1,startup
                   
   keyloop:      WIN INK
@@ -60,7 +54,7 @@ drawloop:       JPS render
                   JPS make16bitdir
                   MVV px,nx MVV py,ny
                   SVV dir_a,nx SVV dir_b,ny
-                  JPA dothestep
+                  FPA dothestep
 
 make16bitdir:     LDZ dir_a LL1 LDI 0xff ACI 0 NOT STZ dir_a+1 ; make signed 16-bit
                   LDZ dir_b LL1 LDI 0xff ACI 0 NOT STZ dir_b+1
@@ -70,6 +64,20 @@ make16bitdir:     LDZ dir_a LL1 LDI 0xff ACI 0 NOT STZ dir_a+1 ; make signed 16-
                   LDZ dir_b+1 LL1 RRZ dir_b+1 RRZ dir_b+0
                   RTS
 
+; relocationed to it's aown funtion so the differnt build options
+; don't interfeer with the fast branch instructions placements.
+printsplash:
+                  MIZ 14,_XPos MIZ 2,_YPos JPS _Print   "R A Y - C A S T I N G"
+                  MIZ 14,_XPos MIZ 5,_YPos JPS _Print   "3 D  M A Z E  D E M O"
+                  MIZ 14,_XPos MIZ 8,_YPos JPS _Print   "    by slu4 2026"
+#ifdef USE_ACCELERATOR
+                  MIZ 14,_XPos MIZ 11,_YPos JPS _Print  " harware accelerated"
+#endif
+#ifdef FAST_DIVISION
+                  MIZ 14,_XPos MIZ 12,_YPos JPS _Print  "    fast division"
+#endif
+                  MIZ 13,_XPos MIZ 24,_YPos JPS _Print  "Use WASD to move around."
+                  RTS
 .align
 ; -------------------------------------------------------------
 ; renders a scene from position (px, py) with direction 'angle'
