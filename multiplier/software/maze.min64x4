@@ -6,6 +6,9 @@
 ; Update by Michael Kamprath to a) be compiled by BespokeASM and b) optionally
 ; use the hardware multiplier card.
 ; --------------------------------------------------------------------------------------
+#require __LANGUAGE_NAME__ == slu4-min64x4-redux-asm
+#require __LANGUAGE_VERSION__ >= 1.4.0
+#require __BESPOKEASM_VERSION__ >= 0.7.2
 
 #ifdef USE_ACCELERATOR
 #print yellow "Compiling with support for multiplier card"
