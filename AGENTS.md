@@ -56,6 +56,10 @@ bespokeasm compile -c /tmp/slu4-minimal-64x4.yaml -n -p -t intel_hex file.min64x
   - Fast branches (`FPA`/`FCC`/`FEQ`/`FCS`) require same-page targets—use `.align` before hot routines or split routines to keep fast-branch targets within the same 256-byte page.
 - KiCad: keep project names aligned to directories, store custom symbols/footprints in `kicad-libraries/`, and version fabrication outputs in `gerbers_*` folders. Keep DRC/ERC settings with the project; avoid committing KiCad lockfiles.
 
+## Expansion Card Addresses
+- Cards are memory-mapped in page `$FE` and the data bus is unarbitrated, so base addresses must differ in as many **decoded address bits** as possible — not merely look far apart in hex. Currently: multiplier `$FED0` (`A7..A3` = `11010`), timer `$FE28` (`00101`).
+- If a card's *reads* return wrong values intermittently while writes, RAM, and software-only builds are fine, and results vary between runs and rebuilds, suspect two cards decoding the same access before suspecting the software. Confirm by removing or relocating one card. See `expansion-backplane/README.md`.
+
 ## Minimal 64x4 Assembly Language Tips
 - When adding or changing `.memzone` allocations in shared include files, verify zero-page fit for every includer, not just the primary target program.
 
