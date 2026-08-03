@@ -1,0 +1,132 @@
+; Exhaustive test of the hardware multiplier card.
+; Checks all 65536 operand byte pairs against a software shift-add reference
+; and reports every mismatch (first 8 in detail, then a running count).
+;
+; Unlike test_multiplier.min64x4, which samples random pairs, this walks the
+; entire operand space -- so a value-dependent fault (one that only shows up
+; for particular carry patterns through the adder array) cannot be missed.
+;
+; This program does not include mathlib, so it compiles with or without
+; USE_ACCELERATOR; it always drives the card directly via MMIO.
+#require "slu4-min64x4-asm >= 1.1.0"
+
+#ifndef MULTIPLIER_A
+MULTIPLIER_A = $FED0
+MULTIPLIER_B = $FED1
+MULTIPLIER_RESULT_LSB = $FED2
+MULTIPLIER_RESULT_MSB = $FED3
+#endif
+
+MAX_DETAIL = 8                  ; number of mismatches to print in full
+
+.memzone ZERO_PAGE_APPS
+#mute
+_a:         .byte  0            ; current operand A
+_b:         .byte  0            ; current operand B
+_sw:        .2byte 0            ; software reference product
+_hw:        .2byte 0            ; product read back from the card
+_mcand:     .2byte 0            ; shift-add multiplicand
+_mplier:    .byte  0            ; shift-add multiplier
+_cnt:       .byte  0            ; shift-add loop counter
+_fails:     .2byte 0            ; total mismatch count
+_detail:    .byte  0            ; mismatches printed in full so far
+#emit
+
+.memzone USER_APPS
+main:
+    SPINIT
+    JPS _Clear
+    MIZ 0,_XPos
+    MIZ 0,_YPos
+    JPS _Print "Exhaustive 8x8 multiplier card test\n"
+    JPS _Print "Testing all 65536 operand pairs\n\n"
+
+    CLV _fails
+    MIZ 0,_detail
+    MIZ 0,_a
+.a_loop:
+    MIZ 0,_b
+.b_loop:
+    JPS sw_multiply                     ; _sw = _a * _b in software
+
+    MZB _a,MULTIPLIER_A                 ; same access pattern the math cores use
+    MZB _b,MULTIPLIER_B
+    MBZ MULTIPLIER_RESULT_LSB,_hw+0
+    MBZ MULTIPLIER_RESULT_MSB,_hw+1
+
+    CZZ _sw+0,_hw+0
+    BNE .mismatch
+    CZZ _sw+1,_hw+1
+    BNE .mismatch
+
+.next:
+    INZ _b
+    BNE .b_loop                         ; wraps 255 -> 0, setting Z
+    LDI '.'                             ; one dot per completed A value
+    JAS _PrintChar
+    INZ _a
+    BNE .a_loop
+
+    JPS _Print "\n\nMismatches: "
+    LDZ _fails+1
+    JAS _PrintHex
+    LDZ _fails+0
+    JAS _PrintHex
+    CIZ 0,_fails+0
+    BNE .had_failures
+    CIZ 0,_fails+1
+    BNE .had_failures
+    JPS _Print "\nCard is good across all operand pairs.\n"
+    JPA .finish
+.had_failures:
+    JPS _Print "\nCard FAILED - see mismatches above.\n"
+.finish:
+    JPS _WaitInput
+    JPS _Prompt
+
+.mismatch:
+    INV _fails
+    CIZ MAX_DETAIL,_detail              ; only print the first few in full
+    BEQ .next
+    INZ _detail
+    JPS _Print "\nBad: "
+    LDZ _a
+    JAS _PrintHex
+    JPS _Print " x "
+    LDZ _b
+    JAS _PrintHex
+    JPS _Print "  SW="
+    LDZ _sw+1
+    JAS _PrintHex
+    LDZ _sw+0
+    JAS _PrintHex
+    JPS _Print "  HW="
+    LDZ _hw+1
+    JAS _PrintHex
+    LDZ _hw+0
+    JAS _PrintHex
+    JPS _Print "\n"
+    JPA .next
+
+; sw_multiply
+; Reference 8x8 -> 16-bit multiply by shift-and-add. Inputs _a, _b; output _sw.
+.align
+sw_multiply:
+    CLV _sw
+    CLV _mcand
+    MZZ _a,_mcand+0
+    MZZ _b,_mplier
+    MIZ 8,_cnt
+.loop:
+    LDZ _mplier
+    ANI 1
+    CPI 1
+    BNE .skip_add
+    AVV _mcand,_sw
+.skip_add:
+    LLV _mcand
+    CLC
+    RRZ _mplier
+    DEZ _cnt
+    BNE .loop
+    RTS

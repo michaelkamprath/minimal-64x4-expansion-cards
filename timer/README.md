@@ -36,6 +36,9 @@ Notes:
 - Reading `$FEx0`-`$FEx5` (or `$FEx8`-`$FExD` when `J1` is bridged) returns the last value latched by writing to the latch register, not necessarily the current counter value.
 - Resetting the counter does not latch a `0` value.
 
+### Default Jumper Setttings
+The code in this repo assumes the timer card's base address is $FE28. This is accomplished by jumpering J1 and J3, and leaving the others open.
+
 ## Time Range
 This card has a 48-bit counter that is read one byte at a time. Not all bytes need to be read, but reading fewer bytes reduces the effective time range captured. At the **Minimal 64x4**'s 8 MHz clock, the maximum time range by number of bytes read is shown in this table:
 

@@ -1,4 +1,4 @@
-; The Karatsuba algorithm is a way reducing the number of multiplications that are needed to
+; The Karatsuba algorithm is a way rudcing the number of multiplications that are needed to
 ; multiply large numbers when the low level multiplier (hardware or even software) operates
 ; on word sizes that are smaller than than the numbers being multiplied. It speeds things up
 ; when the cost of the multiplication is much higher than the cost of addition.
@@ -23,7 +23,7 @@
 ;
 ; When you notice that A1*B1 and A0*B0 terms need to be calculated already for the other parts of the result
 ; calculation, this replaces 2 multiplications and 1 addition with 1 multiplication and 4 additions. If the
-; multiplications was over 3 times more expensive than the additions, then this form of the equation would
+; multioplications was over 3 times more expensive than the additions, then this form of the equation would
 ; be calculated faster.
 ;
 ; The final results formula would be:
@@ -42,7 +42,7 @@
 ;
 ; ### Application to Minimal 64x4 Multiplier Card ###
 ;
-; The multiplier card described in this project repository requires a different number of clock cycles two
+; The multiplier card described in this project repository requires a different number of cloc cycles two
 ; multiply two value as is requied to add. The typical process to multiply two 8-bit values is (and here we will
 ; use zero page locations when we can):
 ;
@@ -62,55 +62,31 @@
 ; which require 8-bit multiplication of the sub-words and 16-bit addition of the partial products, there is no advantage
 ; to the Karatsuba algorithm.
 ;
-; For 64-bit multiplication with a 16-bit base case (no further recursion):
-;   Schoolbook: 4x 32-bit schoolbook = 16x 16-bit multiplies, 8x 32-bit adds, plus 2x 64-bit adds.
-;   Karatsuba: 3x 32-bit Karatsuba = 9x 16-bit multiplies, 6x 16-bit adds,
-;              14x 32-bit adds/subs, plus 4x 64-bit adds/subs.
+; For 32-bit multiplication, which requires 16-bit multiplication and 32-bit addition, that
 ;
-; Using 16-bit add ~= 21 cycles, assume 32-bit add ~= 2x (42) and 64-bit add ~= 2x (84):
-;   Schoolbook add cost ~= 8*42 + 2*84 = 504 cycles (adds only).
-;   Karatsuba add cost ~= 6*21 + 14*42 + 4*84 = 1050 cycles (adds only).
+; The 16-bit multiplication (if you ignore the function call overhead) would be 132 clock cycles (see the hardware
+; version of _multiplication16_core in mathlib15.min64x4). However, adding two 32bit number in Minimal 64x4 would be:
 ;
-; From _multiplication16, a 16-bit multiply uses two direct 8-bit multiplies (2*28) plus two cross terms
-; (2*(7+7+5+4+5+4+2+4)) ~= 132 cycles:
-;   Schoolbook multiply cost ~= 16*132 = 2112 cycles.
-;   Karatsuba multiply cost ~= 9*132  = 1188 cycles.
+;       AVV _val_A+0, _val_B+0                      ; 14 clock cycles
+;       LDZ _val_A+2                                ; 3 clock cycles
+;       AC.Z _val_B+2                               ; 4 clock cycles
+;       LDZ _val_A+3                                ; 3 clock cycles
+;       AC.Z _val_B+3                               ; 4 clock cycles
 ;
-; So total estimated cost (adds + multiplies):
-;   Schoolbook ~= 2112 + 504  = 2616 cycles.
-;   Karatsuba  ~= 1188 + 1050 = 2238 cycles.
+; For a total of 28 clock cycles. Now the 16-bit multiplication is 4.7 times more expensive than the 32-bit addition,
+; so Karatsuba algorithm would be advantageous at this level.
 ;
-; Karatsuba saves 7x 16-bit multiplies at the expense of extra adds; that trade is unfavorable at 16-bit,
-; but favorable at 64-bit because though 16-bit multiply is slightly more expensive than a 16-bit add, when
-; aggregated many times that expense adds up. Of course this analysis ignores overhead costs, such as memory
-; movement, so it's intended to be directional rather than precise.
+; ### Demostration of Karatsuba Algorithm ###
 ;
-; ### Demonstration of Karatsuba Algorithm ###
 ;
-#require "slu4-min64x4-asm >= 1.1.0"
-
-#ifdef USE_TIMER
-#print green "Building software using hardware timer."
-
-; Timer card base is $FE28. It must stay far from the multiplier card's $FED0
-; in DECODED ADDRESS BITS, not in hex distance: A7..A3 is 00101 here against
-; 11010 there, so all five differ. At the old $FEF0 only A5 differed, and a
-; single slow address line during a bus transition was enough for the timer to
-; decode a multiplier access and drive the data bus against it -- which
-; corrupted result reads intermittently. Do not relocate either card without
-; rechecking that bit distance.
-timer_LATCHED_VALUE_ADDR = $FE28
-timer_LATCH_TIMER_ADDR = $FE2E
-timer_RESET_TIMER_ADDR = $FE2F
-#endif
-#ifdef STATUS_BARS
-#print green "Building software to display progress bars."
-#endif
+#require __LANGUAGE_NAME__ == slu4-min64x4-asm
+#require __LANGUAGE_VERSION__ >= 1.1.0
+#use-scope "mathlib32"
 
 ; Keep data out of $8000-$9FFF (reserved for application code).
-DATA_START  = $A000
+DATA_START  = $9000
 DATA_LENGTH = $4000
-PAIR_COUNT  = DATA_LENGTH / 16
+PAIR_COUNT  = DATA_LENGTH / 8
 OUTER_COUNT = $0050
 #ifdef STATUS_BARS
 STATUS_WIDTH = 48
@@ -125,15 +101,20 @@ _data_ptr:         .2byte 0
 _fill_counter:     .2byte 0
 _pair_counter:     .2byte 0
 _outer_counter:    .2byte 0
+_sb_op1:           .4byte 0
+_sb_op2:           .4byte 0
+_sb_result:        .8byte 0
+_sb_z1:            .4byte 0
+_sb_z2:            .4byte 0
+_sb_cross_carry:   .byte 0
+_sb_mul16_op1:     .2byte 0
+_sb_mul16_op2:     .2byte 0
+_sb_mul16_result:  .4byte 0
 #ifdef STATUS_BARS
 _progress_counter: .2byte 0
 _progress_reload:  .2byte 0
 _progress_stars:   .byte 0
 #endif
-#emit
-
-.memzone ZERO_PAGE_LIBS
-#mute
 #emit
 
 .memzone USER_APPS
@@ -142,7 +123,7 @@ main:
     JPS _Clear
     MIZ 0,_XPos
     MIZ 0,_YPos
-    JPS _Print "64-bit multiply speed test\n"
+    JPS _Print "32-bit multiply speed test\n"
     JPS _Print "Filling random data\n\n"
 
     MIV DATA_START,_data_ptr
@@ -169,36 +150,14 @@ main:
     JPS run_schoolbook_workload
     JPS _Print "\n\nEnd schoolbook multiplication\n\n"
 
-    JPS _Print "\n\nStart Karatsuba multiplication\n\n"
+    JPS _Print "Start Karatsuba multiplication\n\n"
     JPS run_karatsuba_workload
     JPS _Print "\n\nEnd Karatsuba multiplication\n\n"
 
-#ifdef USE_TIMER
-    JPS _Print "Schoolbook timer count: "
-    LDB _schoolbook_timer+4 JAS _PrintHex
-    LDB _schoolbook_timer+3 JAS _PrintHex
-    LDB _schoolbook_timer+2 JAS _PrintHex
-    LDB _schoolbook_timer+1 JAS _PrintHex
-    LDB _schoolbook_timer+0 JAS _PrintHex
-
-    JPS _Print "\nKaratsuba timer count:  "
-    LDB _karatsuba_timer+4 JAS _PrintHex
-    LDB _karatsuba_timer+3 JAS _PrintHex
-    LDB _karatsuba_timer+2 JAS _PrintHex
-    LDB _karatsuba_timer+1 JAS _PrintHex
-    LDB _karatsuba_timer+0 JAS _PrintHex
-#endif
-
-    JPS _Print "\n\nPress any key to end >"
     JPS _WaitInput
-    JPS _Print "\n"
     JPS _Prompt
 
 run_schoolbook_workload:
-#ifdef USE_TIMER
-    STB timer_RESET_TIMER_ADDR          ; writing anything to timer reset address
-#endif
-
     MIV OUTER_COUNT,_outer_counter
 #ifdef STATUS_BARS
     MIV WORK_CHUNK,_progress_reload
@@ -233,39 +192,7 @@ run_schoolbook_workload:
     LDT _data_ptr
     PHS
     INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    JPS sb64_unsigned_multiply
-    PLS
-    PLS
-    PLS
-    PLS
-    PLS
-    PLS
-    PLS
-    PLS
+    JPS sb32_unsigned_multiply
     PLS
     PLS
     PLS
@@ -287,25 +214,9 @@ run_schoolbook_workload:
     BNE .schoolbook_outer
     CIZ 0,_outer_counter+0
     BNE .schoolbook_outer
-
-#ifdef USE_TIMER
-    ; capture timer count
-    STB timer_LATCH_TIMER_ADDR                              ; writing anything to latch address
-    MBB timer_LATCHED_VALUE_ADDR+0,_schoolbook_timer+0      ; Save byte 0 of timer
-    MBB timer_LATCHED_VALUE_ADDR+1,_schoolbook_timer+1      ; Save byte 1 of timer
-    MBB timer_LATCHED_VALUE_ADDR+2,_schoolbook_timer+2      ; Save byte 2 of timer
-    MBB timer_LATCHED_VALUE_ADDR+3,_schoolbook_timer+3      ; Save byte 3 of timer
-    MBB timer_LATCHED_VALUE_ADDR+4,_schoolbook_timer+4
-#endif
     RTS
-_schoolbook_timer:
-    .fill 6,0
 
 run_karatsuba_workload:
-#ifdef USE_TIMER
-    STB timer_RESET_TIMER_ADDR          ; writing anything to timer reset address
-#endif
-
     MIV OUTER_COUNT,_outer_counter
 #ifdef STATUS_BARS
     MIV WORK_CHUNK,_progress_reload
@@ -340,39 +251,7 @@ run_karatsuba_workload:
     LDT _data_ptr
     PHS
     INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    LDT _data_ptr
-    PHS
-    INV _data_ptr
-    JPS ka64_unsigned_multiply
-    PLS
-    PLS
-    PLS
-    PLS
-    PLS
-    PLS
-    PLS
-    PLS
+    JPS ml32_unsigned_multiply
     PLS
     PLS
     PLS
@@ -394,22 +273,121 @@ run_karatsuba_workload:
     BNE .karatsuba_outer
     CIZ 0,_outer_counter+0
     BNE .karatsuba_outer
-
-#ifdef USE_TIMER
-    ; capture timer cout
-    STB timer_LATCH_TIMER_ADDR                              ; writing anything to latch address
-    MBB timer_LATCHED_VALUE_ADDR+0,_karatsuba_timer+0       ; Save byte 0 of timer
-    MBB timer_LATCHED_VALUE_ADDR+1,_karatsuba_timer+1       ; Save byte 1 of timer
-    MBB timer_LATCHED_VALUE_ADDR+2,_karatsuba_timer+2       ; Save byte 2 of timer
-    MBB timer_LATCHED_VALUE_ADDR+3,_karatsuba_timer+3       ; Save byte 3 of timer
-    MBB timer_LATCHED_VALUE_ADDR+4,_karatsuba_timer+4
-#endif
     RTS
-_karatsuba_timer:
-    .fill 6,0
 
+; sb32_unsigned_multiply
+; Schoolbook 32-bit multiply using hardware 16-bit core.
+; Stack: SP+3..6=multiplier, SP+7..10=multiplicand (MSB at lower address)
+; Result overwrites both inputs on the stack.
+sb32_unsigned_multiply:
+    LDS 10
+    STZ _sb_op1+0
+    LDS 9
+    STZ _sb_op1+1
+    LDS 8
+    STZ _sb_op1+2
+    LDS 7
+    STZ _sb_op1+3
 
-#include "karatsuba64_shared.min64x4"
+    LDS 6
+    STZ _sb_op2+0
+    LDS 5
+    STZ _sb_op2+1
+    LDS 4
+    STZ _sb_op2+2
+    LDS 3
+    STZ _sb_op2+3
+
+    JPS _sb_multiplication32_schoolbook
+
+    LDZ _sb_result+7
+    STS 3
+    LDZ _sb_result+6
+    STS 4
+    LDZ _sb_result+5
+    STS 5
+    LDZ _sb_result+4
+    STS 6
+    LDZ _sb_result+3
+    STS 7
+    LDZ _sb_result+2
+    STS 8
+    LDZ _sb_result+1
+    STS 9
+    LDZ _sb_result+0
+    STS 10
+    RTS
+
+; _sb_multiplication32_schoolbook
+; 32-bit multiply using 4x 16-bit products (hardware accelerator).
+_sb_multiplication32_schoolbook:
+    ; Z0 = A0 * B0
+    MVV _sb_op1+0,_sb_mul16_op1
+    MVV _sb_op2+0,_sb_mul16_op2
+    JPS _sb_multiplication16
+    MQQ _sb_mul16_result,_sb_result+0
+
+    ; Z3 = A1 * B1
+    MVV _sb_op1+2,_sb_mul16_op1
+    MVV _sb_op2+2,_sb_mul16_op2
+    JPS _sb_multiplication16
+    MQQ _sb_mul16_result,_sb_result+4
+
+    ; Z1 = A0 * B1
+    MVV _sb_op1+0,_sb_mul16_op1
+    MVV _sb_op2+2,_sb_mul16_op2
+    JPS _sb_multiplication16
+    AQQ _sb_mul16_result,_sb_result+2
+    LDI 0
+    AC.Z _sb_result+6
+    LDI 0
+    AC.Z _sb_result+7
+
+    ; Z2 = A1 * B0
+    MVV _sb_op1+2,_sb_mul16_op1
+    MVV _sb_op2+0,_sb_mul16_op2
+    JPS _sb_multiplication16
+    AQQ _sb_mul16_result,_sb_result+2
+    LDI 0
+    AC.Z _sb_result+6
+    LDI 0
+    AC.Z _sb_result+7
+
+    RTS
+
+_sb_multiplication16:
+    MZB _sb_mul16_op1+0,MULTIPLIER_A
+    MZB _sb_mul16_op2+0,MULTIPLIER_B
+
+    MBZ MULTIPLIER_RESULT_LSB,_sb_mul16_result+0
+    MBZ MULTIPLIER_RESULT_MSB,_sb_mul16_result+1
+
+    MZB _sb_mul16_op1+1,MULTIPLIER_A
+    MZB _sb_mul16_op2+1,MULTIPLIER_B
+
+    MBZ MULTIPLIER_RESULT_LSB,_sb_mul16_result+2
+    MBZ MULTIPLIER_RESULT_MSB,_sb_mul16_result+3
+
+    MZB _sb_mul16_op1+1,MULTIPLIER_A
+    MZB _sb_mul16_op2+0,MULTIPLIER_B
+
+    LDB MULTIPLIER_RESULT_LSB
+    AD.Z _sb_mul16_result+1
+    LDB MULTIPLIER_RESULT_MSB
+    AC.Z _sb_mul16_result+2
+    LDI 0
+    AC.Z _sb_mul16_result+3
+
+    MZB _sb_mul16_op1+0,MULTIPLIER_A
+    MZB _sb_mul16_op2+1,MULTIPLIER_B
+
+    LDB MULTIPLIER_RESULT_LSB
+    AD.Z _sb_mul16_result+1
+    LDB MULTIPLIER_RESULT_MSB
+    AC.Z _sb_mul16_result+2
+    LDI 0
+    AC.Z _sb_mul16_result+3
+    RTS
 
 #ifdef STATUS_BARS
 ; progress_tick
@@ -431,3 +409,8 @@ progress_tick:
 .done:
     RTS
 #endif
+
+
+
+
+#include "mathlib32.min64x4"

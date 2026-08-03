@@ -1,0 +1,578 @@
+; Layered isolation test for the multiply path in mathlib.min64x4.
+;
+; Runs three levels in one pass and reports failures per level, so a single run
+; identifies the lowest layer that produces a wrong answer:
+;
+;   L16 - ml_multiply_u16  vs software shift-add reference
+;   L32 - ml_multiply_u32  vs software schoolbook reference (from sw 16x16)
+;   L64 - ml_multiply_u64  vs known-good constants
+;
+; Every reference is computed in this file by shift-and-add, so the comparison
+; never depends on the code under test. The 64-bit Karatsuba path decomposes
+; into the 32-bit core, which decomposes into the 16-bit core -- so the first
+; level that fails is the level that owns the bug.
+;
+; L16 sweeps FF00..FFFF squared: that region contains every 16-bit operand the
+; 64-bit Karatsuba path generates for the all-ones vector (FFFD, FFFE, FFFF),
+; which is the case that fails in karatsuba64_test.
+;
+; Compile with -D USE_ACCELERATOR for the hardware path, without it for the
+; software path. Diffing the two runs separates arithmetic bugs (fail in both)
+; from accelerator-specific ones (fail only with the card).
+#require "slu4-min64x4-asm >= 1.1.0"
+
+#ifdef MATHLIB64
+#else
+#define MATHLIB64 1
+#endif
+
+; mathlib is included up front so its scope is established before use, which
+; puts its code first -- so the start of USER_APPS must jump to main.
+.memzone USER_APPS
+    JPA main
+
+#include "mathlib.min64x4"
+#use-scope "mathlib"
+
+MAX_DETAIL = 4                  ; failures printed in full, per level
+
+.memzone ZERO_PAGE_APPS
+#mute
+_ta:        .4byte 0            ; 32-bit operand A
+_tb:        .4byte 0            ; 32-bit operand B
+_swres:     .8byte 0            ; 64-bit software reference
+_m16a:      .2byte 0            ; 16-bit operands
+_m16b:      .2byte 0
+_m16r:      .4byte 0            ; software 16x16 result
+_m16mc:     .4byte 0
+_m16mp:     .2byte 0
+_m16cnt:    .byte  0
+_acnt:      .byte  0
+_bcnt:      .byte  0
+_f16:       .2byte 0
+_f32:       .2byte 0
+_f64:       .2byte 0
+_idx:       .byte  0
+_cnt:       .byte  0
+_ptr:       .2byte 0
+_pe:        .2byte 0
+_detail:    .byte  0
+_pcnt:      .byte  0
+_bad:       .byte  0
+_f16r:      .2byte 0            ; times the same multiply disagreed with itself
+#emit
+
+.memzone USER_APPS
+main:
+    SPINIT
+    JPS _Clear
+    MIZ 0,_XPos
+    MIZ 0,_YPos
+    JPS _Print "Karatsuba layer isolation test\n"
+    CLV _f16
+    CLV _f32
+    CLV _f64
+    CLV _f16r
+
+    JPS level16
+    JPS level32
+    JPS level64
+
+    JPS _Print "\n\n---- summary ----\n"
+    JPS _Print "L16 fails: "
+    LDZ _f16+1
+    JAS _PrintHex
+    LDZ _f16+0
+    JAS _PrintHex
+    JPS _Print "   L32 fails: "
+    LDZ _f32+1
+    JAS _PrintHex
+    LDZ _f32+0
+    JAS _PrintHex
+    JPS _Print "   L64 fails: "
+    LDZ _f64+1
+    JAS _PrintHex
+    LDZ _f64+0
+    JAS _PrintHex
+    JPS _Print "\nL16 self-disagreements: "
+    LDZ _f16r+1
+    JAS _PrintHex
+    LDZ _f16r+0
+    JAS _PrintHex
+    JPS _Print "\nLowest failing level owns the bug.\n"
+    JPS _WaitInput
+    JPS _Prompt
+
+; =====================================================================
+; LEVEL 16
+; =====================================================================
+.align
+level16:
+    JPS _Print "\nL16 "
+    MIZ 0,_detail
+    MIV 0xFF00,_m16a
+    MIZ 0,_acnt
+.a_loop:
+    MIV 0xFF00,_m16b
+    MIZ 0,_bcnt
+.b_loop:
+    JPS sw16                        ; reference -> _m16r
+
+    MIV _m16a,_ptr                  ; push A then B, LSB first; _m16a/_m16b are
+    MIZ 4,_cnt                      ; adjacent so one loop pushes both operands.
+.push:                              ; must be inline: a JPS return address would
+    LDT _ptr                        ; be buried under the pushed arguments.
+    PHS
+    INV _ptr
+    DEZ _cnt
+    BNE .push
+    JPS ml_multiply_u16
+    MIV res_buf,_pe
+    AIV 3,_pe
+    MIZ 4,_cnt
+.pop:
+    PLS
+    STT _pe
+    DEV _pe
+    DEZ _cnt
+    BNE .pop
+
+    MIV _m16a,_ptr                  ; repeat the identical multiply a second time
+    MIZ 4,_cnt
+.push2:
+    LDT _ptr
+    PHS
+    INV _ptr
+    DEZ _cnt
+    BNE .push2
+    JPS ml_multiply_u16
+    MIV res_buf2,_pe
+    AIV 3,_pe
+    MIZ 4,_cnt
+.pop2:
+    PLS
+    STT _pe
+    DEV _pe
+    DEZ _cnt
+    BNE .pop2
+
+    MIV res_buf,_ptr                ; does the machine agree with ITSELF?
+    MIV res_buf2,_pe
+    MIZ 4,_cnt
+    JPS cmp_bytes
+    CIZ 0,_bad
+    BEQ .stable
+    INV _f16r
+.stable:
+
+    MIV _m16r,_ptr
+    MIV res_buf,_pe
+    MIZ 4,_cnt
+    JPS cmp_bytes
+    CIZ 0,_bad
+    BNE .bad
+.next:
+    INV _m16b
+    INZ _bcnt
+    BNE .b_loop
+    LDI '.'
+    JAS _PrintChar
+    INV _m16a
+    INZ _acnt
+    BNE .a_loop
+    RTS
+
+.bad:
+    INV _f16
+    CIZ MAX_DETAIL,_detail
+    BEQ .next
+    INZ _detail
+    JPS _Print "\n L16 "
+    LDZ _m16a+1
+    JAS _PrintHex
+    LDZ _m16a+0
+    JAS _PrintHex
+    JPS _Print "x"
+    LDZ _m16b+1
+    JAS _PrintHex
+    LDZ _m16b+0
+    JAS _PrintHex
+    JPS _Print " sw="
+    MIV _m16r,_ptr
+    MIZ 3,_pcnt
+    JPS ptr_fwd
+    MIZ 4,_pcnt
+    JPS print_bytes
+    JPS _Print " hw="
+    MIV res_buf,_ptr
+    MIZ 3,_pcnt
+    JPS ptr_fwd
+    MIZ 4,_pcnt
+    JPS print_bytes
+    JPA .next
+
+; =====================================================================
+; LEVEL 32
+; =====================================================================
+.align
+level32:
+    JPS _Print "\nL32 "
+    MIZ 0,_detail
+    MIZ 0,_idx
+.loop:
+    LDZ _idx
+    CPB l32_count
+    BEQ .done
+
+    JPS load32                      ; _ta,_tb <- table[_idx]
+    JPS sw32                        ; reference -> _swres
+
+    MIV _ta,_ptr                    ; _ta/_tb adjacent: one loop pushes both
+    MIZ 8,_cnt
+.push:
+    LDT _ptr
+    PHS
+    INV _ptr
+    DEZ _cnt
+    BNE .push
+    JPS ml_multiply_u32
+    MIV res_buf,_pe
+    AIV 7,_pe
+    MIZ 8,_cnt
+.pop:
+    PLS
+    STT _pe
+    DEV _pe
+    DEZ _cnt
+    BNE .pop
+
+    MIV _swres,_ptr
+    MIV res_buf,_pe
+    MIZ 8,_cnt
+    JPS cmp_bytes
+    CIZ 0,_bad
+    BNE .bad
+    LDI '.'
+    JAS _PrintChar
+.next:
+    INZ _idx
+    JPA .loop
+.done:
+    RTS
+
+.bad:
+    INV _f32
+    CIZ MAX_DETAIL,_detail
+    BEQ .next
+    INZ _detail
+    JPS _Print "\n L32 idx "
+    LDZ _idx
+    JAS _PrintHex
+    JPS _Print " sw="
+    MIV _swres,_ptr
+    MIZ 7,_pcnt
+    JPS ptr_fwd
+    MIZ 8,_pcnt
+    JPS print_bytes
+    JPS _Print " hw="
+    MIV res_buf,_ptr
+    MIZ 7,_pcnt
+    JPS ptr_fwd
+    MIZ 8,_pcnt
+    JPS print_bytes
+    JPA .next
+
+; _ta,_tb <- l32_tab[_idx]  (8 bytes per entry)
+load32:
+    MIV l32_tab,_ptr
+    MZZ _idx,_cnt
+    CIZ 0,_cnt
+    BEQ .ready
+.adv:
+    AIV 8,_ptr
+    DEZ _cnt
+    BNE .adv
+.ready:
+    MIV _ta,_pe
+    MIZ 4,_cnt
+    JPS copy_bytes
+    MIV _tb,_pe
+    MIZ 4,_cnt
+    JPS copy_bytes
+    RTS
+
+; =====================================================================
+; LEVEL 64
+; =====================================================================
+.align
+level64:
+    JPS _Print "\nL64 "
+    MIZ 0,_detail
+    MIZ 0,_idx
+.loop:
+    LDZ _idx
+    CPB l64_count
+    BEQ .done
+
+    JPS l64_ptr                     ; _ptr -> entry; a and b are adjacent
+    MIZ 16,_cnt
+.push:
+    LDT _ptr
+    PHS
+    INV _ptr
+    DEZ _cnt
+    BNE .push
+
+    JPS ml_multiply_u64
+
+    MIV res_buf,_pe
+    AIV 15,_pe
+    MIZ 16,_cnt
+.pop:
+    PLS
+    STT _pe
+    DEV _pe
+    DEZ _cnt
+    BNE .pop
+
+    JPS l64_ptr
+    AIV 16,_ptr                     ; expected follows a,b
+    MIV res_buf,_pe
+    MIZ 16,_cnt
+    JPS cmp_bytes
+    CIZ 0,_bad
+    BNE .bad
+    LDI '.'
+    JAS _PrintChar
+.next:
+    INZ _idx
+    JPA .loop
+.done:
+    RTS
+
+.bad:
+    INV _f64
+    CIZ MAX_DETAIL,_detail
+    BEQ .next
+    INZ _detail
+    JPS _Print "\n L64 idx "
+    LDZ _idx
+    JAS _PrintHex
+    JPS _Print "\n  exp="
+    JPS l64_ptr
+    AIV 16,_ptr
+    MIZ 15,_pcnt
+    JPS ptr_fwd
+    MIZ 16,_pcnt
+    JPS print_bytes
+    JPS _Print "\n  act="
+    MIV res_buf,_ptr
+    MIZ 15,_pcnt
+    JPS ptr_fwd
+    MIZ 16,_pcnt
+    JPS print_bytes
+    JPA .next
+
+; _ptr = l64_tab + _idx*32
+l64_ptr:
+    MIV l64_tab,_ptr
+    MZZ _idx,_cnt
+    CIZ 0,_cnt
+    BEQ .done
+.adv:
+    AIV 32,_ptr
+    DEZ _cnt
+    BNE .adv
+.done:
+    RTS
+
+; =====================================================================
+; Software references
+; =====================================================================
+
+; _m16r(32) = _m16a(16) * _m16b(16)
+.align
+sw16:
+    CLQ _m16r
+    CLQ _m16mc
+    MVV _m16a,_m16mc
+    MVV _m16b,_m16mp
+    MIZ 16,_m16cnt
+.loop:
+    LDZ _m16mp
+    ANI 1
+    CPI 1
+    BNE .skip
+    AQQ _m16mc,_m16r
+.skip:
+    LLQ _m16mc
+    CLC
+    RRZ _m16mp+1
+    RRZ _m16mp
+    DEZ _m16cnt
+    BNE .loop
+    RTS
+
+; _swres(64) = _ta(32) * _tb(32), schoolbook from four 16x16 products
+.align
+sw32:
+    CLQ _swres
+    CLQ _swres+4
+
+    MVV _ta+0,_m16a
+    MVV _tb+0,_m16b
+    JPS sw16
+    AQQ _m16r,_swres+0
+    JPS carry47
+
+    MVV _ta+2,_m16a
+    MVV _tb+0,_m16b
+    JPS sw16
+    AQQ _m16r,_swres+2
+    JPS carry67
+
+    MVV _ta+0,_m16a
+    MVV _tb+2,_m16b
+    JPS sw16
+    AQQ _m16r,_swres+2
+    JPS carry67
+
+    MVV _ta+2,_m16a
+    MVV _tb+2,_m16b
+    JPS sw16
+    AQQ _m16r,_swres+4
+    RTS
+
+carry47:
+    LDI 0
+    AC.Z _swres+4
+    LDI 0
+    AC.Z _swres+5
+    LDI 0
+    AC.Z _swres+6
+    LDI 0
+    AC.Z _swres+7
+    RTS
+
+carry67:
+    LDI 0
+    AC.Z _swres+6
+    LDI 0
+    AC.Z _swres+7
+    RTS
+
+; =====================================================================
+; Byte helpers
+; =====================================================================
+
+; NOTE: argument pushes and result pops are deliberately inlined at each call
+; site rather than factored into subroutines -- a JPS return address would sit
+; on top of the pushed arguments and be consumed as data.
+
+; copy _cnt bytes from _ptr to _pe (both ascending)
+copy_bytes:
+    LDT _ptr
+    STT _pe
+    INV _ptr
+    INV _pe
+    DEZ _cnt
+    BNE copy_bytes
+    RTS
+
+; compare _cnt bytes at _ptr vs _pe; sets _bad
+cmp_bytes:
+    MIZ 0,_bad
+.loop:
+    LDT _ptr
+    CPT _pe
+    BNE .fail
+    INV _ptr
+    INV _pe
+    DEZ _cnt
+    BNE .loop
+    RTS
+.fail:
+    MIZ 1,_bad
+    RTS
+
+; advance _ptr forward by _pcnt
+ptr_fwd:
+    CIZ 0,_pcnt
+    BEQ .done
+.loop:
+    INV _ptr
+    DEZ _pcnt
+    BNE .loop
+.done:
+    RTS
+
+; print _pcnt bytes from _ptr walking downward (MSB first)
+print_bytes:
+    LDT _ptr
+    JAS _PrintHex
+    DEV _ptr
+    DEZ _pcnt
+    BNE print_bytes
+    RTS
+
+.memzone USER_APPS
+res_buf:
+    .16byte 0
+
+res_buf2:
+    .16byte 0
+
+l32_count:
+    .byte 8
+l32_tab:
+    .4byte 0xFFFFFFFF
+    .4byte 0xFFFFFFFF
+    .4byte 0xFFFFFFFE
+    .4byte 0xFFFFFFFE
+    .4byte 0xFFFFFFFD
+    .4byte 0xFFFFFFFD
+    .4byte 0xFFFFFFFF
+    .4byte 0xFFFFFFFE
+    .4byte 0x00000001
+    .4byte 0xFFFFFFFF
+    .4byte 0x00000000
+    .4byte 0x12345678
+    .4byte 0x80000000
+    .4byte 0x80000000
+    .4byte 0x12345678
+    .4byte 0x9ABCDEF0
+
+l64_count:
+    .byte 8
+l64_tab:
+    .8byte 0x0000000000000000
+    .8byte 0x123456789ABCDEF0
+    .16byte 0x00000000000000000000000000000000
+
+    .8byte 0x0000000000000001
+    .8byte 0xFFFFFFFFFFFFFFFF
+    .16byte 0x0000000000000000FFFFFFFFFFFFFFFF
+
+    .8byte 0xFFFFFFFFFFFFFFFF
+    .8byte 0xFFFFFFFFFFFFFFFF
+    .16byte 0xFFFFFFFFFFFFFFFE0000000000000001
+
+    .8byte 0x00000000FFFFFFFF
+    .8byte 0x00000000FFFFFFFF
+    .16byte 0x0000000000000000FFFFFFFE00000001
+
+    .8byte 0xFFFFFFFF00000000
+    .8byte 0x00000000FFFFFFFF
+    .16byte 0x00000000FFFFFFFE0000000100000000
+
+    .8byte 0x8000000000000000
+    .8byte 0x8000000000000000
+    .16byte 0x40000000000000000000000000000000
+
+    .8byte 0x123456789ABCDEF0
+    .8byte 0x0FEDCBA987654321
+    .16byte 0x0121FA00AD77D7422236D88FE5618CF0
+
+    .8byte 0xFFFFFFFFFFFFFFFF
+    .8byte 0x0000000100000001
+    .16byte 0x0000000100000000FFFFFFFEFFFFFFFF

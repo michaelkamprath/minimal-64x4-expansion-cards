@@ -6,19 +6,19 @@
 #---------------------------------
 
 def timerReset():
-  char timerCmd @ 0xfef7 = 0
+  char timerCmd @ 0xfe2f = 0
 
 
 def timerLatch():
-  char timerCmd @ 0xfef6 = 0
+  char timerCmd @ 0xfe2e = 0
 
 def timerValue():
-  char val0 @ 0xfef0
-  char val1 @ 0xfef1
-  char val2 @ 0xfef2
-  char val3 @ 0xfef3
-  char val4 @ 0xfef4
-  char val5 @ 0xfef5
+  char val0 @ 0xfe28
+  char val1 @ 0xfe29
+  char val2 @ 0xfe2a
+  char val3 @ 0xfe2b
+  char val4 @ 0xfe2c
+  char val5 @ 0xfe2d
 
   print("0x")
   printHex(val5)

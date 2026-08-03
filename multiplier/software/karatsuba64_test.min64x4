@@ -19,16 +19,14 @@ _print_ptr:         .2byte 0
 #emit
 
 .memzone ZERO_PAGE_LIBS
-#mute
-#emit
 
-.memzone USER_APPS
 #mute
 _cmp_count:         .byte 0
 _print_count:       .byte 0
 _ptr_add_count:     .byte 0
 #emit
 
+.memzone USER_APPS
 main:
     SPINIT
     JPS _Clear

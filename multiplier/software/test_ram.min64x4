@@ -1,0 +1,174 @@
+; RAM integrity test for the Minimal 64x4.
+;
+; Every multiply test so far has assumed RAM is sound. This checks that
+; assumption directly, because a bad cell in the application region would
+; explain why behaviour changes when code addresses shift between builds, and
+; why the same binary gives different answers on different runs.
+;
+; Regions tested:
+;   - application RAM  0x8400 - 0xEFFF  (above this program, which sits at 0x8000)
+;   - zero page        0x0010 - 0x007F  (above this program's own variables)
+;
+; Patterns, run as full fill-then-verify passes so that a write to one cell
+; disturbing another (coupling) is caught, not just stuck bits:
+;   00, FF, 55, AA, and address-as-data (catches address-decode faults).
+;
+; Needs no libraries and does not touch the multiplier card, so it can be run
+; with the card installed or removed -- running it both ways shows whether the
+; card's presence disturbs memory.
+#require "slu4-min64x4-asm >= 1.1.0"
+
+RAM_LO      = $8400
+RAM_HI      = $F000             ; exclusive upper bound
+ZP_LO       = $0010
+ZP_HI       = $0080             ; exclusive upper bound
+MAX_DETAIL  = 8
+
+.memzone ZERO_PAGE_APPS
+#mute
+_ptr:       .2byte 0            ; walking pointer
+_start:     .2byte 0            ; region bounds
+_end:       .2byte 0
+_pat:       .byte  0            ; current constant pattern
+_fails:     .2byte 0
+_detail:    .byte  0
+_mode:      .byte  0            ; 0 = constant pattern, 1 = address-as-data
+#emit
+
+.memzone USER_APPS
+main:
+    SPINIT
+    JPS _Clear
+    MIZ 0,_XPos
+    MIZ 0,_YPos
+    JPS _Print "RAM integrity test\n"
+    CLV _fails
+    MIZ 0,_detail
+
+    JPS _Print "\nmain RAM 8400-EFFF "
+    MIV RAM_LO,_start
+    MIV RAM_HI,_end
+    JPS run_all_patterns
+
+    JPS _Print "\nzero page 0010-007F "
+    MIV ZP_LO,_start
+    MIV ZP_HI,_end
+    JPS run_all_patterns
+
+    JPS _Print "\n\nTotal bad cells: "
+    LDZ _fails+1
+    JAS _PrintHex
+    LDZ _fails+0
+    JAS _PrintHex
+    CIZ 0,_fails+0
+    BNE .bad
+    CIZ 0,_fails+1
+    BNE .bad
+    JPS _Print "\nRAM is sound in both regions.\n"
+    JPA .done
+.bad:
+    JPS _Print "\nRAM FAULT - see addresses above.\n"
+.done:
+    JPS _WaitInput
+    JPS _Prompt
+
+; runs every pattern over the region in _start.._end
+run_all_patterns:
+    MIZ 0,_mode
+    MIZ 0x00,_pat
+    JPS one_pass
+    MIZ 0xFF,_pat
+    JPS one_pass
+    MIZ 0x55,_pat
+    JPS one_pass
+    MIZ 0xAA,_pat
+    JPS one_pass
+    MIZ 1,_mode                 ; address-as-data
+    JPS one_pass
+    RTS
+
+; fill the whole region, then verify the whole region
+one_pass:
+    JPS fill_region
+    JPS verify_region
+    LDI '.'
+    JAS _PrintChar
+    RTS
+
+fill_region:
+    MVV _start,_ptr
+.loop:
+    CIZ 0,_mode
+    BNE .addr_data
+    LDZ _pat
+    JPA .store
+.addr_data:
+    LDZ _ptr+0                  ; low byte of this cell's own address
+.store:
+    STT _ptr
+    INV _ptr
+    CZZ _end+1,_ptr+1
+    BNE .loop
+    CZZ _end+0,_ptr+0
+    BNE .loop
+    RTS
+
+; NOTE: CIZ/CZZ/CIB load a memory operand into A, so they DESTROY A. Only the
+; CP* forms compare against A and preserve it. The mode test therefore has to
+; happen once, before the loop -- testing it between the LDT and the CPZ would
+; compare the mode flag instead of the value read from memory.
+verify_region:
+    MVV _start,_ptr
+    CIZ 0,_mode
+    BNE .addr_loop
+
+.pat_loop:                          ; constant-pattern region
+    LDT _ptr
+    CPZ _pat
+    BNE .bad
+.pat_next:
+    INV _ptr
+    CZZ _end+1,_ptr+1
+    BNE .pat_loop
+    CZZ _end+0,_ptr+0
+    BNE .pat_loop
+    RTS
+
+.addr_loop:                         ; address-as-data region
+    LDT _ptr
+    CPZ _ptr+0
+    BNE .bad
+.addr_next:
+    INV _ptr
+    CZZ _end+1,_ptr+1
+    BNE .addr_loop
+    CZZ _end+0,_ptr+0
+    BNE .addr_loop
+    RTS
+
+.bad:
+    INV _fails
+    CIZ MAX_DETAIL,_detail
+    BEQ .rejoin
+    INZ _detail
+    JPS _Print "\n  bad "
+    LDZ _ptr+1
+    JAS _PrintHex
+    LDZ _ptr+0
+    JAS _PrintHex
+    JPS _Print " wrote="
+    CIZ 0,_mode
+    BNE .show_addr
+    LDZ _pat
+    JPA .show_got
+.show_addr:
+    LDZ _ptr+0
+.show_got:
+    JAS _PrintHex
+    JPS _Print " read="
+    LDT _ptr
+    JAS _PrintHex
+.rejoin:
+    CIZ 0,_mode
+    BNE .addr_next
+    JPA .pat_next

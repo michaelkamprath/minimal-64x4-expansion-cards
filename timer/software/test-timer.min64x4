@@ -1,0 +1,121 @@
+#require __LANGUAGE_NAME__ == slu4-min64x4-asm
+#require __LANGUAGE_VERSION__ >= 1.1.0
+#create-scope "timerlib" prefix="timer_"
+
+; Timer card base is $FE28 (see the note in multiplier/software/karatsuba64.min64x4):
+; chosen so its decoded bits A7..A3 differ from the multiplier card's $FED0 in
+; every position, preventing a transient decode during address settling.
+timer_LATCHED_VALUE_ADDR = $FE28
+timer_LATCH_TIMER_ADDR = $FE2E
+timer_RESET_TIMER_ADDR = $FE2F
+
+.org 0 "USER_APPS"
+start:
+	spinit
+	ldi 0
+	stb timer_RESET_TIMER_ADDR
+	stb timer_LATCH_TIMER_ADDR
+	jps write_value
+	stb timer_LATCH_TIMER_ADDR
+	jps write_value
+	ldi 255
+.wait1:
+	dec
+	cpi 0
+	bne .wait1
+	stb  timer_LATCH_TIMER_ADDR
+	jps write_value
+
+	ldi 255
+.wait2:
+        dec
+	cpi 0
+        bne .wait2
+        stb  timer_LATCH_TIMER_ADDR
+        jps write_value
+
+	ldi $ff
+	stz 0
+	stz 1
+	ldi 1
+	stz 2
+	ldi 0
+	stz 3
+.wait3:
+	deq 0
+	ldi 0
+	cpz 3
+	bne .wait3
+	cpz 2
+	bne .wait3
+	cpz 1
+	bne .wait3
+	cpz 0
+	bne .wait3
+        stb  timer_LATCH_TIMER_ADDR
+        jps write_value
+
+        ldi $ff
+        stz 0
+        stz 1
+        ldi 4
+        stz 2
+        ldi 0
+        stz 3
+.wait4:
+        deq 0
+        ldi 0
+        cpz 3
+        bne .wait4
+        cpz 2
+        bne .wait4
+        cpz 1
+        bne .wait4
+        cpz 0
+        bne .wait4
+        stb  timer_LATCH_TIMER_ADDR
+        jps write_value
+
+
+        ldi $ff
+        stz 0
+        stz 1
+        ldi 8
+        stz 2
+        ldi 0
+        stz 3
+.wait5:
+        deq 0
+        ldi 0
+        cpz 3
+        bne .wait5
+        cpz 2
+        bne .wait5
+        cpz 1
+        bne .wait5
+        cpz 0
+        bne .wait5
+        stb  timer_LATCH_TIMER_ADDR
+        jps write_value
+
+	jpa _Prompt
+
+write_value:
+	jps _Print "timer value = "
+	ldb timer_LATCHED_VALUE_ADDR+5
+	jas _PrintHex
+	ldb timer_LATCHED_VALUE_ADDR+4
+	jas _PrintHex
+        ldb timer_LATCHED_VALUE_ADDR+3
+        jas _PrintHex
+        ldb timer_LATCHED_VALUE_ADDR+2
+        jas _PrintHex
+        ldb timer_LATCHED_VALUE_ADDR+1
+        jas _PrintHex
+        ldb timer_LATCHED_VALUE_ADDR+0
+        jas _PrintHex
+	jps _Print "\n"
+	rts
+
+	
+
