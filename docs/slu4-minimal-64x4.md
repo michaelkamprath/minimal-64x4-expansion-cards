@@ -48,7 +48,7 @@ slu4 Minimal 64x4 Home Computer
 
 ### Compatibility
 
-**Minimum BespokeASM Version:** 0.7.0
+**Minimum BespokeASM Version:** 0.8.0
 
 ## Predefined Memory Zones
 
@@ -143,7 +143,7 @@ slu4 Minimal 64x4 Home Computer
 
 | Operand | Syntax | Value | Addressing Mode | Description |
 | :-- | :-- | :-- | :-- | :-- |
-| Page Offset Address (`address_lsb`) | `address_lsb` | numeric expression expressed as 8 bit value | Address | One byte used as the LSB for the address. The MSB is the current instruct's address MSB.<br><br>Uses only the least significant bits of the address value.<br><br>High address bits are taken from the current instruction address. |
+| Page Offset Address (`address_lsb`) | `address_lsb` | numeric expression expressed as 8 bit value | Address | One byte used as the LSB for the address. The MSB of the address comes from the operand's own bytecode address.<br><br>Uses only the least significant bits of the address value.<br><br>High address bits are taken from the operand fetch page. |
 
 ### `offset`
 
@@ -169,6 +169,40 @@ slu4 Minimal 64x4 Home Computer
 | :-- | :-- | :-- | :-- | :-- |
 | Zero Page Address (`zp_addr`) | `zp_addr` | numeric expression expressed as 8 bit value | Address | one byte is interpreted as a zero page address<br><br>Valid within `ZERO_PAGE` memory zone.<br><br>Uses only the least significant bits of the address value. |
 
+# Flow Counters
+
+See [Flow Counters](https://github.com/michaelkamprath/bespokeasm/wiki/Assembly-Language-Syntax#flow-counters) for the assembly-language syntax and general feature documentation.
+
+## Hardware Stack Depth (`stack`)
+
+Tracks the number of bytes of routine-owned data on the MinOS hardware stack, in bytes pushed relative to the tracking region's entry. The stack lives in the 0xFF00 page and is addressed stack-pointer-relative by `lds`/`sts` as `*(0xff00 + SP + offset)`.
+
+| Property | Value |
+| --- | --- |
+| Source | `flow_effects.stack` |
+| Minimum Value | 0 |
+| Maximum Value | 254 |
+| Default Initial Value | 0 |
+| Exit Policy | `balanced` |
+| Coordinate Offsets | `positive` |
+| Allow Zero Offset | No |
+| Unknown Instructions | `error` |
+| Invalidated By Writes To | `0xffff` |
+| Join Policy | `require-equal` |
+
+### Entry Modes
+
+| Mode | Initial Value | Exit Value | Description |
+| --- | --- | --- | --- |
+| `called` | 0 | 0 | A subroutine entered via `jps` or `jas` with the 2-byte return address on the stack. The counter measures only the routine's own stack movement, which must return to zero before `rts` consumes the caller-owned return address. Caller arguments sit behind the return address and are named with `COORDINATE(stack, N)` for N >= 3. |
+| `jumped` | 0 | 0 | Code entered via a jump with no return address on the stack, such as a program started from the MinOS prompt, a dispatcher target, or a tail-call destination. There is no terminal instruction on this path, so close the region with `#endtrack` before the transfer out. |
+
+### Terminal Instructions
+
+| Instruction | Reconciliation |
+| --- | --- |
+| `rts` | Before effect |
+
 # Instructions
 
 ## Arithmetic
@@ -178,7 +212,7 @@ slu4 Minimal 64x4 Home Computer
 *Calling syntax:*
 
 ```asm
-ABB address1, address2
+abb address1, address2
 ```
 
 where
@@ -196,6 +230,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -204,7 +239,7 @@ where
 *Calling syntax:*
 
 ```asm
-ABQ address, zp_addr
+abq address, zp_addr
 ```
 
 where
@@ -222,6 +257,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -230,7 +266,7 @@ where
 *Calling syntax:*
 
 ```asm
-ABV address, zp_addr
+abv address, zp_addr
 ```
 
 where
@@ -245,9 +281,10 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
-| Flag | N | Reflects result |
-| Flag | C | Reflects result |
-| Flag | Z | Reflects result |
+| Flag | N | Reflects MSB of result |
+| Flag | C | Reflects MSB of result |
+| Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -256,7 +293,7 @@ where
 *Calling syntax:*
 
 ```asm
-ABW address1, address2
+abw address1, address2
 ```
 
 where
@@ -274,6 +311,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -282,7 +320,7 @@ where
 *Calling syntax:*
 
 ```asm
-ABZ address, zp_addr
+abz address, zp_addr
 ```
 
 where
@@ -300,6 +338,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -308,7 +347,7 @@ where
 *Calling syntax:*
 
 ```asm
-AC.B address
+ac.b address
 ```
 
 where
@@ -325,6 +364,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -333,7 +373,7 @@ where
 *Calling syntax:*
 
 ```asm
-AC.Z zp_addr
+ac.z zp_addr
 ```
 
 where
@@ -350,6 +390,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -358,7 +399,7 @@ where
 *Calling syntax:*
 
 ```asm
-ACB address
+acb address
 ```
 
 where
@@ -383,7 +424,7 @@ where
 *Calling syntax:*
 
 ```asm
-ACI int8
+aci int8
 ```
 
 where
@@ -408,7 +449,7 @@ where
 *Calling syntax:*
 
 ```asm
-ACV zp_addr
+acv zp_addr
 ```
 
 where
@@ -425,6 +466,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -433,7 +475,7 @@ where
 *Calling syntax:*
 
 ```asm
-ACW address
+acw address
 ```
 
 where
@@ -450,6 +492,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -458,7 +501,7 @@ where
 *Calling syntax:*
 
 ```asm
-ACZ zp_addr
+acz zp_addr
 ```
 
 where
@@ -483,7 +526,7 @@ where
 *Calling syntax:*
 
 ```asm
-AD.B address
+ad.b address
 ```
 
 where
@@ -500,6 +543,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -508,7 +552,7 @@ where
 *Calling syntax:*
 
 ```asm
-AD.R address
+ad.r address
 ```
 
 where
@@ -533,7 +577,7 @@ where
 *Calling syntax:*
 
 ```asm
-AD.T zp_addr
+ad.t zp_addr
 ```
 
 where
@@ -558,7 +602,7 @@ where
 *Calling syntax:*
 
 ```asm
-AD.Z zp_addr
+ad.z zp_addr
 ```
 
 where
@@ -575,6 +619,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -583,7 +628,7 @@ where
 *Calling syntax:*
 
 ```asm
-ADB address
+adb address
 ```
 
 where
@@ -608,7 +653,7 @@ where
 *Calling syntax:*
 
 ```asm
-ADI int8
+adi int8
 ```
 
 where
@@ -633,7 +678,7 @@ where
 *Calling syntax:*
 
 ```asm
-ADL address
+adl address
 ```
 
 where
@@ -650,6 +695,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -658,7 +704,7 @@ where
 *Calling syntax:*
 
 ```asm
-ADQ zp_addr
+adq zp_addr
 ```
 
 where
@@ -675,6 +721,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -683,7 +730,7 @@ where
 *Calling syntax:*
 
 ```asm
-ADR address
+adr address
 ```
 
 where
@@ -708,7 +755,7 @@ where
 *Calling syntax:*
 
 ```asm
-ADT zp_addr
+adt zp_addr
 ```
 
 where
@@ -733,7 +780,7 @@ where
 *Calling syntax:*
 
 ```asm
-ADV zp_addr
+adv zp_addr
 ```
 
 where
@@ -750,6 +797,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -758,7 +806,7 @@ where
 *Calling syntax:*
 
 ```asm
-ADW address
+adw address
 ```
 
 where
@@ -775,6 +823,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -783,7 +832,7 @@ where
 *Calling syntax:*
 
 ```asm
-ADZ zp_addr
+adz zp_addr
 ```
 
 where
@@ -808,7 +857,7 @@ where
 *Calling syntax:*
 
 ```asm
-AIB int8, address
+aib int8, address
 ```
 
 where
@@ -826,6 +875,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -834,7 +884,7 @@ where
 *Calling syntax:*
 
 ```asm
-AIL int8, address
+ail int8, address
 ```
 
 where
@@ -852,6 +902,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -860,7 +911,7 @@ where
 *Calling syntax:*
 
 ```asm
-AIQ int8, zp_addr
+aiq int8, zp_addr
 ```
 
 where
@@ -878,6 +929,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -886,7 +938,7 @@ where
 *Calling syntax:*
 
 ```asm
-AIR int8, address
+air int8, address
 ```
 
 where
@@ -912,7 +964,7 @@ where
 *Calling syntax:*
 
 ```asm
-AIT int8, zp_addr
+ait int8, zp_addr
 ```
 
 where
@@ -938,7 +990,7 @@ where
 *Calling syntax:*
 
 ```asm
-AIV int8, zp_addr
+aiv int8, zp_addr
 ```
 
 where
@@ -953,9 +1005,10 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
-| Flag | N | Reflects result |
-| Flag | C | Reflects result |
-| Flag | Z | Reflects result |
+| Flag | N | Reflects MSB of result |
+| Flag | C | Reflects MSB of result |
+| Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -964,7 +1017,7 @@ where
 *Calling syntax:*
 
 ```asm
-AIW int8, address
+aiw int8, address
 ```
 
 where
@@ -982,6 +1035,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -990,7 +1044,7 @@ where
 *Calling syntax:*
 
 ```asm
-AIZ int8, zp_addr
+aiz int8, zp_addr
 ```
 
 where
@@ -1008,6 +1062,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -1016,7 +1071,7 @@ where
 *Calling syntax:*
 
 ```asm
-AN.B address
+an.b address
 ```
 
 where
@@ -1030,6 +1085,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1038,7 +1094,7 @@ where
 *Calling syntax:*
 
 ```asm
-AN.Z zp_addr
+an.z zp_addr
 ```
 
 where
@@ -1052,6 +1108,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1060,7 +1117,7 @@ where
 *Calling syntax:*
 
 ```asm
-ANB address
+anb address
 ```
 
 where
@@ -1082,7 +1139,7 @@ where
 *Calling syntax:*
 
 ```asm
-ANI int8
+ani int8
 ```
 
 where
@@ -1104,7 +1161,7 @@ where
 *Calling syntax:*
 
 ```asm
-ANR address
+anr address
 ```
 
 where
@@ -1126,7 +1183,7 @@ where
 *Calling syntax:*
 
 ```asm
-ANT zp_addr
+ant zp_addr
 ```
 
 where
@@ -1148,7 +1205,7 @@ where
 *Calling syntax:*
 
 ```asm
-ANZ zp_addr
+anz zp_addr
 ```
 
 where
@@ -1170,7 +1227,7 @@ where
 *Calling syntax:*
 
 ```asm
-AVV zp_addr1, zp_addr2
+avv zp_addr1, zp_addr2
 ```
 
 where
@@ -1185,9 +1242,10 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated (MSB of result) |
-| Flag | N | Reflects result |
-| Flag | C | Reflects result |
-| Flag | Z | Reflects result |
+| Flag | N | Reflects MSB of result |
+| Flag | C | Reflects MSB of result |
+| Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -1196,7 +1254,7 @@ where
 *Calling syntax:*
 
 ```asm
-AZB zp_addr, address
+azb zp_addr, address
 ```
 
 where
@@ -1214,6 +1272,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -1222,7 +1281,7 @@ where
 *Calling syntax:*
 
 ```asm
-AZL zp_addr, address
+azl zp_addr, address
 ```
 
 where
@@ -1240,6 +1299,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -1248,7 +1308,7 @@ where
 *Calling syntax:*
 
 ```asm
-AZQ zp_addr1, zp_addr2
+azq zp_addr1, zp_addr2
 ```
 
 where
@@ -1266,6 +1326,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -1274,7 +1335,7 @@ where
 *Calling syntax:*
 
 ```asm
-AZV zp_addr1, zp_addr2
+azv zp_addr1, zp_addr2
 ```
 
 where
@@ -1289,9 +1350,10 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
-| Flag | N | Reflects result |
-| Flag | C | Reflects result |
-| Flag | Z | Reflects result |
+| Flag | N | Reflects MSB of result |
+| Flag | C | Reflects MSB of result |
+| Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -1300,7 +1362,7 @@ where
 *Calling syntax:*
 
 ```asm
-AZW zp_addr, address
+azw zp_addr, address
 ```
 
 where
@@ -1318,6 +1380,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -1326,7 +1389,7 @@ where
 *Calling syntax:*
 
 ```asm
-AZZ zp_addr1, zp_addr2
+azz zp_addr1, zp_addr2
 ```
 
 where
@@ -1344,6 +1407,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -1352,16 +1416,15 @@ where
 *Calling syntax:*
 
 ```asm
-CLC
+clc
 ```
 
 #### Modifies
 
 | Type | Target | Description |
 | --- | --- | --- |
-| Register | a | Undefined |
-| Flag | C | Set to 0 |
 | Flag | N | Set to 1 |
+| Flag | C | Set to 0 |
 | Flag | Z | Set to 0 |
 
 ---
@@ -1371,7 +1434,7 @@ CLC
 *Calling syntax:*
 
 ```asm
-DEB address
+deb address
 ```
 
 where
@@ -1388,6 +1451,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1396,7 +1460,7 @@ where
 *Calling syntax:*
 
 ```asm
-DEC
+dec
 ```
 
 #### Modifies
@@ -1415,7 +1479,7 @@ DEC
 *Calling syntax:*
 
 ```asm
-DEL address
+del address
 ```
 
 where
@@ -1432,6 +1496,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1440,7 +1505,7 @@ where
 *Calling syntax:*
 
 ```asm
-DEQ zp_addr
+deq zp_addr
 ```
 
 where
@@ -1457,6 +1522,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1465,7 +1531,7 @@ where
 *Calling syntax:*
 
 ```asm
-DEV zp_addr
+dev zp_addr
 ```
 
 where
@@ -1482,6 +1548,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1490,7 +1557,7 @@ where
 *Calling syntax:*
 
 ```asm
-DEW address
+dew address
 ```
 
 where
@@ -1507,6 +1574,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1515,7 +1583,7 @@ where
 *Calling syntax:*
 
 ```asm
-DEZ zp_addr
+dez zp_addr
 ```
 
 where
@@ -1532,6 +1600,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1540,7 +1609,7 @@ where
 *Calling syntax:*
 
 ```asm
-INB address
+inb address
 ```
 
 where
@@ -1557,6 +1626,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1565,7 +1635,7 @@ where
 *Calling syntax:*
 
 ```asm
-INC
+inc
 ```
 
 #### Modifies
@@ -1584,7 +1654,7 @@ INC
 *Calling syntax:*
 
 ```asm
-INL address
+inl address
 ```
 
 where
@@ -1601,6 +1671,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1609,7 +1680,7 @@ where
 *Calling syntax:*
 
 ```asm
-INQ zp_addr
+inq zp_addr
 ```
 
 where
@@ -1626,6 +1697,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1634,7 +1706,7 @@ where
 *Calling syntax:*
 
 ```asm
-INV zp_addr
+inv zp_addr
 ```
 
 where
@@ -1651,6 +1723,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1659,7 +1732,7 @@ where
 *Calling syntax:*
 
 ```asm
-INW address
+inw address
 ```
 
 where
@@ -1676,6 +1749,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1684,7 +1758,7 @@ where
 *Calling syntax:*
 
 ```asm
-INZ zp_addr
+inz zp_addr
 ```
 
 where
@@ -1701,6 +1775,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1709,7 +1784,7 @@ where
 *Calling syntax:*
 
 ```asm
-LAB address
+lab address
 ```
 
 where
@@ -1734,7 +1809,7 @@ where
 *Calling syntax:*
 
 ```asm
-LAP int8
+lap int8
 ```
 
 where
@@ -1756,7 +1831,7 @@ where
 *Calling syntax:*
 
 ```asm
-LL0
+ll0
 ```
 
 ---
@@ -1766,7 +1841,7 @@ LL0
 *Calling syntax:*
 
 ```asm
-LL1
+ll1
 ```
 
 #### Modifies
@@ -1785,7 +1860,7 @@ LL1
 *Calling syntax:*
 
 ```asm
-LL2
+ll2
 ```
 
 #### Modifies
@@ -1804,7 +1879,7 @@ LL2
 *Calling syntax:*
 
 ```asm
-LL3
+ll3
 ```
 
 #### Modifies
@@ -1823,7 +1898,7 @@ LL3
 *Calling syntax:*
 
 ```asm
-LL4
+ll4
 ```
 
 #### Modifies
@@ -1842,7 +1917,7 @@ LL4
 *Calling syntax:*
 
 ```asm
-LL5
+ll5
 ```
 
 #### Modifies
@@ -1861,7 +1936,7 @@ LL5
 *Calling syntax:*
 
 ```asm
-LL6
+ll6
 ```
 
 #### Modifies
@@ -1880,7 +1955,7 @@ LL6
 *Calling syntax:*
 
 ```asm
-LL7
+ll7
 ```
 
 #### Modifies
@@ -1899,7 +1974,7 @@ LL7
 *Calling syntax:*
 
 ```asm
-LLB address
+llb address
 ```
 
 where
@@ -1916,6 +1991,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1924,7 +2000,7 @@ where
 *Calling syntax:*
 
 ```asm
-LLL address
+lll address
 ```
 
 where
@@ -1941,6 +2017,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1949,7 +2026,7 @@ where
 *Calling syntax:*
 
 ```asm
-LLQ zp_addr
+llq zp_addr
 ```
 
 where
@@ -1966,6 +2043,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1974,7 +2052,7 @@ where
 *Calling syntax:*
 
 ```asm
-LLV zp_addr
+llv zp_addr
 ```
 
 where
@@ -1991,6 +2069,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -1999,7 +2078,7 @@ where
 *Calling syntax:*
 
 ```asm
-LLW address
+llw address
 ```
 
 where
@@ -2016,6 +2095,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2024,7 +2104,7 @@ where
 *Calling syntax:*
 
 ```asm
-LLZ zp_addr
+llz zp_addr
 ```
 
 where
@@ -2041,6 +2121,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2049,7 +2130,7 @@ where
 *Calling syntax:*
 
 ```asm
-LR0
+lr0
 ```
 
 ---
@@ -2059,7 +2140,7 @@ LR0
 *Calling syntax:*
 
 ```asm
-LR1
+lr1
 ```
 
 #### Modifies
@@ -2078,7 +2159,7 @@ LR1
 *Calling syntax:*
 
 ```asm
-LR2
+lr2
 ```
 
 #### Modifies
@@ -2097,7 +2178,7 @@ LR2
 *Calling syntax:*
 
 ```asm
-LR3
+lr3
 ```
 
 #### Modifies
@@ -2116,7 +2197,7 @@ LR3
 *Calling syntax:*
 
 ```asm
-LR4
+lr4
 ```
 
 #### Modifies
@@ -2135,7 +2216,7 @@ LR4
 *Calling syntax:*
 
 ```asm
-LR5
+lr5
 ```
 
 #### Modifies
@@ -2154,7 +2235,7 @@ LR5
 *Calling syntax:*
 
 ```asm
-LR6
+lr6
 ```
 
 #### Modifies
@@ -2173,7 +2254,7 @@ LR6
 *Calling syntax:*
 
 ```asm
-LR7
+lr7
 ```
 
 #### Modifies
@@ -2192,7 +2273,7 @@ LR7
 *Calling syntax:*
 
 ```asm
-LRB address
+lrb address
 ```
 
 where
@@ -2209,6 +2290,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2217,7 +2299,7 @@ where
 *Calling syntax:*
 
 ```asm
-LRZ zp_addr
+lrz zp_addr
 ```
 
 where
@@ -2234,6 +2316,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2242,7 +2325,7 @@ where
 *Calling syntax:*
 
 ```asm
-LZB zp_addr, address
+lzb zp_addr, address
 ```
 
 where
@@ -2268,7 +2351,7 @@ where
 *Calling syntax:*
 
 ```asm
-LZP zp_addr, int8
+lzp zp_addr, int8
 ```
 
 where
@@ -2291,7 +2374,7 @@ where
 *Calling syntax:*
 
 ```asm
-NEB address
+neb address
 ```
 
 where
@@ -2308,6 +2391,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Copied from zero flag |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2316,7 +2400,7 @@ where
 *Calling syntax:*
 
 ```asm
-NEG
+neg
 ```
 
 #### Modifies
@@ -2335,7 +2419,7 @@ NEG
 *Calling syntax:*
 
 ```asm
-NEL address
+nel address
 ```
 
 where
@@ -2352,6 +2436,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Copied from zero flag |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2360,7 +2445,7 @@ where
 *Calling syntax:*
 
 ```asm
-NEQ zp_addr
+neq zp_addr
 ```
 
 where
@@ -2377,6 +2462,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Copied from zero flag |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2385,7 +2471,7 @@ where
 *Calling syntax:*
 
 ```asm
-NEV zp_addr
+nev zp_addr
 ```
 
 where
@@ -2402,6 +2488,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Copied from zero flag |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2410,7 +2497,7 @@ where
 *Calling syntax:*
 
 ```asm
-NEW address
+new address
 ```
 
 where
@@ -2427,6 +2514,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Copied from zero flag |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2435,7 +2523,7 @@ where
 *Calling syntax:*
 
 ```asm
-NEZ zp_addr
+nez zp_addr
 ```
 
 where
@@ -2452,6 +2540,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Copied from zero flag |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2460,7 +2549,7 @@ where
 *Calling syntax:*
 
 ```asm
-NOB address
+nob address
 ```
 
 where
@@ -2474,6 +2563,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2482,7 +2572,7 @@ where
 *Calling syntax:*
 
 ```asm
-NOL address
+nol address
 ```
 
 where
@@ -2496,6 +2586,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated (MSB of result) |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2504,7 +2595,7 @@ where
 *Calling syntax:*
 
 ```asm
-NOQ zp_addr
+noq zp_addr
 ```
 
 where
@@ -2518,6 +2609,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated (MSB of result) |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2526,7 +2618,7 @@ where
 *Calling syntax:*
 
 ```asm
-NOT
+not
 ```
 
 #### Modifies
@@ -2542,7 +2634,7 @@ NOT
 *Calling syntax:*
 
 ```asm
-NOV zp_addr
+nov zp_addr
 ```
 
 where
@@ -2556,6 +2648,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated (MSB of result) |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2564,7 +2657,7 @@ where
 *Calling syntax:*
 
 ```asm
-NOW address
+now address
 ```
 
 where
@@ -2578,6 +2671,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated (MSB of result) |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2586,7 +2680,7 @@ where
 *Calling syntax:*
 
 ```asm
-NOZ zp_addr
+noz zp_addr
 ```
 
 where
@@ -2600,6 +2694,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2608,7 +2703,7 @@ where
 *Calling syntax:*
 
 ```asm
-OR.B address
+or.b address
 ```
 
 where
@@ -2622,6 +2717,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2630,7 +2726,7 @@ where
 *Calling syntax:*
 
 ```asm
-OR.Z zp_addr
+or.z zp_addr
 ```
 
 where
@@ -2644,6 +2740,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2652,7 +2749,7 @@ where
 *Calling syntax:*
 
 ```asm
-ORB address
+orb address
 ```
 
 where
@@ -2674,7 +2771,7 @@ where
 *Calling syntax:*
 
 ```asm
-ORI int8
+ori int8
 ```
 
 where
@@ -2696,7 +2793,7 @@ where
 *Calling syntax:*
 
 ```asm
-ORR address
+orr address
 ```
 
 where
@@ -2718,7 +2815,7 @@ where
 *Calling syntax:*
 
 ```asm
-ORT zp_addr
+ort zp_addr
 ```
 
 where
@@ -2740,7 +2837,7 @@ where
 *Calling syntax:*
 
 ```asm
-ORZ zp_addr
+orz zp_addr
 ```
 
 where
@@ -2762,7 +2859,7 @@ where
 *Calling syntax:*
 
 ```asm
-RL0
+rl0
 ```
 
 ---
@@ -2772,7 +2869,7 @@ RL0
 *Calling syntax:*
 
 ```asm
-RL1
+rl1
 ```
 
 #### Modifies
@@ -2791,7 +2888,7 @@ RL1
 *Calling syntax:*
 
 ```asm
-RL2
+rl2
 ```
 
 #### Modifies
@@ -2810,7 +2907,7 @@ RL2
 *Calling syntax:*
 
 ```asm
-RL3
+rl3
 ```
 
 #### Modifies
@@ -2829,7 +2926,7 @@ RL3
 *Calling syntax:*
 
 ```asm
-RL4
+rl4
 ```
 
 #### Modifies
@@ -2848,7 +2945,7 @@ RL4
 *Calling syntax:*
 
 ```asm
-RL5
+rl5
 ```
 
 #### Modifies
@@ -2867,7 +2964,7 @@ RL5
 *Calling syntax:*
 
 ```asm
-RL6
+rl6
 ```
 
 #### Modifies
@@ -2886,7 +2983,7 @@ RL6
 *Calling syntax:*
 
 ```asm
-RL7
+rl7
 ```
 
 #### Modifies
@@ -2905,7 +3002,7 @@ RL7
 *Calling syntax:*
 
 ```asm
-RLB address
+rlb address
 ```
 
 where
@@ -2922,6 +3019,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2930,7 +3028,7 @@ where
 *Calling syntax:*
 
 ```asm
-RLL address
+rll address
 ```
 
 where
@@ -2947,6 +3045,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2955,7 +3054,7 @@ where
 *Calling syntax:*
 
 ```asm
-RLQ zp_addr
+rlq zp_addr
 ```
 
 where
@@ -2972,6 +3071,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -2980,7 +3080,7 @@ where
 *Calling syntax:*
 
 ```asm
-RLV zp_addr
+rlv zp_addr
 ```
 
 where
@@ -2997,6 +3097,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3005,7 +3106,7 @@ where
 *Calling syntax:*
 
 ```asm
-RLW address
+rlw address
 ```
 
 where
@@ -3022,6 +3123,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3030,7 +3132,7 @@ where
 *Calling syntax:*
 
 ```asm
-RLZ zp_addr
+rlz zp_addr
 ```
 
 where
@@ -3047,6 +3149,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3055,7 +3158,7 @@ where
 *Calling syntax:*
 
 ```asm
-RR1
+rr1
 ```
 
 #### Modifies
@@ -3074,7 +3177,7 @@ RR1
 *Calling syntax:*
 
 ```asm
-RRB address
+rrb address
 ```
 
 where
@@ -3091,6 +3194,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3099,7 +3203,7 @@ where
 *Calling syntax:*
 
 ```asm
-RRZ zp_addr
+rrz zp_addr
 ```
 
 where
@@ -3116,6 +3220,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3124,7 +3229,7 @@ where
 *Calling syntax:*
 
 ```asm
-SBB address1, address2
+sbb address1, address2
 ```
 
 where
@@ -3142,6 +3247,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -3150,7 +3256,7 @@ where
 *Calling syntax:*
 
 ```asm
-SBQ address, zp_addr
+sbq address, zp_addr
 ```
 
 where
@@ -3168,6 +3274,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -3176,7 +3283,7 @@ where
 *Calling syntax:*
 
 ```asm
-SBV address, zp_addr
+sbv address, zp_addr
 ```
 
 where
@@ -3191,9 +3298,10 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
-| Flag | N | Reflects result |
-| Flag | C | Reflects result |
-| Flag | Z | Reflects result |
+| Flag | N | Reflects MSB of result |
+| Flag | C | Reflects MSB of result |
+| Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -3202,7 +3310,7 @@ where
 *Calling syntax:*
 
 ```asm
-SBW address1, address2
+sbw address1, address2
 ```
 
 where
@@ -3220,6 +3328,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -3228,7 +3337,7 @@ where
 *Calling syntax:*
 
 ```asm
-SBZ address, zp_addr
+sbz address, zp_addr
 ```
 
 where
@@ -3246,6 +3355,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -3254,7 +3364,7 @@ where
 *Calling syntax:*
 
 ```asm
-SC.B address
+sc.b address
 ```
 
 where
@@ -3271,6 +3381,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3279,7 +3390,7 @@ where
 *Calling syntax:*
 
 ```asm
-SC.Z zp_addr
+sc.z zp_addr
 ```
 
 where
@@ -3296,6 +3407,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3304,7 +3416,7 @@ where
 *Calling syntax:*
 
 ```asm
-SCB address
+scb address
 ```
 
 where
@@ -3329,7 +3441,7 @@ where
 *Calling syntax:*
 
 ```asm
-SCI int8
+sci int8
 ```
 
 where
@@ -3354,7 +3466,7 @@ where
 *Calling syntax:*
 
 ```asm
-SCV zp_addr
+scv zp_addr
 ```
 
 where
@@ -3371,6 +3483,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3379,7 +3492,7 @@ where
 *Calling syntax:*
 
 ```asm
-SCW address
+scw address
 ```
 
 where
@@ -3396,6 +3509,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3404,7 +3518,7 @@ where
 *Calling syntax:*
 
 ```asm
-SCZ zp_addr
+scz zp_addr
 ```
 
 where
@@ -3429,16 +3543,15 @@ where
 *Calling syntax:*
 
 ```asm
-SEC
+sec
 ```
 
 #### Modifies
 
 | Type | Target | Description |
 | --- | --- | --- |
-| Register | a | Undefined |
-| Flag | C | Set to 1 |
 | Flag | N | Set to 0 |
+| Flag | C | Set to 1 |
 | Flag | Z | Set to 0 |
 
 ---
@@ -3448,7 +3561,7 @@ SEC
 *Calling syntax:*
 
 ```asm
-SIB int8, address
+sib int8, address
 ```
 
 where
@@ -3466,6 +3579,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -3474,7 +3588,7 @@ where
 *Calling syntax:*
 
 ```asm
-SIL int8, address
+sil int8, address
 ```
 
 where
@@ -3492,6 +3606,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -3500,7 +3615,7 @@ where
 *Calling syntax:*
 
 ```asm
-SIQ int8, zp_addr
+siq int8, zp_addr
 ```
 
 where
@@ -3518,6 +3633,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -3526,7 +3642,7 @@ where
 *Calling syntax:*
 
 ```asm
-SIR int8, address
+sir int8, address
 ```
 
 where
@@ -3552,7 +3668,7 @@ where
 *Calling syntax:*
 
 ```asm
-SIT int8, zp_addr
+sit int8, zp_addr
 ```
 
 where
@@ -3578,7 +3694,7 @@ where
 *Calling syntax:*
 
 ```asm
-SIV int8, zp_addr
+siv int8, zp_addr
 ```
 
 where
@@ -3593,9 +3709,10 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
-| Flag | N | Reflects result |
-| Flag | C | Reflects result |
-| Flag | Z | Reflects result |
+| Flag | N | Reflects MSB of result |
+| Flag | C | Reflects MSB of result |
+| Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -3604,7 +3721,7 @@ where
 *Calling syntax:*
 
 ```asm
-SIW int8, address
+siw int8, address
 ```
 
 where
@@ -3622,6 +3739,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -3630,7 +3748,7 @@ where
 *Calling syntax:*
 
 ```asm
-SIZ int8, zp_addr
+siz int8, zp_addr
 ```
 
 where
@@ -3648,6 +3766,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -3656,7 +3775,7 @@ where
 *Calling syntax:*
 
 ```asm
-STT zp_addr
+stt zp_addr
 ```
 
 where
@@ -3664,15 +3783,6 @@ where
 | Operand | Type | Value |
 | :-- | :-- | :-- |
 | `zp_addr` | address | numeric expression expressed as 8 bit value |
-
-#### Modifies
-
-| Type | Target | Description |
-| --- | --- | --- |
-| Register | A | Updated |
-| Flag | N | Reflects result |
-| Flag | C | Reflects result |
-| Flag | Z | Reflects result |
 
 ---
 
@@ -3681,7 +3791,7 @@ where
 *Calling syntax:*
 
 ```asm
-STZ zp_addr
+stz zp_addr
 ```
 
 where
@@ -3694,10 +3804,7 @@ where
 
 | Type | Target | Description |
 | --- | --- | --- |
-| Register | A | Updated |
-| Flag | N | Reflects result |
-| Flag | C | Reflects result |
-| Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3706,7 +3813,7 @@ where
 *Calling syntax:*
 
 ```asm
-SU.B address
+su.b address
 ```
 
 where
@@ -3723,6 +3830,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3731,7 +3839,7 @@ where
 *Calling syntax:*
 
 ```asm
-SU.R address
+su.r address
 ```
 
 where
@@ -3756,7 +3864,7 @@ where
 *Calling syntax:*
 
 ```asm
-SU.T zp_addr
+su.t zp_addr
 ```
 
 where
@@ -3781,7 +3889,7 @@ where
 *Calling syntax:*
 
 ```asm
-SU.Z zp_addr
+su.z zp_addr
 ```
 
 where
@@ -3798,6 +3906,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3806,7 +3915,7 @@ where
 *Calling syntax:*
 
 ```asm
-SUB address
+sub address
 ```
 
 where
@@ -3831,7 +3940,7 @@ where
 *Calling syntax:*
 
 ```asm
-SUI int8
+sui int8
 ```
 
 where
@@ -3856,7 +3965,7 @@ where
 *Calling syntax:*
 
 ```asm
-SUL address
+sul address
 ```
 
 where
@@ -3873,6 +3982,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3881,7 +3991,7 @@ where
 *Calling syntax:*
 
 ```asm
-SUQ zp_addr
+suq zp_addr
 ```
 
 where
@@ -3898,6 +4008,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3906,7 +4017,7 @@ where
 *Calling syntax:*
 
 ```asm
-SUR address
+sur address
 ```
 
 where
@@ -3931,7 +4042,7 @@ where
 *Calling syntax:*
 
 ```asm
-SUT zp_addr
+sut zp_addr
 ```
 
 where
@@ -3956,7 +4067,7 @@ where
 *Calling syntax:*
 
 ```asm
-SUV zp_addr
+suv zp_addr
 ```
 
 where
@@ -3973,6 +4084,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -3981,7 +4093,7 @@ where
 *Calling syntax:*
 
 ```asm
-SUW address
+suw address
 ```
 
 where
@@ -3998,6 +4110,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -4006,7 +4119,7 @@ where
 *Calling syntax:*
 
 ```asm
-SUZ zp_addr
+suz zp_addr
 ```
 
 where
@@ -4031,7 +4144,7 @@ where
 *Calling syntax:*
 
 ```asm
-SVV zp_addr1, zp_addr2
+svv zp_addr1, zp_addr2
 ```
 
 where
@@ -4046,9 +4159,10 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated (MSB of result) |
-| Flag | N | Reflects result |
-| Flag | C | Reflects result |
-| Flag | Z | Reflects result |
+| Flag | N | Reflects MSB of result |
+| Flag | C | Reflects MSB of result |
+| Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -4057,7 +4171,7 @@ where
 *Calling syntax:*
 
 ```asm
-SZB zp_addr, address
+szb zp_addr, address
 ```
 
 where
@@ -4075,6 +4189,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -4083,7 +4198,7 @@ where
 *Calling syntax:*
 
 ```asm
-SZL zp_addr, address
+szl zp_addr, address
 ```
 
 where
@@ -4101,6 +4216,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -4109,7 +4225,7 @@ where
 *Calling syntax:*
 
 ```asm
-SZP zp_addr, int8
+szp zp_addr, int8
 ```
 
 where
@@ -4126,7 +4242,7 @@ where
 *Calling syntax:*
 
 ```asm
-SZQ zp_addr1, zp_addr2
+szq zp_addr1, zp_addr2
 ```
 
 where
@@ -4144,6 +4260,7 @@ where
 | Flag | N | Undefined |
 | Flag | C | Undefined |
 | Flag | Z | Undefined |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -4152,7 +4269,7 @@ where
 *Calling syntax:*
 
 ```asm
-SZV zp_addr1, zp_addr2
+szv zp_addr1, zp_addr2
 ```
 
 where
@@ -4167,9 +4284,10 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
-| Flag | N | Reflects result |
-| Flag | C | Reflects result |
-| Flag | Z | Reflects result |
+| Flag | N | Reflects MSB of result |
+| Flag | C | Reflects MSB of result |
+| Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -4178,7 +4296,7 @@ where
 *Calling syntax:*
 
 ```asm
-SZW zp_addr, address
+szw zp_addr, address
 ```
 
 where
@@ -4196,6 +4314,7 @@ where
 | Flag | N | Reflects MSB of result |
 | Flag | C | Reflects MSB of result |
 | Flag | Z | Reflects MSB of result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -4204,7 +4323,7 @@ where
 *Calling syntax:*
 
 ```asm
-SZZ zp_addr1, zp_addr2
+szz zp_addr1, zp_addr2
 ```
 
 where
@@ -4222,6 +4341,7 @@ where
 | Flag | N | Reflects result |
 | Flag | C | Reflects result |
 | Flag | Z | Reflects result |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -4230,7 +4350,7 @@ where
 *Calling syntax:*
 
 ```asm
-XR.B address
+xr.b address
 ```
 
 where
@@ -4244,6 +4364,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -4252,7 +4373,7 @@ where
 *Calling syntax:*
 
 ```asm
-XR.Z zp_addr
+xr.z zp_addr
 ```
 
 where
@@ -4266,6 +4387,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -4274,7 +4396,7 @@ where
 *Calling syntax:*
 
 ```asm
-XRB address
+xrb address
 ```
 
 where
@@ -4296,7 +4418,7 @@ where
 *Calling syntax:*
 
 ```asm
-XRI int8
+xri int8
 ```
 
 where
@@ -4318,7 +4440,7 @@ where
 *Calling syntax:*
 
 ```asm
-XRR address
+xrr address
 ```
 
 where
@@ -4340,7 +4462,7 @@ where
 *Calling syntax:*
 
 ```asm
-XRT zp_addr
+xrt zp_addr
 ```
 
 where
@@ -4362,7 +4484,7 @@ where
 *Calling syntax:*
 
 ```asm
-XRZ zp_addr
+xrz zp_addr
 ```
 
 where
@@ -4384,7 +4506,7 @@ where
 *Calling syntax:*
 
 ```asm
-BCC address
+bcc address
 ```
 
 where
@@ -4400,7 +4522,7 @@ where
 *Calling syntax:*
 
 ```asm
-BCS address
+bcs address
 ```
 
 where
@@ -4416,7 +4538,7 @@ where
 *Calling syntax:*
 
 ```asm
-BEQ address
+beq address
 ```
 
 where
@@ -4432,7 +4554,7 @@ where
 *Calling syntax:*
 
 ```asm
-BGT address
+bgt address
 ```
 
 where
@@ -4448,7 +4570,7 @@ where
 *Calling syntax:*
 
 ```asm
-BLE address
+ble address
 ```
 
 where
@@ -4464,7 +4586,7 @@ where
 *Calling syntax:*
 
 ```asm
-BMI address
+bmi address
 ```
 
 where
@@ -4480,7 +4602,7 @@ where
 *Calling syntax:*
 
 ```asm
-BNE address
+bne address
 ```
 
 where
@@ -4496,7 +4618,7 @@ where
 *Calling syntax:*
 
 ```asm
-BPL address
+bpl address
 ```
 
 where
@@ -4512,7 +4634,7 @@ where
 *Calling syntax:*
 
 ```asm
-FCC address_lsb
+fcc address_lsb
 ```
 
 where
@@ -4528,7 +4650,7 @@ where
 *Calling syntax:*
 
 ```asm
-FCS address_lsb
+fcs address_lsb
 ```
 
 where
@@ -4544,7 +4666,7 @@ where
 *Calling syntax:*
 
 ```asm
-FEQ address_lsb
+feq address_lsb
 ```
 
 where
@@ -4560,7 +4682,7 @@ where
 *Calling syntax:*
 
 ```asm
-FGT address_lsb
+fgt address_lsb
 ```
 
 where
@@ -4576,7 +4698,7 @@ where
 *Calling syntax:*
 
 ```asm
-FLE address_lsb
+fle address_lsb
 ```
 
 where
@@ -4592,7 +4714,7 @@ where
 *Calling syntax:*
 
 ```asm
-FMI address_lsb
+fmi address_lsb
 ```
 
 where
@@ -4608,7 +4730,7 @@ where
 *Calling syntax:*
 
 ```asm
-FNE address_lsb
+fne address_lsb
 ```
 
 where
@@ -4624,7 +4746,7 @@ where
 *Calling syntax:*
 
 ```asm
-FPA address_lsb
+fpa address_lsb
 ```
 
 where
@@ -4640,7 +4762,7 @@ where
 *Calling syntax:*
 
 ```asm
-FPL address_lsb
+fpl address_lsb
 ```
 
 where
@@ -4656,7 +4778,7 @@ where
 *Calling syntax:*
 
 ```asm
-JAR address
+jar address
 ```
 
 where
@@ -4680,7 +4802,7 @@ where
 *Calling syntax:*
 
 ```asm
-JAS address
+jas address
 ```
 
 where
@@ -4689,6 +4811,13 @@ where
 | :-- | :-- | :-- |
 | `address` | address | numeric expression expressed as 16 bit value |
 
+#### Modifies
+
+| Type | Target | Description |
+| --- | --- | --- |
+| Counter | stack | +2 physical effect. |
+| Counter | stack | The caller-visible net effect after return: +0. |
+
 ---
 
 ### `JPA` : Jump to abs address: PC = addr
@@ -4696,7 +4825,7 @@ where
 *Calling syntax:*
 
 ```asm
-JPA address
+jpa address
 ```
 
 where
@@ -4712,7 +4841,7 @@ where
 *Calling syntax:*
 
 ```asm
-JPR address
+jpr address
 ```
 
 where
@@ -4728,7 +4857,7 @@ where
 *Calling syntax:*
 
 ```asm
-JPS address
+jps address
 ```
 
 where
@@ -4742,6 +4871,8 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Undefined |
+| Counter | stack | +2 physical effect. |
+| Counter | stack | The caller-visible net effect after return: +0. |
 
 ---
 
@@ -4750,7 +4881,7 @@ where
 *Calling syntax:*
 
 ```asm
-NOP
+nop
 ```
 
 ---
@@ -4760,8 +4891,15 @@ NOP
 *Calling syntax:*
 
 ```asm
-RTS
+rts
 ```
+
+#### Modifies
+
+| Type | Target | Description |
+| --- | --- | --- |
+| Counter | stack | -2 physical effect. |
+| Counter | stack | This terminates the flow path and reconciles the counter before the instruction effect. |
 
 ## Input/Output
 
@@ -4770,7 +4908,7 @@ RTS
 *Calling syntax:*
 
 ```asm
-INK
+ink
 ```
 
 #### Modifies
@@ -4789,7 +4927,7 @@ INK
 *Calling syntax:*
 
 ```asm
-INT
+int
 ```
 
 #### Modifies
@@ -4808,7 +4946,7 @@ INT
 *Calling syntax:*
 
 ```asm
-OUT
+out
 ```
 
 #### Modifies
@@ -4826,7 +4964,7 @@ OUT
 *Calling syntax:*
 
 ```asm
-RAP int81, int82
+rap int81, int82
 ```
 
 where
@@ -4849,7 +4987,7 @@ where
 *Calling syntax:*
 
 ```asm
-RDB int16, int8
+rdb int16, int8
 ```
 
 where
@@ -4872,7 +5010,7 @@ where
 *Calling syntax:*
 
 ```asm
-RDR address
+rdr address
 ```
 
 where
@@ -4894,7 +5032,7 @@ where
 *Calling syntax:*
 
 ```asm
-RZP zp_addr, int81, int82
+rzp zp_addr, int81, int82
 ```
 
 where
@@ -4918,7 +5056,7 @@ where
 *Calling syntax:*
 
 ```asm
-WDB int16, int8
+wdb int16, int8
 ```
 
 where
@@ -4935,7 +5073,7 @@ where
 *Calling syntax:*
 
 ```asm
-WDR address
+wdr address
 ```
 
 where
@@ -4951,7 +5089,7 @@ where
 *Calling syntax:*
 
 ```asm
-WIN
+win
 ```
 
 #### Modifies
@@ -4969,7 +5107,7 @@ WIN
 *Calling syntax:*
 
 ```asm
-CLB address
+clb address
 ```
 
 where
@@ -4977,6 +5115,12 @@ where
 | Operand | Type | Value |
 | :-- | :-- | :-- |
 | `address` | address | numeric expression expressed as 16 bit value |
+
+#### Modifies
+
+| Type | Target | Description |
+| --- | --- | --- |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -4985,7 +5129,7 @@ where
 *Calling syntax:*
 
 ```asm
-CLL address
+cll address
 ```
 
 where
@@ -4999,6 +5143,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Set to 0 |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -5007,7 +5152,7 @@ where
 *Calling syntax:*
 
 ```asm
-CLQ zp_addr
+clq zp_addr
 ```
 
 where
@@ -5020,7 +5165,7 @@ where
 
 | Type | Target | Description |
 | --- | --- | --- |
-| Register | A | Set to 0 |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -5029,7 +5174,7 @@ where
 *Calling syntax:*
 
 ```asm
-CLV zp_addr
+clv zp_addr
 ```
 
 where
@@ -5042,7 +5187,7 @@ where
 
 | Type | Target | Description |
 | --- | --- | --- |
-| Register | A | Set to 0 |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -5051,7 +5196,7 @@ where
 *Calling syntax:*
 
 ```asm
-CLW address
+clw address
 ```
 
 where
@@ -5065,6 +5210,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Set to 0 |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
 
 ---
 
@@ -5073,7 +5219,7 @@ where
 *Calling syntax:*
 
 ```asm
-CLZ zp_addr
+clz zp_addr
 ```
 
 where
@@ -5082,6 +5228,12 @@ where
 | :-- | :-- | :-- |
 | `zp_addr` | address | numeric expression expressed as 8 bit value |
 
+#### Modifies
+
+| Type | Target | Description |
+| --- | --- | --- |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
+
 ---
 
 ### `LDB` : Load A from abs address: A = *addr
@@ -5089,7 +5241,7 @@ where
 *Calling syntax:*
 
 ```asm
-LDB address
+ldb address
 ```
 
 where
@@ -5111,7 +5263,7 @@ where
 *Calling syntax:*
 
 ```asm
-LDI int8
+ldi int8
 ```
 
 where
@@ -5133,7 +5285,7 @@ where
 *Calling syntax:*
 
 ```asm
-LDR address
+ldr address
 ```
 
 where
@@ -5155,7 +5307,7 @@ where
 *Calling syntax:*
 
 ```asm
-LDT zp_addr
+ldt zp_addr
 ```
 
 where
@@ -5177,7 +5329,7 @@ where
 *Calling syntax:*
 
 ```asm
-LDZ zp_addr
+ldz zp_addr
 ```
 
 where
@@ -5199,7 +5351,7 @@ where
 *Calling syntax:*
 
 ```asm
-MBB address1, address2
+mbb address1, address2
 ```
 
 where
@@ -5214,6 +5366,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -5222,7 +5375,7 @@ where
 *Calling syntax:*
 
 ```asm
-MBZ address, zp_addr
+mbz address, zp_addr
 ```
 
 where
@@ -5237,6 +5390,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -5245,7 +5399,7 @@ where
 *Calling syntax:*
 
 ```asm
-MIB int8, address
+mib int8, address
 ```
 
 where
@@ -5260,6 +5414,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -5268,7 +5423,7 @@ where
 *Calling syntax:*
 
 ```asm
-MIR int8, address
+mir int8, address
 ```
 
 where
@@ -5291,7 +5446,7 @@ where
 *Calling syntax:*
 
 ```asm
-MIT int8, zp_addr
+mit int8, zp_addr
 ```
 
 where
@@ -5314,7 +5469,7 @@ where
 *Calling syntax:*
 
 ```asm
-MIV int16, zp_addr
+miv int16, zp_addr
 ```
 
 where
@@ -5329,6 +5484,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated (MSB of result) |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -5337,7 +5493,7 @@ where
 *Calling syntax:*
 
 ```asm
-MIW int16, address
+miw int16, address
 ```
 
 where
@@ -5352,6 +5508,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated (MSB of result) |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -5360,7 +5517,7 @@ where
 *Calling syntax:*
 
 ```asm
-MIZ int8, zp_addr
+miz int8, zp_addr
 ```
 
 where
@@ -5375,6 +5532,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -5383,7 +5541,7 @@ where
 *Calling syntax:*
 
 ```asm
-MVV zp_addr1, zp_addr2
+mvv zp_addr1, zp_addr2
 ```
 
 where
@@ -5398,6 +5556,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated (MSB of result) |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -5406,7 +5565,7 @@ where
 *Calling syntax:*
 
 ```asm
-MWV address, zp_addr
+mwv address, zp_addr
 ```
 
 where
@@ -5421,6 +5580,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated (MSB of result) |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -5429,7 +5589,7 @@ where
 *Calling syntax:*
 
 ```asm
-MZB zp_addr, address
+mzb zp_addr, address
 ```
 
 where
@@ -5444,6 +5604,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -5452,7 +5613,7 @@ where
 *Calling syntax:*
 
 ```asm
-MZZ zp_addr1, zp_addr2
+mzz zp_addr1, zp_addr2
 ```
 
 where
@@ -5467,6 +5628,7 @@ where
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 1 may address 0xffff. |
 
 ---
 
@@ -5475,7 +5637,7 @@ where
 *Calling syntax:*
 
 ```asm
-STB address
+stb address
 ```
 
 where
@@ -5484,6 +5646,12 @@ where
 | :-- | :-- | :-- |
 | `address` | address | numeric expression expressed as 16 bit value |
 
+#### Modifies
+
+| Type | Target | Description |
+| --- | --- | --- |
+| Counter | stack | Becomes indeterminate when zero-based write-target operand(s) 0 may address 0xffff. |
+
 ---
 
 ### `STR` : Store A at relative address: *(*addr) = A
@@ -5491,7 +5659,7 @@ where
 *Calling syntax:*
 
 ```asm
-STR address
+str address
 ```
 
 where
@@ -5507,7 +5675,7 @@ where
 *Calling syntax:*
 
 ```asm
-LDS int8
+lds int8
 ```
 
 where
@@ -5529,8 +5697,14 @@ where
 *Calling syntax:*
 
 ```asm
-PHS
+phs
 ```
+
+#### Modifies
+
+| Type | Target | Description |
+| --- | --- | --- |
+| Counter | stack | +1 physical effect. |
 
 ---
 
@@ -5539,7 +5713,7 @@ PHS
 *Calling syntax:*
 
 ```asm
-PLS
+pls
 ```
 
 #### Modifies
@@ -5547,6 +5721,7 @@ PLS
 | Type | Target | Description |
 | --- | --- | --- |
 | Register | A | Updated |
+| Counter | stack | -1 physical effect. |
 
 ---
 
@@ -5555,7 +5730,7 @@ PLS
 *Calling syntax:*
 
 ```asm
-STS int8
+sts int8
 ```
 
 where
@@ -5571,7 +5746,7 @@ where
 *Calling syntax:*
 
 ```asm
-CBB address1, address2
+cbb address1, address2
 ```
 
 where
@@ -5597,7 +5772,7 @@ where
 *Calling syntax:*
 
 ```asm
-CBZ address, zp_addr
+cbz address, zp_addr
 ```
 
 where
@@ -5623,7 +5798,7 @@ where
 *Calling syntax:*
 
 ```asm
-CIB int8, address
+cib int8, address
 ```
 
 where
@@ -5649,7 +5824,7 @@ where
 *Calling syntax:*
 
 ```asm
-CIR int8, address
+cir int8, address
 ```
 
 where
@@ -5675,7 +5850,7 @@ where
 *Calling syntax:*
 
 ```asm
-CIT int8, zp_addr
+cit int8, zp_addr
 ```
 
 where
@@ -5701,7 +5876,7 @@ where
 *Calling syntax:*
 
 ```asm
-CIZ int8, zp_addr
+ciz int8, zp_addr
 ```
 
 where
@@ -5727,7 +5902,7 @@ where
 *Calling syntax:*
 
 ```asm
-CPB address
+cpb address
 ```
 
 where
@@ -5751,7 +5926,7 @@ where
 *Calling syntax:*
 
 ```asm
-CPI int8
+cpi int8
 ```
 
 where
@@ -5775,7 +5950,7 @@ where
 *Calling syntax:*
 
 ```asm
-CPR address
+cpr address
 ```
 
 where
@@ -5799,7 +5974,7 @@ where
 *Calling syntax:*
 
 ```asm
-CPT zp_addr
+cpt zp_addr
 ```
 
 where
@@ -5823,7 +5998,7 @@ where
 *Calling syntax:*
 
 ```asm
-CPZ zp_addr
+cpz zp_addr
 ```
 
 where
@@ -5847,7 +6022,7 @@ where
 *Calling syntax:*
 
 ```asm
-CZB zp_addr, address
+czb zp_addr, address
 ```
 
 where
@@ -5873,7 +6048,7 @@ where
 *Calling syntax:*
 
 ```asm
-CZZ zp_addr1, zp_addr2
+czz zp_addr1, zp_addr2
 ```
 
 where
