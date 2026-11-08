@@ -1,0 +1,98 @@
+GAL16V8
+bbproto
+
+CLK  MATCH A0    A1    A2    A3    RO    RI    RESET GND
+OE   INHREQ WR3  WR2   WR1   WR0   RD2   RD1   RD0   VCC
+
+
+;
+; Starting point for a breadboard prototype's glue logic, in an ATF16V8C-7PU on the
+; breadboard, behind the breadboard adapter. Compile with galette. Keep each equation on
+; one line; galette rejects a continuation line that starts with "+".
+;
+; Inputs, all from the adapter's ribbon cable:
+;   CLK     8 MHz clock (pin 1 is the register clock in registered mode)
+;   MATCH   active low: the CPU is accessing the adapter's 16-byte window
+;   A0..A3  register select within the window
+;   RO      active low: the CPU is reading (RAM output strobe)
+;   RI      active low: the CPU is writing (RAM input strobe)
+;   RESET   active low: the Minimal's reset line, for clearing prototype state
+;           (no equation uses it yet)
+;
+; Pin 11 (OE) is the output enable for the registered outputs in registered mode. Tie it
+; to GND on the breadboard. A prototype with no registered outputs gets pins 1 and 11 back
+; as ordinary inputs.
+;
+; Example register map. The adapter's SW1 sets the window's base nibble, shown here as
+; "x" (SW1 = $C makes the window $FEC0..$FECF):
+;
+;   Address | CPU writes (WRn)       | CPU reads (RDn)
+;   --------+------------------------+------------------------
+;   $FEx0   | WR0, e.g. latch byte 0 | RD0, e.g. read byte 0
+;   $FEx1   | WR1, e.g. latch byte 1 | RD1, e.g. read byte 1
+;   $FEx2   | WR2, e.g. command      | RD2, e.g. status
+;   $FEx3   | WR3, e.g. reset/clear  | (nothing, reads RAM)
+;   $FEx4.. | (nothing)              | (nothing, reads RAM)
+;   $FExF   |                        |
+;
+; Timing budget (see the adapter README, "Building a prototype's logic"): from the moment
+; MATCH, A0..A3, and RO arrive on the breadboard, INH_REQ must be out within about 14 ns
+; worst case and read data must be on the cable within about 27 ns. One pass through a -7
+; part takes 7.5 ns, so INHREQ below is decoded straight from the input pins rather than
+; from the RD outputs: feeding outputs back through the array would be a second pass.
+;
+
+
+;
+; Write strobes: registered, active high, exactly one CLK cycle long.
+;
+; The CPU's RI goes low about 50 ns into the write cycle and stays low until about 50 ns
+; into the next one, so the strobe is sampled on the CLK edge that ends the write cycle.
+; The CPU's data is still on the bus for roughly 25 ns after that strobe rises, so clock
+; each data latch (74AHCT374 / 574) on the strobe's RISING edge. The falling edge comes a
+; cycle later, after the data is gone.
+;
+
+; CPU write to $FEx0
+WR0.R = /MATCH * /A3 * /A2 * /A1 * /A0 * /RI * RO
+
+; CPU write to $FEx1
+WR1.R = /MATCH * /A3 * /A2 * /A1 * A0 * /RI * RO
+
+; CPU write to $FEx2
+WR2.R = /MATCH * /A3 * /A2 * A1 * /A0 * /RI * RO
+
+; CPU write to $FEx3
+WR3.R = /MATCH * /A3 * /A2 * A1 * A0 * /RI * RO
+
+
+;
+; Read enables: combinational, active low. Each one drives the output enable of the
+; buffer or register that puts that byte on the breadboard's data bus. Use 74AHCT parts
+; (or put a 74AHCT245/541 in front of a slower source): the budget leaves about 20 ns
+; for the output enable after this PLD's 7.5 ns.
+;
+
+; CPU read from $FEx0
+/RD0 = /MATCH * /A3 * /A2 * /A1 * /A0 * /RO * RI
+
+; CPU read from $FEx1
+/RD1 = /MATCH * /A3 * /A2 * /A1 * A0 * /RO * RI
+
+; CPU read from $FEx2
+/RD2 = /MATCH * /A3 * /A2 * A1 * /A0 * /RO * RI
+
+
+;
+; INH request to the adapter: active high on every CPU read the prototype answers, that
+; is $FEx0, $FEx1, or $FEx2. The first term covers $FEx0 and $FEx1 (A1 low), the second
+; covers $FEx0 and $FEx2 (A0 low). It repeats the read decode instead of ORing RD0..RD2
+; so it stays a single pass through the PLD.
+;
+
+INHREQ = /MATCH * /A3 * /A2 * /A1 * /RO * RI + /MATCH * /A3 * /A2 * /A0 * /RO * RI
+
+DESCRIPTION
+
+Template glue logic for a Minimal 64x4 card prototyped on a breadboard behind the
+breadboard adapter: four registered write strobes, three read enables, and INH request.

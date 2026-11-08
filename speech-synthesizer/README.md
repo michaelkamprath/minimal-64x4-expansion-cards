@@ -57,6 +57,14 @@ The TMS5220 appears to have some timing requirements that are not documented in 
 
 These values were “tweaked until it worked.” The issues seem related to switching modes of interaction with the TMS5220. By contrast, writing an external speech data byte after a prior external speech data byte does adhere to the timing diagrams in the TMS5220 datasheet. Further experimentation might uncover better or smaller delays for these undocumented requirements.
 
+### Bus Timing Notes
+Worked out from the Minimal 64x4 manual's "Timing Signals" diagram, the [Revision 1.1 schematic](https://github.com/slu4coder/Minimal-64x4-Home-Computer/blob/main/Revision%201.1/Schematics.pdf), the Rev 1.1 microcode, and TI's CD74HCT688 datasheet. Times are measured from the CPU clock edge.
+
+* **Writes are captured synchronously.** The port's `/RI` is the control-word level, not the SRAM's write pulse. It goes low about 50 ns into the write step and stays low until about 50 ns into the next step. `WS_CLK.R` and `RS_CLK.R` sample it on the port CLK edge that ends the write step, and the 74HCT374 latches the bus on `WS_CLK`'s rising edge, about 15 to 20 ns after that edge. `STB` and `MIB` write from register A (`AO|RI|MC|MIL|MIH|IC`), which stays on the bus until about 45 to 50 ns after the edge, so the data hold margin is about 25 ns.
+* **A0/A1 hold at that sample is tight.** The same write step reloads the address register from the program counter (`MC|MIL|MIH`), so A0 and A1 change 10 to 15 ns after the edge. The port's CLK is the CPU clock delayed by one 74HC32 (U33C on the Minimal), so it reaches the PLD at about the same time. `/MMAP` is safe because it changes only after both 74HCT688s. The margin on A0/A1 is the difference between a 74HC161 and a 74HC32 delay, a few ns. The timer card has the same race, and both work in practice.
+* **INH is raised only on reads** (`RI * /RO`), so writes to `$FE_0` and `$FE_1` also land in the Minimal's SRAM. That is harmless.
+* **INH release matters as much as INH assertion.** INH drives the SRAM's `~CE` directly, and every read step is followed by an opcode fetch from RAM. After `ldb $FE_2`, INH falls only when the decode sees the new address. Through U8 (`A8..A15`), then U7's enable input, then the PLD, that is about 15 + 14 + 9 + 7.5 = 46 ns typical, and 80 / 95 ns at the datasheet maximums. The SRAM then needs up to 55 ns to deliver the opcode, against a deadline of about 115 ns. The typical case fits; stacked worst cases do not. A faster release happens when the program counter's A0..A7 differ from the card's address, because those bits reach the PLD through U7's inputs or directly. A future revision could compare the page and the base address in two parallel 74HCT688s combined in the PLD, as the breadboard adapter does.
+
 ## Software Design
 The provided `speechlib.min64x4` file contains all the subroutines needed to use this board on the Minimal 64x4 home computer:
 

@@ -18,7 +18,7 @@ _autosave-*
 *-save.kicad_pcb
 fp-info-cache
 \#auto_saved_files\#
-*.kicad_sch.lck
+*.lck
 
 # Netlist files (exported from Eeschema)
 *.net

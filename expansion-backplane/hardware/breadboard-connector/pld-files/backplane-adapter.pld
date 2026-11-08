@@ -1,0 +1,70 @@
+GAL16V8
+bbadapt
+
+CLK  INHREQ RO    NC    RI    EN    PAGE  NIB   NC    GND
+NC   NC     NC    NC    INH   MATCH OE245 DIR   NC    VCC
+
+
+;
+; Breadboard adapter Board A (backplane adapter) glue logic for an ATF16V8C-7PU
+; (7.5 ns max, input to combinational output). Unused inputs (pins 4, 9, 11) are tied
+; to GND on the board; pin 4 (PD) carries no signal so the power-down feature can never
+; be triggered. Unused I/O pins 12, 13, 14, and 19 are not connected: the ATF16V8C's
+; built-in input and I/O pin keepers hold them at their last level, so they never float
+; (datasheet, "Input and I/O Pin Keeper Circuits").
+;
+; Compile with galette. Keep each equation on one line; galette rejects a continuation
+; line that starts with "+".
+;
+; Pin 1 carries the backplane 8 MHz clock but no equation uses it today. It is there so
+; registered outputs can be added later with a PLD change only. In registered mode
+; pin 1 becomes the dedicated register clock (it no longer reaches the logic array)
+; and pin 11 becomes the registered-output enable, which is already tied low. INH,
+; DIR, OE245, and MATCH must stay combinational: they act within the same CPU cycle.
+;
+; Inputs:
+;   INHREQ  INH request from the breadboard, active high (10k pulldown on Board A)
+;   RO, RI  RAM output / input strobes from the backplane, active low
+;   EN      enable switch, active low (switch open = adapter disabled)
+;   PAGE    74HC688 U1 match of A8..A15 == $FE, active low
+;   NIB     74HC688 U2 match of A4..A7 == DIP switch, active low
+;
+
+;
+; Match exported to the cable: the 16-byte window ($FE page and the DIP-switch nibble).
+;
+
+/MATCH = /PAGE * /NIB
+
+;
+; Data 74AHCT245 (U4) output enable: on a window match, and never while the adapter is
+; disabled. INH (below) is only asserted inside the window, so this one term also covers
+; every cycle where INH is asserted.
+;
+
+/OE245 = /EN * /PAGE * /NIB
+
+;
+; 74AHCT245 direction (high = cable to backplane) and INH to the backplane: only while
+; the breadboard requests INH during a CPU read (RO low, RI high) and the adapter is
+; enabled. A breadboard that raises INH request at the wrong time can neither fight the
+; CPU on the backplane bus nor inhibit RAM outside a read. Same qualification as the
+; timer card's INH. INH and DIR are separate pins with the same equation so the
+; off-board INH trace does not share a driver with the local DIR pin. Disabled (EN high)
+; drives INH low.
+;
+; The local window match (/PAGE * /NIB) is part of the term so INH and DIR fall as soon
+; as the address leaves the window, without waiting for the breadboard to drop INH
+; request over the cable. INH drives the Minimal's SRAM ~CE directly, and every read step
+; is followed by an opcode fetch from RAM, so a slow INH release eats into that fetch's
+; access time. It adds nothing on assertion: the breadboard cannot raise INH request
+; before it has seen ~MATCH.
+;
+
+DIR = INHREQ * /RO * RI * /EN * /PAGE * /NIB
+
+INH = INHREQ * /RO * RI * /EN * /PAGE * /NIB
+
+DESCRIPTION
+
+Glue logic for the Minimal 64x4 breadboard adapter, Board A (backplane adapter).
