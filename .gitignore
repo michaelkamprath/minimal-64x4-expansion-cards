@@ -34,6 +34,8 @@ fp-info-cache
 # generated gerbers
 gerbers*/
 
+.history/
+
 # ---> macOS
 # General
 .DS_Store
