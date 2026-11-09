@@ -10077,7 +10077,7 @@
 		)
 		(uuid "2767173f-4377-47c7-b805-451661379e62")
 	)
-	(label "BASE4"
+	(label "BASE7"
 		(at 171.45 212.09 180)
 		(effects
 			(font
@@ -10157,7 +10157,7 @@
 		)
 		(uuid "34cf33d1-1168-4124-9bf6-3f6f2ca84351")
 	)
-	(label "BASE4"
+	(label "BASE7"
 		(at 143.51 212.09 0)
 		(effects
 			(font
@@ -10197,7 +10197,7 @@
 		)
 		(uuid "38f367a3-fa7a-44d2-b87a-79755928b40a")
 	)
-	(label "BASE5"
+	(label "BASE6"
 		(at 143.51 214.63 0)
 		(effects
 			(font
@@ -10407,7 +10407,7 @@
 		)
 		(uuid "53756c50-5cbb-4181-b33b-bee461dfde72")
 	)
-	(label "BASE7"
+	(label "BASE4"
 		(at 171.45 219.71 180)
 		(effects
 			(font
@@ -10437,7 +10437,7 @@
 		)
 		(uuid "58ae6852-0a17-4171-a81c-2bd4c333af3f")
 	)
-	(label "BASE5"
+	(label "BASE6"
 		(at 171.45 214.63 180)
 		(effects
 			(font
@@ -10557,7 +10557,7 @@
 		)
 		(uuid "6de8507c-6295-4481-b1bb-4520abf00649")
 	)
-	(label "BASE6"
+	(label "BASE5"
 		(at 171.45 217.17 180)
 		(effects
 			(font
@@ -10637,7 +10637,7 @@
 		)
 		(uuid "77763b15-855d-4168-8e01-32d0f4988b75")
 	)
-	(label "BASE7"
+	(label "BASE4"
 		(at 143.51 219.71 0)
 		(effects
 			(font
@@ -11037,7 +11037,7 @@
 		)
 		(uuid "daf40f12-8e20-4fa6-9224-d9a19a588a40")
 	)
-	(label "BASE6"
+	(label "BASE5"
 		(at 143.51 217.17 0)
 		(effects
 			(font
@@ -12906,7 +12906,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "A4..A7"
+		(property "Value" "A7..A4"
 			(at 130.81 226.06 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13377,6 +13377,7 @@
 	(symbol
 		(lib_id "Device:R_Pack08")
 		(at 306.07 95.25 270)
+		(mirror y)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -16589,7 +16590,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x16_P2.54mm_Horizontal"
+		(property "Footprint" "minimal-64x4:Minimal64x4_Expansion_Card_Connector"
 			(at 339.09 246.634 0)
 			(hide yes)
 			(show_name no)
