@@ -228,7 +228,9 @@ What to look for when ordering. Part numbers are given only where one has been c
 | J1 | 1 | 2 × 20 vertical shrouded box header, 2.54 mm (Sullins SBH11-PBPC-D20-ST-BK) |
 | J2, J3 | 2 | 2-position screw terminal, 5.08 mm: J2 for the twisted pair from Board A's J2, J3 for a bench supply (only with Board A's JP1 removed) |
 | J4 to J7 | 4 | Male pin headers, 2.54 mm, that plug into the breadboard: 1 × 5 (ADDR: A0..A3, ~MATCH), 1 × 4 (CTRL: ~RO, ~RI, CLK, INH_REQ), 1 × 8 (DATA: BUS0..7), 1 × 2 (~RESET, USER) |
-| J8, J9 | 2 | 1 × 2 male pin header, 2.54 mm, into the breadboard's power rails (+5 V and GND) on each side |
+| J8, J9 | 2 | 1 × 2 male pin header, 2.54 mm (PWR_L, PWR_R): +5 V and GND at the top of each pin row, next to the cable connector. They plug into the breadboard's terminal strips, not its power rails. Run a jumper from each to the rails; the GND jumper is the breadboard's ground reference, so fit at least one before using any signal. |
+| J10 | 1 | 1 × 1 male pin header, 2.54 mm: a third GND pin at the far end of the right pin row. Jumper it to a ground rail as well to shorten the ground return for the signals at that end. |
+| H1, H2 | 2 | M3 holes in the two corners farthest from the breadboard for optional standoffs (about 11 mm, check against your breadboard). They sit beyond the cable connector, so pushing the ribbon plug in does not lever the pins out of the breadboard |
 | C1 | 1 | 100 µF electrolytic, 10 V or more, 6.3 mm diameter, 2.5 mm lead spacing |
 | C2 | 1 | 10 µF ceramic (X5R or X7R), 10 V or more, 5 mm lead spacing |
 | D1 | 1 | 3 mm LED, power indicator |

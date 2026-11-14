@@ -125,9 +125,9 @@
 			(subtractmaskfromsilk no)
 			(outputformat 1)
 			(mirror no)
-			(drillshape 1)
+			(drillshape 0)
 			(scaleselection 1)
-			(outputdirectory "")
+			(outputdirectory "gerbers_v1.0")
 		)
 	)
 	(footprint "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm"
@@ -12678,6 +12678,28 @@
 				(thickness 0.15)
 			)
 			(justify left)
+		)
+	)
+	(gr_text "ON"
+		(at 102.2 82.8 0)
+		(layer "F.SilkS")
+		(uuid "e78f0283-9ef4-4ac3-917b-dcd51c2b08dd")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(gr_text "OFF"
+		(at 103 95.3 0)
+		(layer "F.SilkS")
+		(uuid "febb21b8-586a-4230-9685-8fceebf40d29")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
 		)
 	)
 	(gr_text "GND"
