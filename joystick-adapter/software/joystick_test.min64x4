@@ -1,0 +1,46 @@
+; Joystick adapter test for the Minimal 64x4
+;
+; Shows the adapter's raw register value and which switches are closed, until a key is
+; pressed. Use it to check the wiring of the prototype before running a game.
+;
+#require __LANGUAGE_NAME__ == slu4-min64x4-asm
+#require __LANGUAGE_VERSION__ >= 1.1.0
+#use-scope "joysticklib"
+
+.org 0 "USER_APPS"
+start:          JPS _Clear
+                LDI 0 STB _XPos LDI 0 STB _YPos JPS _Print "JOYSTICK ADAPTER TEST"
+                JPS joystick_init CPI 1 BEQ found
+                  LDI 0 STB _XPos LDI 2 STB _YPos JPS _Print "NO ADAPTER ANSWERS AT $FE70"
+                  JPA exit
+
+found:          LDI 0 STB _XPos LDI 2 STB _YPos JPS _Print "PRESS ANY KEY TO QUIT"
+                LDI 0 STB _XPos LDI 4 STB _YPos JPS _Print "RAW $"
+                LDI 0 STB _XPos LDI 6 STB _YPos JPS _Print "SWITCHES"
+
+loop:           LDI 5 STB _XPos LDI 4 STB _YPos
+                LDB JOYSTICK_PORT_REG JAS _PrintHex             ; raw value, 0 = closed
+                JPS joystick_read STB state                     ; 1 = closed
+                LDI 9 STB _XPos LDI 6 STB _YPos
+                MIB JOYSTICK_UP,mask    MIB 'U',letter JPS ShowSwitch
+                MIB JOYSTICK_DOWN,mask  MIB 'D',letter JPS ShowSwitch
+                MIB JOYSTICK_LEFT,mask  MIB 'L',letter JPS ShowSwitch
+                MIB JOYSTICK_RIGHT,mask MIB 'R',letter JPS ShowSwitch
+                MIB JOYSTICK_FIRE,mask  MIB 'F',letter JPS ShowSwitch
+                JPS _ReadInput CPI 0 BEQ loop
+
+exit:           LDI 0 STB _XPos LDI 8 STB _YPos
+                JPA _Prompt
+
+; Prints 'letter' if the switch selected by 'mask' is closed, '.' if it is open.
+ShowSwitch:     LDB state ANB mask CPI 0 BEQ .open
+                  LDB letter JAS _PrintChar
+                  RTS
+  .open:        LDI '.' JAS _PrintChar
+                RTS
+
+state:          .byte 0
+mask:           .byte 0
+letter:         .byte 0
+
+#include "joysticklib.min64x4"

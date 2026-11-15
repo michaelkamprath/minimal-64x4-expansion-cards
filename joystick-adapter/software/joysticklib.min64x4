@@ -1,0 +1,90 @@
+; JoystickLib for Minimal 64x4
+;
+; To be used with the Atari 2600 style joystick adapter.
+;
+; Call joystick_init once. After that joystick_read returns the switches that are
+; currently closed. If no adapter answers, joystick_read always returns 0, so a
+; program can call it without checking whether the adapter is fitted.
+;
+#require __LANGUAGE_NAME__ == slu4-min64x4-asm
+#require __LANGUAGE_VERSION__ >= 1.1.0
+#create-scope "joysticklib" prefix="joystick_"
+
+; The adapter answers a CPU read of any address in $FE70..$FE7F; it does not decode
+; A0..A3. The base nibble ($7) is set by SW1 on the breadboard adapter's Board A.
+JOYSTICK_PORT_REG       = $FE70
+
+; Bit masks for the value returned by joystick_read (1 = switch closed)
+JOYSTICK_UP             = b00000001       ; bit 0, DE-9 pin 1
+JOYSTICK_DOWN           = b00000010       ; bit 1, DE-9 pin 2
+JOYSTICK_LEFT           = b00000100       ; bit 2, DE-9 pin 3
+JOYSTICK_RIGHT          = b00001000       ; bit 3, DE-9 pin 4
+JOYSTICK_FIRE           = b00010000       ; bit 4, DE-9 pin 6
+
+JOYSTICK_SWITCH_MASK    = b00011111       ; all five switches
+JOYSTICK_DETECT_MASK    = b11100000       ; the adapter always answers 0 on these bits
+
+.memzone USER_APPS
+
+; joystick_init
+;   Finds out whether the joystick adapter is fitted and remembers the answer.
+;
+;   A CPU write to the register address lands in the Minimal's RAM under it, because
+;   the adapter only answers CPU reads. The following CPU read returns either the
+;   adapter's value, whose bits 5..7 are always 0, or the $FF just written to RAM.
+;
+;   Arguments
+;       None
+;
+;   Returns
+;       A : 1 if the adapter answered, 0 if not
+;
+joystick_init:
+    mib $ff,JOYSTICK_PORT_REG
+    ldb JOYSTICK_PORT_REG
+    ani JOYSTICK_DETECT_MASK
+    cpi 0 beq .present
+    clb _joystick_present
+    ldi 0
+    rts
+.present:
+    mib 1,_joystick_present
+    ldi 1
+    rts
+
+
+; joystick_present
+;   Reports what joystick_init found.
+;
+;   Arguments
+;       None
+;
+;   Returns
+;       A : 1 if the adapter is fitted, 0 if not
+;
+joystick_present:
+    ldb _joystick_present
+    rts
+
+
+; joystick_read
+;   Reads the joystick switches. The adapter's raw value is 0 for a closed switch;
+;   this routine inverts it so a set bit means the switch is closed.
+;
+;   Arguments
+;       None
+;
+;   Returns
+;       A : the JOYSTICK_UP, _DOWN, _LEFT, _RIGHT and _FIRE bits that are closed,
+;           or 0 if the adapter is not fitted
+;
+joystick_read:
+    ldb _joystick_present
+    cpi 0 beq .done                 ; no adapter: return the 0 already in A
+    ldb JOYSTICK_PORT_REG
+    not
+    ani JOYSTICK_SWITCH_MASK
+.done:
+    rts
+
+_joystick_present:  .byte 0

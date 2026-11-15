@@ -1,0 +1,105 @@
+# JoystickLib for Extended Min
+#
+# Import this file from the caller's top-level source.
+# Avoid writing a quoted import example in comments here because
+# current Extended Min import scanning is text-based before tokenization.
+#
+# This is the Extended Min counterpart of the assembly joystick library for
+# the Atari 2600 style joystick adapter.
+#
+# Extended Min can be found at:
+#     https://github.com/michaelkamprath/extended-min
+#
+# Call joyInit() once. After that:
+#   joyRead()  returns the switches that are closed right now
+#   joyKey()   turns the joystick into key presses, for programs written
+#              around a keyboard
+# Without the adapter both return 0, so a program can call them without
+# checking whether the adapter is fitted.
+#
+
+# The adapter answers a CPU read of any address in 0xfe70..0xfe7f.
+int kJoyReg := 0xfe70
+
+# Bits of the value returned by joyRead(): 1 = switch closed
+int kJoyUp := 1
+int kJoyDown := 2
+int kJoyLeft := 4
+int kJoyRight := 8
+int kJoyFire := 16
+int kJoyAll := 0x1f
+
+# joyKey() repeats a held left, right or down. Both values count calls
+# to joyKey(): the wait before the first repeat, then between repeats.
+int kJoyRptDly := 12
+int kJoyRptRate := 4
+int kJoyRptMask := 14
+
+int joyHave = 0
+int joyPrev = 0
+int joyHold = 0
+
+
+# Finds out whether the adapter is fitted. Returns 1 if it is, 0 if not.
+#
+# The write lands in the RAM under the register, because the adapter only
+# answers reads. The read then returns either the adapter's value, whose
+# bits 5 to 7 are always 0, or the 0xff just written to RAM.
+def joyInit():
+  char joyProbe @ kJoyReg = 0xff
+  joyHave = 0
+  if (int(joyProbe) and 0xe0) == 0:
+    joyHave = 1
+  joyPrev = 0
+  joyHold = 0
+  return joyHave
+
+
+# Returns the switches that are closed, as a sum of kJoyUp, kJoyDown,
+# kJoyLeft, kJoyRight and kJoyFire. The adapter's raw value is 0 for a
+# closed switch; this inverts it.
+def joyRead():
+  int joyBits = 0
+  if joyHave == 1:
+    char joyPort @ kJoyReg
+    joyBits = (int(joyPort) xor kJoyAll) and kJoyAll
+  return joyBits
+
+
+# Returns a key for the joystick, or 0 when there is nothing new:
+#   fire  -> " "     up   -> "w"     down  -> "s"
+#   left  -> "a"     right -> "d"
+# A switch gives its key once when it closes. Left, right and down repeat
+# while they are held. Call it once per pass of the program's main loop.
+def joyKey():
+  char joyOut = 0
+  if joyHave == 0:
+    return joyOut
+
+  char joyPort @ kJoyReg
+  int joyNow = (int(joyPort) xor kJoyAll) and kJoyAll
+  int joyNew = joyNow and (joyPrev xor kJoyAll)
+
+  if joyNow != joyPrev:
+    joyPrev = joyNow
+    joyHold = kJoyRptDly
+  elif joyNow != 0:
+    joyHold -= 1
+    if joyHold <= 0:
+      joyHold = kJoyRptRate
+      joyNew = joyNow and kJoyRptMask
+
+  if joyNew == 0:
+    return joyOut
+
+  if (joyNew and kJoyFire) != 0:
+    joyOut = 32
+  elif (joyNew and kJoyUp) != 0:
+    joyOut = 119
+  elif (joyNew and kJoyLeft) != 0:
+    joyOut = 97
+  elif (joyNew and kJoyRight) != 0:
+    joyOut = 100
+  elif (joyNew and kJoyDown) != 0:
+    joyOut = 115
+  return joyOut

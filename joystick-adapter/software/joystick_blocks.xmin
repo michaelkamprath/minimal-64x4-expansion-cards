@@ -1,0 +1,222 @@
+# M I N I M A L   C P U   B L O C K S, written in MIN by slu4 (2023)
+#
+# Updated to play with an Atari 2600 style joystick through the joystick
+# adapter, 2026. Runs in Extended Min. The keyboard still works, and the
+# joystick is optional:
+#   left, right  move        down  drop one row
+#   up or fire   rotate      fire  also stands for SPACE on the title screens
+# Both screens list the keyboard and joystick controls side by side.
+#
+use "joysticklib.xmin"
+
+def pos(char x, char y):
+  char posx @ 0x00c0 = x
+  char posy @ 0x00c1 = y
+
+def rnd():
+  call 0xf009
+  char r @ 0x00ff
+  return r
+
+def key():
+  call 0xf012
+  char r @ 0x00ff
+  return r
+
+def clear(): call 0xf033
+
+# -------------------------
+
+def drawIntro():
+  clear()
+  pos(3, 8); print("M I N I M A L   C P U   B L O C K S")
+  pos(3, 14); print("written in  M I N 3  by slu4 (2023)")
+  pos(6, 16); print("ACTION      KEYBOARD")
+  pos(6, 17); print("Move left   A")
+  pos(6, 18); print("Move right  D")
+  pos(6, 19); print("Rotate      W")
+  pos(6, 20); print("Drop        S")
+  pos(6, 21); print("Start       SPACE")
+  if joyHave == 1:
+    pos(28, 16); print("JOYSTICK")
+    pos(28, 17); print("Left")
+    pos(28, 18); print("Right")
+    pos(28, 19); print("Up or Fire")
+    pos(28, 20); print("Down")
+    pos(28, 21); print("Fire")
+  pos(11, 24); print("Press SPACE or ESC")
+
+def drawScreen():
+  clear(); int i=0
+  while i<20:
+    pos(12, i); print("<!          !>")
+    i+=1
+  pos(12, 20); print("<!==========!>")
+  pos(12, 21); print("  VVVVVVVVVV  ")
+  pos(0, 0); print("SCORE 0")
+  pos(27, 0); print("HIGH ", high)
+  pos(36, 3); print("KEY")
+  pos(28, 4); print("Left    A")
+  pos(28, 5); print("Right   D")
+  pos(28, 6); print("Rotate  W")
+  pos(28, 7); print("Drop    S")
+  if joyHave == 1:
+    pos(41, 3); print("JOYSTICK")
+    pos(41, 4); print("Left")
+    pos(41, 5); print("Right")
+    pos(41, 6); print("Up/Fire")
+    pos(41, 7); print("Down")
+
+def drawShape(char b, int x, int y):
+  int i=0; x+=14
+  while i<8:
+    pos(x+shape[i], y+shape[i+1]); print(b)
+    i+=2
+
+def newShape():
+  px=4; py=1; int m = (128 + rnd())/37
+  shape = minos[10*m|10*m+10]
+  return testShape(px, py)
+
+def testShape(int x, int y):
+  int i=0
+  while i<8:
+    int tx=x+shape[i]; int ty=y+shape[i+1]
+    if tx < 0 or tx > 9: return 0
+    if ty < 0 or ty > 19: return 0
+    if vram[tx + 10*ty] != ".": return 0
+    i+=2
+  return -1
+
+def rotShape():
+  int rotshape = shape
+  int i=0
+  while i<10:
+    rotshape[i]   =  shape[i+1]
+    rotshape[i+1] = -shape[i]
+    i+=2
+  shape = rotshape
+  px=px+shape[8]; py=py+shape[9]  # do the SRS offset correction
+
+def placeShape():
+  int i=0
+  while i<8:
+    vram[px+shape[i] + (py+shape[i+1])*10] = "#"
+    i+=2
+
+def compare(char s1, char s2):
+  int i=0
+  while i < 10:
+    if s1[i] != s2[i]: return -1
+    i+=1
+  return 0
+
+def updateVRAM():
+  int rows=0; int i=0; int d=0
+  while i<20:
+    d = 10*i
+    if compare(vram[d|d+10], "##########") == 0:
+      vram = ".........." _ vram[0|d] _ vram[d+10|200]
+      rows+=1
+    i+=1
+  score=score+bonus[rows]
+  wait-=1
+
+def drawField():
+  int i=0; int d=0
+  while i<20:
+    pos(14, i)
+    d=10*i
+    print(vram[d|d+10])
+    i+=1
+
+def clearField():
+  int i=0
+  while i<200: vram[i] = "."; i+=1
+
+# -------------------------
+
+int state=0                          # game state
+int score=0; int high=2023
+int px=0; int py=0                   # position of the current shape
+int wait                             # slowly decreasing time for one step
+int timer                            # step timer (always counts down from 'wait' to 0)
+char vram = vram[0|200]              # allocate local memory for 20x10 field
+int bonus = 0_40_120_270_540         # bonus points for cleared rows
+
+int shape = 0_0_0_0_0_0_0_0_    0_0  # current shape
+
+int minos = minos[0|70]              # allocate local memory for 70 elements
+minos[0]  = -1_-1_0_-1_0_0_1_0_ 0_0  # Z
+minos[10] = -1_0_0_0_0_-1_1_-1_ 0_0  # neg. Z
+minos[20] = -1_0_0_0_1_0_2_0_   0_1  # I
+minos[30] = -1_0_0_0_1_0_0_-1_  0_0  # stairs
+minos[40] = -1_-1_-1_0_0_0_1_0_ 0_0  # L
+minos[50] = -1_0_0_0_1_0_1_-1_  0_0  # neg. L
+minos[60] = 0_0_1_0_0_-1_1_-1_  0_1  # square
+
+# -------------------------
+
+joyInit()
+
+while state >= 0:
+  char inkey=key()
+  if inkey == 0: inkey = joyKey()    # no key: take the joystick's
+
+  if state==0: # drawing the intro screen
+    drawIntro(); state=1
+
+  elif state==1: # waiting for game startup
+    rnd()
+    if inkey == "\e": state=-1
+    if inkey == " ":
+      drawScreen(); clearField(); drawField()
+      newShape(); drawShape("#", px, py)
+      wait=100
+      timer=wait; score=0; state=2
+
+  elif state==2: # game is running
+    if inkey!=0:
+      if inkey=="\e": state=0
+      elif inkey=="a":
+        if testShape(px-1, py): drawShape(".", px, py); px=px-1
+      elif inkey=="d":
+        if testShape(px+1, py): drawShape(".", px, py); px=px+1
+      elif inkey=="s":
+        timer=0; score+=1
+      elif inkey=="w" or inkey==" ":   # the joystick's fire button arrives as SPACE
+        drawShape(".", px, py)
+        rotShape()
+        if not testShape(px, py):
+          if testShape(px-1, py): px-=1
+          elif testShape(px+1, py): px+=1
+          elif testShape(px-2, py): px-=2
+          elif testShape(px+2, py): px+=2
+          else: rotShape(); rotShape(); rotShape()
+      drawShape("#", px, py)
+
+    timer-=1
+    if timer < 0:
+      timer=wait
+      if testShape(px, py+1):
+        drawShape(".", px, py)   # shape falls
+        py+=1
+        drawShape("#", px, py)
+      else:
+        placeShape()             # shape lands
+        updateVRAM()
+        drawField()
+        pos(6, 0); print(score)
+        if score > high: high=score; pos(32, 0); print(high)
+        if newShape(): drawShape("#", px, py)
+        else: state=3
+
+  elif state==3: # print the 'GAME OVER' screen
+    pos(14, 10); print("GAME  OVER")
+    pos(10, 23); print("Press SPACE or ESC")
+    state=4
+
+  elif state==4: # waiting for quit or restart
+    if inkey=="\e" or inkey==" ": state=0
+
+pos(0,0); clear()
