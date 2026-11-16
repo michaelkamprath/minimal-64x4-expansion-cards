@@ -10,16 +10,24 @@
 ;
 ; Updated to play with an Atari 2600 style joystick through the
 ; joystick adapter, 2026. The keyboard still works: A, D and SPACE.
-; The joystick is optional; the speech synthesizer card is required,
-; as in speech_invaders.min64x4, which this file is based on.
+; The joystick is optional. This file is based on speech_invaders.min64x4.
 ;
-; Compile from this directory with the speech library on the include path:
+; Speech is a compile-time option. Without it the game needs no speech
+; synthesizer card:
 ;   bespokeasm compile -c slu4-minimal-64x4.yaml -n -p -t intel_hex \
-;       -I ../../speech-synthesizer/software joystick_invaders.min64x4
+;       joystick_invaders.min64x4
+;
+; Define ENABLE_SPEECH to build the speech in; the game then needs the
+; speech synthesizer card, and the speech library on the include path:
+;   bespokeasm compile -c slu4-minimal-64x4.yaml -n -p -t intel_hex \
+;       -D ENABLE_SPEECH -I ../../speech-synthesizer/software \
+;       joystick_invaders.min64x4
 ; ------------------------------------------------------
 #require __LANGUAGE_NAME__ == slu4-min64x4-asm
 #require __LANGUAGE_VERSION__ >= 1.1.0
+#ifdef ENABLE_SPEECH
 #use-scope "speechlib"
+#endif
 #use-scope "joysticklib"
 
 BYTECODE_LL0 = 0x07
@@ -30,12 +38,17 @@ ViewPort:
 
 .org 0 "USER_APPS"
 start:          LDI 0xfe STB 0xffff
+#ifdef ENABLE_SPEECH
                 jps speech_init
+#endif
                 jps joystick_init
                 CLW score
                 CLB gamestate
 
-  mainloop:     jps speech_update_buffer
+  mainloop:
+#ifdef ENABLE_SPEECH
+                jps speech_update_buffer
+#endif
                 jps JoyHandler
                 CLW counter
     waitloop:   JPS KeyHandler INW counter CPI 0x05 BCC waitloop ; on real hardware use 0x05
@@ -54,6 +67,7 @@ start:          LDI 0xfe STB 0xffff
                     LDI 22 STB _XPos LDI 2 STB _YPos LDB hiscore+0 PHS LDB hiscore+1 PHS JPS DecPrint PLS PLS
   nonewhigh:    LDI 2 STB _XPos LDI 27 STB _YPos JPS _Print "PRESS <SPACE>"
                 LDI 6 STB _XPos LDI 7 STB _YPos JPS _Print "   GAME OVER   "
+#ifdef ENABLE_SPEECH
                 ; play game over speech
                 ; select source (made need .align)
                 jps _Random ani b00000011 ll1 jar .gamover_jt
@@ -76,6 +90,7 @@ start:          LDI 0xfe STB 0xffff
     .gameover_play:
                   jps speak_synchronous
                   pls2 pls2
+#endif
   waitendfire:  JPS WaitStart
                   CLB gamestate
                   JPA mainloop
@@ -149,6 +164,7 @@ gamestate1:       LDI LSB(ViewPort+0x0600) STB vc_loopx+1         ; CLEAR GAME A
                   INB level ADI '0' JAS _Char
                   LDI 8 PHS LDB shippos PHS LDI 192 PHS JPS DrawSprite PLS PLS PLS ; redraw players ship
                   INB gamestate
+#ifdef ENABLE_SPEECH
                   ; play new level sound for levels past 1
                   ldb level cpi 1 feq .done_new_level
                   phs2i spd_try_this_level_end
@@ -156,6 +172,7 @@ gamestate1:       LDI LSB(ViewPort+0x0600) STB vc_loopx+1         ; CLEAR GAME A
                   jps speech_start
                   pls2 pls2
     .done_new_level:
+#endif
                   JPA mainloop
 
                 ; DRAW THE START SCREEN -------------------------
@@ -180,10 +197,12 @@ gamestate0:     JPS _Clear
                 LDI 2 STB _XPos LDI 2 STB _YPos LDB score+0 PHS LDB score+1 PHS JPS DecPrint PLS PLS
                 LDI 22 STB _XPos LDI 2 STB _YPos LDB hiscore+0 PHS LDB hiscore+1 PHS JPS DecPrint PLS PLS
 
+#ifdef ENABLE_SPEECH
                 phs2i spd_press_fire_end
                 phs2i spd_press_fire_start
                 jps speak_synchronous
                 pls2 pls2
+#endif
   waitstart:    JPS WaitStart
                   CLB fire CLB left CLB right                 ; init a new game
                   CLB level CLW score
@@ -237,6 +256,7 @@ UpdateSaucer:     LDB u_state
                   JPS DrawSprite PLS PLS PLS
                   LDI 12 STB u_timer+0 CLB u_timer+1
                   INB u_state
+#ifdef ENABLE_SPEECH
                   ; play saucer explosion sound
                   jps _Random ani b00000001 ll1 jar .saucer_hit_jt
                   ; jump table
@@ -253,6 +273,7 @@ UpdateSaucer:     LDB u_state
     .play_saucer_hit:
                   jps speech_start
                   pls2 pls2
+#endif
                   RTS
 
   sr_state1:      LDB framecount ANI 1 DEC BCC sr_nostep
@@ -276,11 +297,13 @@ UpdateSaucer:     LDB u_state
     sr_setval:        LDI LSB(u_values) STB u_valptr+0            ; point to 300 points
                       LDI BYTE1(u_values) STB u_valptr+1
                       INB u_state
+#ifdef ENABLE_SPEECH
                       ; play new saucer sound
                       phs2i spd_cant_catch_me_end
                       phs2i spd_cant_catch_me_start
                       jps speech_start
                       pls2 pls2                   
+#endif
     sr_rts:       RTS
 
 ResetAlienShots:  JPS as0_reset
@@ -507,6 +530,7 @@ PlaceShot:        LDB s_state CPI 0 BNE ps_rts                ; already active
                     LDI 188 STB s_y
                     INW u_valptr
                     JPS DrawLaser
+#ifdef ENABLE_SPEECH
                     ; select pew (made need .align)
                     jps _Random ani b00000011 ll1 jar .select_prw_jt
                     ; jump table
@@ -532,6 +556,7 @@ PlaceShot:        LDB s_state CPI 0 BNE ps_rts                ; already active
     .start_pew:
                     jps speech_start_if_not_talking
                     pls2 pls2
+#endif
   ps_rts:         RTS
 
 UpdateShot:       LDB s_state DEC BCC us_rts
@@ -672,11 +697,13 @@ UpdateAliens:     LDB a_halt CPI 1 BEQ ua_rts
   ua_pos:          .2byte 0xffff
 
 StartShipDestoyedSound:
+#ifdef ENABLE_SPEECH
                 ; play ship destroyed souund
                 phs2i spd_wizard_death_end
                 phs2i spd_wizard_death_start
                 jps speech_start
                 pls2 pls2
+#endif
                 rts
 ; ----------------------------------------------------------------------------------------------
 
@@ -1064,6 +1091,7 @@ as2_timer:      .byte 0
 ; speech data
 ;
 
+#ifdef ENABLE_SPEECH
 spd_good_shot_start:
   .byte 0x8a, 0xd2, 0xce, 0x6b, 0x8b, 0x9d, 0x38, 0x32, 0x68, 0xcf, 0x29, 0x72, 0x12, 0xc8, 0x24, 0x2c
   .byte 0xfa, 0xc8, 0xb5, 0x21, 0x83, 0xb4, 0x98, 0x93, 0x34, 0x08, 0x64, 0xb1, 0xf3, 0x54, 0x33, 0x21
@@ -1338,7 +1366,10 @@ spd_press_fire_start:
   .byte 0xF2, 0xC5, 0x9C, 0xB5, 0xF2, 0x14, 0xD3, 0x0F
   .byte 0x73, 0xC5, 0x0F
 spd_press_fire_end:
+#endif
 
 ; ----------------------------------------------------------------------------------------------
+#ifdef ENABLE_SPEECH
 #include "speechlib.min64x4"
+#endif
 #include "joysticklib.min64x4"

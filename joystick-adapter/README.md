@@ -66,7 +66,7 @@ All software is in the [software](./software/) directory.
 ### Programs
 
 * `joystick_test.min64x4` shows the raw register value and the closed switches until a key is pressed. Run it first to check the wiring.
-* `joystick_invaders.min64x4` is the [speech synthesizer version of Alien Invaders](../speech-synthesizer/software/speech_invaders.min64x4) with joystick control added: left, right and fire. Fire also starts a game. The keyboard still works, and the game runs without the joystick adapter. It needs the speech synthesizer card, as the version it is based on does.
+* `joystick_invaders.min64x4` is the [speech synthesizer version of Alien Invaders](../speech-synthesizer/software/speech_invaders.min64x4) with joystick control added: left, right and fire. Fire also starts a game. The keyboard still works, and the game runs without the joystick adapter. Speech is a compile-time option: built without `ENABLE_SPEECH` the game is silent and does not need the speech synthesizer card; built with it, the card is required.
 * `joystick_blocks.xmin` is slu4's Blocks with joystick control added through `joyKey()`: left and right move, down drops one row, up or fire rotates, and fire stands for SPACE on the title screens. The title screen and the game screen list the keyboard and joystick controls side by side; the joystick column appears only when the adapter is detected. Save `joysticklib.xmin` on the Minimal under that name so the `use` line finds it. Each pass of the game loop now also polls the joystick, so the game may run a little slower than the original; lower the starting value of `wait` if it does.
 
 # Compiling the Software
@@ -76,10 +76,10 @@ The assembly sources are compiled with [BespokeASM](https://github.com/michaelka
 bespokeasm compile -c /path/to/bespokeasm/examples/slu4-minimal-64x4/slu4-minimal-64x4.yaml -n -p -t intel_hex joystick_test.min64x4
 ```
 
-`joystick_invaders.min64x4` also includes the speech library, so add its directory to the include path:
+`joystick_invaders.min64x4` compiles the same way and gives the game without speech. To build the speech in, define `ENABLE_SPEECH` and add the speech library's directory to the include path:
 
 ```sh
-bespokeasm compile -c /path/to/bespokeasm/examples/slu4-minimal-64x4/slu4-minimal-64x4.yaml -n -p -t intel_hex -I ../../speech-synthesizer/software joystick_invaders.min64x4
+bespokeasm compile -c /path/to/bespokeasm/examples/slu4-minimal-64x4/slu4-minimal-64x4.yaml -n -p -t intel_hex -D ENABLE_SPEECH -I ../../speech-synthesizer/software joystick_invaders.min64x4
 ```
 
 Send the Intel HEX output to the Minimal 64x4 with its `receive` command. The `*.xmin` files are run by Extended Min on the Minimal itself.
