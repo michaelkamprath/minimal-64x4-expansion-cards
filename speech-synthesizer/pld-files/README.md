@@ -1,17 +1,27 @@
 # `PLD` Files for Programmable Logic
 
 ## Compiling PLD
+There are two versions of the controller configuration. Program the one that matches the speech chip fitted to the board:
+
+| File | For | `0xFE_3` reset |
+| --- | --- | --- |
+| `minimal-64x4-speech-controller-tms5220.pld` | TMS5220 | Not implemented; writes to `0xFE_3` are ignored |
+| `minimal-64x4-speech-controller-tms5220c.pld` | TMS5220C | Implemented; see the board [README](../README.md) |
+
+Do not use the TMS5220C version with an original TMS5220. It asserts `/RS` and `/WS` together to reset the chip, which is undefined for the TMS5220. The two versions are otherwise identical.
+
 The `.pld` files in this directory may be compiled with [GALasm](https://github.com/daveho/GALasm), producing a `.jed` file amonst others. Then the `.jed` file is used to program a `ATF22V10C` or `GAL22V10`.
 
 ```sh
-galasm minimal-64x4-speech-controller.pld
+galasm minimal-64x4-speech-controller-tms5220.pld
+galasm minimal-64x4-speech-controller-tms5220c.pld
 ```
 
 ## Programming the 22V10
 The `ATF22V10C(UES)` type should be used when programming the ATF22V10C with `minipro`.
 
 ```sh
-minipro -p "ATF22V10C(UES)" -w minimal-64x4-speech-controller.jed
+minipro -p "ATF22V10C(UES)" -w minimal-64x4-speech-controller-tms5220.jed
 ```
 
 ## More Information
