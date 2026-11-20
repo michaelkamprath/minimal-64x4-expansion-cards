@@ -1,0 +1,132 @@
+GAL22V10
+speechc
+
+CLK  MMAP  RO   RI     M1      M0       RESET    READY   INT    RS     WS      GND
+NC   INH   ARM  BUSY   STATEO  STATUSI  STATUSO  WSRST   RSRST  WSCLK  RSCLK   VCC
+
+
+; Variant for the TMS5220C. Identical to the TMS5220 variant except that it
+; implements the hardware reset at $FE_3. Do NOT use this variant with an
+; original TMS5220: asserting /WS and /RS together is undefined for that chip.
+
+; Memory Map Lines
+;
+;   Function | M1 | M0
+;  ----------+----+----
+;   DATA_IN  |  0 |  0
+;   STATUS   |  0 |  1
+;   STATE    |  1 |  0
+;   RESET    |  1 |  1
+
+;
+; Active Low Input lines
+;   RO
+;   RI
+;   RESET
+;   READY
+;   INT
+;   MMAP
+;
+; Active Low Output Lines
+;   STATEO
+;   STATUSO
+;   WSRST
+;   RSRST
+;
+; ARM (pin 15) is an internal state bit. The pin is not connected on the board.
+;
+
+
+;
+; Pin Logic TMS5220C Controller
+;
+
+;
+; Write Data for External Speech Data, and start of TMS5220C reset
+;
+
+; The WSCLK pin should go high on the CLK when the conditions to intiate a write
+; operation are present. When the clock goes low, the WSCLK should be reset.
+;
+; The second term starts a TMS5220C reset: a write to $FE_3 while the board is
+; not busy clocks the WS and RS flip flops together, so /WS and /RS are both
+; asserted to the TMS5220C.
+WSCLK.R = /MMAP * /RI * RO * /M1 * /M0 * /BUSY + /MMAP * /RI * RO * M1 * M0 * /BUSY
+
+
+; READY should go high within 100 ns of WS. That is a 10 MHz clock, which
+; is faster than CLK. WSCLK should be active for long enough to
+; prevent WSRST from being activated in the time between WS being activated
+; and READY going high. Given that, the WSRST should be activated when
+; WSCLK is not active, WS is active, and READY is not active (should have transitioned
+; from HIGH to LOW given WS was active)
+;
+; The /RS qualifier keeps READY from ending a reset early. A reset is ended by
+; the third term: a second write to $FE_3 once ARM is set.
+
+/WSRST.R = /WSCLK * WS * /READY * /RS + /RESET + ARM * /MMAP * /RI * RO * M1 * M0
+
+;
+; TMS5220C Status Fetch Operation
+;
+
+
+; activate RS (active low) when memory map is appropriate and active RI and
+; speech module not otherwise busy, and keep active while READY
+; is high. Assumes READY will go high within 1 clock cycle.
+;
+; The second term is the reset start (see WSCLK).
+RSCLK.R = /MMAP * /RI * RO * /M1 * M0 * /BUSY + /MMAP * /RI * RO * M1 * M0 * /BUSY
+
+; The /WS qualifier keeps READY from ending a reset early. The second term
+; releases /RS one clock after /WS at the end of a reset, regardless of READY,
+; so /WS is never left asserted on its own (which the TMS5220C would take as a
+; data write). /RS on its own is only a status read.
+STATUSI.R = /RSCLK * RS * /READY * /WS + ARM * RS * /WS
+
+/RSRST = STATUSI + /RESET
+
+;
+; TMS5220C Reset
+;
+; The TMS5220C resets when /WS and /RS are asserted at the same time. The
+; sequence is timed by the host:
+;
+;   1. Write any value to $FE_3 while BUSY is low. WS and RS are both set.
+;   2. Wait for the reset hold time.
+;   3. Write to $FE_3 again. WS is cleared on that clock and RS one clock later.
+;   4. Poll BUSY until it is low.
+;
+; ARM is set once the write strobe of step 1 has ended with both flip flops
+; set, so that a strobe spanning more than one clock cannot end the reset it
+; started. ARM clears on the clock after either flip flop clears.
+
+ARM.R = WS * RS * RI + ARM * WS * RS
+
+
+; Write status register to data bus when memory map is appropriate and active RO
+; and speech module not otherwise busy.
+ /STATUSO = /MMAP * RI * /RO * /M1 * M0 * /BUSY * STATEO
+
+;
+; Speech Board State
+;
+
+; Write board state to data bus when memory map is appropriate,
+/STATEO = /MMAP * RI * /RO * M1 * /M0 * STATUSO
+
+;
+; Speech Module Busy
+;
+
+BUSY = RS + STATUSI + WS + READY
+
+; Set the INH line to disable host computer RAM and ROM when
+; ever the speech board is going to write to the data bus
+
+INH = /MMAP * RI * /RO * /M1 * M0 * /BUSY * STATEO + /MMAP * RI * /RO * M1 * /M0 * STATUSO
+
+DESCRIPTION
+
+Glue logic to connect TMS5220C to 8 bit data bus and controlled via memory map.
+This variant is for the TMS5220C and implements the hardware reset at $FE_3.

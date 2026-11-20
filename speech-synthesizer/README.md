@@ -19,7 +19,7 @@ The board responds to three memory-mapped addresses (the board is adjustable to 
   This address exposes several internal states of this board, independent of the TMS5220, and can be read by the host computer at any time. The individual bits within the byte value read are below. Of these lines, the host computer generally only interacts with the `/INT` and `BUSY` bits.
 
   * **bit 0 – `BUSY`**
-    Indicates whether the TMS5220 or the board, in general, is working on something. The host computer should not interact with the TMS5220 Command or Status registers while this bit is high.
+    Indicates whether the TMS5220 or the board, in general, is working on something. The host computer should not interact with the TMS5220 Command or Status registers while this bit is high. A write to the Command or Status register while `BUSY` is high is silently dropped: the board does not queue it and gives no error, so always poll `BUSY` low before each write.
   * **bit 1 – `/INT`**
     The current value of the active-low interrupt line coming out of the TMS5220. When this bit is low, it indicates that the TMS5220 requires attention. The specific issue can be determined by reading the TMS5220 Status Register.
   * **bit 2 – `/READY`**
@@ -29,9 +29,28 @@ The board responds to three memory-mapped addresses (the board is adjustable to 
   * **bit 4 – `RS`**
     The current status of the `RS` flip flop (active high). Exposed for diagnostic purposes.
 
-* `0xFE_3` – **TMS5220C Reset** – *Currently Unimplemented*
-  The TMS5220C variant can be reset by holding both the `/RS` and `/WS` lines low at the same time. This action has undefined results for the non-C TMS5220 variant.
+* `0xFE_3` – **TMS5220C Reset** – *TMS5220C PLD variant only*
+  The TMS5220C variant can be reset by holding both the `/RS` and `/WS` lines low at the same time. This action has undefined results for the non-C TMS5220 variant, so there are two versions of the ATF22V10C configuration in [pld-files](./pld-files/), and the one programmed must match the chip that is fitted:
 
+  * `minimal-64x4-speech-controller-tms5220.pld` – for the original TMS5220. Writes to `0xFE_3` are ignored, so `/RS` and `/WS` can never be asserted together.
+  * `minimal-64x4-speech-controller-tms5220c.pld` – for the TMS5220C. Adds the reset described here. Do not use it with an original TMS5220.
+
+  With the TMS5220C variant, the host computer times the reset:
+
+  1. Poll `BUSY` low, then write to `0xFE_3`. The board asserts `/RS` and `/WS` together. Write `0xFF`: the value is driven onto the TMS5220C data lines for the duration of the reset, and `0xFF` is also the TMS5220 reset command.
+  2. Wait for the reset hold time. `BUSY` reads high for the whole reset.
+  3. Write to `0xFE_3` again (this write is accepted even though `BUSY` is high). The board releases `/WS`, then `/RS` one clock later.
+  4. Poll `BUSY` low before using the board again.
+
+  The reset logic has been compiled and simulated but not yet tested on hardware, and the hold time the TMS5220C needs has not been measured.
+
+
+### Supporting Circuitry
+Besides the bus interface described below, the board has a few parts that keep the TMS5220 and its audio output well behaved:
+
+* **Data line pull-downs.** The eight data lines between the TMS5220 and the two 74HCT374 latches are only driven during a read or a write. The rest of the time neither the TMS5220 nor the write latch `U5` drives them, so `RN2` (47K, 9-pin bussed SIP) pulls them to ground to keep the inputs of the read latch `U4` from floating. `RN2` sits between the `U5` and `U4` sockets, where each of its pins is next to a data pin of one of the two latches. It is a close fit: the footprints leave about 3.2 mm between the two socket bodies, so use a network with a body no thicker than 2.5 mm.
+* **Local decoupling for the TMS5220.** `C11` and `C12` (100 nF) decouple the TMS5220's `+5V` and `-5V` supply pins to ground right at pins 5 and 4, and `C13` (10 µF) adds bulk capacitance to the `-5V` rail from the converter module. `C13` is polarized: because it sits on a negative rail, its positive lead goes to ground.
+* **Audio output.** The TMS5220's speaker pin is a current output. `R1` (1K8) converts it to a voltage and `C2` filters it, `C1` AC-couples the result to the 3.5 mm jack, and `R2` (100K) bleeds the jack side of `C1` to ground so that plugging in a cable does not pop.
 
 ### TMS5220 “Slow Memory” Issue
 A key pin to understand on the TMS5220 is the `READY` signal at pin 18. The TMS5220 drives the `READY` pin low when it is ready to accept input or provide output to the host computer. When the `READY` pin is high, the TMS5220 is busy processing data and does not immediately act on—if not outright ignore—any interactions the CPU initiates. In many 1980s-era computers, the `READY` pin was connected to the CPU’s halt or wait-state pin, causing the CPU to stop while the TMS5220 processed data. This board takes a different approach. In some ways, this is necessary because the Minimal 64x4 has no line that would allow an accessory to pause or halt the CPU. However, this design choice is otherwise agnostic of that limitation.

@@ -1,0 +1,6 @@
+use "timerlib.min"
+
+timerLatch()
+print("current timer = ")
+timerValue()
+print("\n\n")

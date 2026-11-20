@@ -92,13 +92,14 @@ BUSY = RS + STATUSI + WS + READY
 
 INH = /MMAP * RI * /RO * /M1 * M0 * /BUSY * STATEO + /MMAP * RI * /RO * M1 * /M0 * STATUSO
 
-; TMS5220C Reset
+; Reset ($FE_3)
 ;
-; Reset for the TMS5220C is activated when RI is active and memory map is appropriate.
-; Reset is booth the /WS and /RS pins on the TMS5220C being active at the same time.
-;
-; TBC
+; Not implemented in this variant. The original TMS5220 has no hardware reset,
+; and asserting /WS and /RS together is undefined for it, so writes to $FE_3
+; are ignored here. Use minimal-64x4-speech-controller-tms5220c.pld when a
+; TMS5220C is fitted.
 
 DESCRIPTION
 
 Glue logic to connect TMS5220 to 8 bit data bus and controlled via memory map.
+This variant is for the original TMS5220 (no hardware reset at $FE_3).
