@@ -45,12 +45,12 @@ The board responds to three memory-mapped addresses (the board is adjustable to 
   The reset logic has been compiled and simulated but not yet tested on hardware, and the hold time the TMS5220C needs has not been measured.
 
 
-### Board Revision 1.2.0
-Revision 1.2.0 of the board adds the following parts. None of them change how software uses the board.
+### Supporting Circuitry
+Besides the bus interface described below, the board has a few parts that keep the TMS5220 and its audio output well behaved:
 
-* **`RN2` (47K, 9-pin bussed SIP)** pulls the eight TMS5220 data lines down to ground. Neither the TMS5220 nor the write latch `U5` drives those lines when the board is idle, and without the pull-downs the inputs of the read latch `U4` float. `RN2` sits between the `U5` and `U4` sockets, where each of its pins is next to a data pin of one of the two latches. It is a close fit: the footprints leave about 3.2 mm between the two socket bodies, so use a network with a body no thicker than 2.5 mm.
-* **`C11` and `C12` (100 nF)** decouple the TMS5220's `+5V` and `-5V` pins to ground right at pins 5 and 4, and **`C13` (10 µF)** adds bulk capacitance to the `-5V` rail. `C13` is polarized: its positive lead goes to ground.
-* **`R2` (100K)** bleeds the output side of the audio coupling capacitor to ground, so that plugging a cable into the jack does not pop.
+* **Data line pull-downs.** The eight data lines between the TMS5220 and the two 74HCT374 latches are only driven during a read or a write. The rest of the time neither the TMS5220 nor the write latch `U5` drives them, so `RN2` (47K, 9-pin bussed SIP) pulls them to ground to keep the inputs of the read latch `U4` from floating. `RN2` sits between the `U5` and `U4` sockets, where each of its pins is next to a data pin of one of the two latches. It is a close fit: the footprints leave about 3.2 mm between the two socket bodies, so use a network with a body no thicker than 2.5 mm.
+* **Local decoupling for the TMS5220.** `C11` and `C12` (100 nF) decouple the TMS5220's `+5V` and `-5V` supply pins to ground right at pins 5 and 4, and `C13` (10 µF) adds bulk capacitance to the `-5V` rail from the converter module. `C13` is polarized: because it sits on a negative rail, its positive lead goes to ground.
+* **Audio output.** The TMS5220's speaker pin is a current output. `R1` (1K8) converts it to a voltage and `C2` filters it, `C1` AC-couples the result to the 3.5 mm jack, and `R2` (100K) bleeds the jack side of `C1` to ground so that plugging in a cable does not pop.
 
 ### TMS5220 “Slow Memory” Issue
 A key pin to understand on the TMS5220 is the `READY` signal at pin 18. The TMS5220 drives the `READY` pin low when it is ready to accept input or provide output to the host computer. When the `READY` pin is high, the TMS5220 is busy processing data and does not immediately act on—if not outright ignore—any interactions the CPU initiates. In many 1980s-era computers, the `READY` pin was connected to the CPU’s halt or wait-state pin, causing the CPU to stop while the TMS5220 processed data. This board takes a different approach. In some ways, this is necessary because the Minimal 64x4 has no line that would allow an accessory to pause or halt the CPU. However, this design choice is otherwise agnostic of that limitation.
