@@ -89,7 +89,7 @@
 			(mirror no)
 			(drillshape 0)
 			(scaleselection 1)
-			(outputdirectory "gerbers_v1.1")
+			(outputdirectory "gerbers_v1.2")
 		)
 	)
 	(footprint "Capacitor_THT:C_Disc_D3.4mm_W2.1mm_P2.50mm"
